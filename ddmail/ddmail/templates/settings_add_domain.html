@@ -1,0 +1,10 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h3>Add domain</h3>
+<form method="POST">
+    {{ form.csrf_token }}
+    {{ form.domain.label }} {{ form.domain(size=20) }}
+    <input type="submit" value="Add Domain">
+</form>
+{% endblock%}

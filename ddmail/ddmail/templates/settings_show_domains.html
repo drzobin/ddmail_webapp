@@ -1,0 +1,10 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h3>Show Domains</h3>
+<p></p>Current active domains for this user:
+{% for domain in domains %}
+<br>
+{{ domain.domain }}
+{% endfor %}
+{% endblock%}

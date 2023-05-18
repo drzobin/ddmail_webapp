@@ -1,0 +1,12 @@
+{% extends "all.html" %}
+{% block content %}
+<h2>Register</h2>
+<p>To create a account push the button below.</p>
+<p>
+<form action="" method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+<input type="submit" value="Create account">
+</form>
+</p>
+<p>Happy mailing :)</p>
+{% endblock%}

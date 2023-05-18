@@ -1,0 +1,19 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h3>Add Email Account</h3>
+
+<form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+    {{ form.email.label }} {{ form.email(size=20) }}
+    @
+    <select name="domain">
+    {% for domain in domains %}
+      <option value="{{ domain.domain }}">{{ domain.domain }}</option>
+    {% endfor %}
+    </select>
+    <p></p>
+    <input type="submit" value="Add Email">
+</form>
+{% endblock%}

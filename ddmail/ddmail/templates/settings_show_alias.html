@@ -1,0 +1,10 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h3>Show Alias</h3>
+<p></p>Current active alias for this user:
+{% for alias in aliases %}
+<br>
+{{ alias.src_email}} > {{ alias.email.email}}
+{% endfor %}
+{% endblock%}

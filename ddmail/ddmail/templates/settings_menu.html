@@ -1,0 +1,17 @@
+{% if current_user %}
+<h2>Settings</h2>
+    <ul>
+        <li><a href="/settings/change_password_on_user">Change password on user</a></li>
+        <li><a href="/settings/change_key_on_user">Change key on user</a></li>
+        <li><a href="/settings/show_email">Show Email Accounts</a></li>
+        <li><a href="/settings/add_email">Add Email Account</a></li>
+        <li><a href="/settings/remove_email">Remove Email Account</a></li>
+        <li><a href="/settings/change_password_on_email">Change password on Email Account</a></li>
+        <li><a href="/settings/show_alias">Show Aliases</a></li>
+        <li><a href="/settings/add_alias">Add Alias</a></li>
+        <li><a href="/settings/remove_alias">Remove Alias</a></li>
+        <li><a href="/settings/show_domains">Show Domains</a></li>
+        <li><a href="/settings/add_domain">Add Domain</a></li>
+        <li><a href="/settings/remove_domain">Remove Domain</a></li>
+    </ul>
+{% endif %}

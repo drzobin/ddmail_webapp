@@ -1,0 +1,25 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h3>Add Alias</h3>
+<form method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    {{ form.src.label }}: <br> {{ form.src(size=20) }}
+    @
+    <select name="domain">
+    {% for domain in domains %}
+      <option value="{{ domain.domain }}">{{ domain.domain }}</option>
+    {% endfor %}
+    </select>
+    <p>
+    Destination:<br>
+    <select name="dst">
+      {% for email in emails %}
+      <option value="{{ email.email }}">{{ email.email}}</option>
+      {% endfor %}
+    </select>
+    <br><br>
+    
+    <input type="submit" value="Add Alias">
+</form>
+{% endblock%}

@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+    <head>
+    </head>
+    <body>
+        <h1>www.ddmail.se</h1>
+        <ul>
+            <li><a href="/">Main</a></li>
+            {% if current_user %}
+            <li><a href="/logout">Logout</a></li>
+            <li><a href="/settings">Settings</a></li>
+            {% else %}
+            <li><a href="/login">Login</a></li>
+            <li><a href="/register">Register</a></li>
+            {% endif %}
+            <li><a href="/about">About</a></li>
+        </ul>
+        <p>
+        {% if current_user %}
+	Logged in on account: {{ current_user.account.account }} <br>
+        Logged in as user: {{ current_user.user }} <br>
+        {% if  current_user.account.is_enabled == 1 %}
+	Is account enabled: Yes <br>
+        {% else %}
+	Is account enabled: No <br>
+        {% endif %}
+        {% else %}
+	Logged in on account: Not logged in <br>
+        Logged in as user: Not logged in
+        {% endif %}
+        {% block content %}{% endblock %}
+        </p>
+    </body>
+</html>
+
+

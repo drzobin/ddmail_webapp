@@ -1,0 +1,24 @@
+{% extends "all.html" %}
+{% block content %}
+<h2>Login</h2>
+<form action="" method="post" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+<p>
+Username:<br>
+<input type="text" name="user">
+</p>
+<p>
+Password:<br>
+<input type="password" name="password">
+</p>
+<p>
+Key file:
+</p>
+<p>
+<input type="file" name="key" id="key">
+</p>
+<p>
+<input type="submit" value="Submit">
+</p>
+</form>
+{% endblock%}

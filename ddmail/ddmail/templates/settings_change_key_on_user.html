@@ -1,0 +1,13 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h2>Change key on user</h2>
+<p>To generate a new key for the logged in user push the button below.</p>
+<p>
+<form action="" method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+<input type="submit" value="Change key">
+</form>
+</p>
+
+{% endblock%}

@@ -1,0 +1,8 @@
+{% extends "all.html" %}
+{% block content %}
+<h2>Account and User Created</h2>
+<p>Account: {{ account }}</p>
+<p>Username: {{ user }}</p>
+<p>Password: {{ cleartext_password }}</p>
+<p>Key file content: {{ cleartext_password_key }}</p>
+{% endblock%}

@@ -1,0 +1,15 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h3>Remove Domain</h3>
+<form action="" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <select name="remove_domain">
+  {% for domain in domains %}
+    <option value="{{ domain.domain }}">{{ domain.domain }}</option>
+  {% endfor %}
+  </select>
+  <br><br>
+  <input type="submit">
+</form>
+{% endblock%}
