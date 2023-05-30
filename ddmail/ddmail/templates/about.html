@@ -2,19 +2,22 @@
 
 {% block content %}
 <h2>About</h2>
-<p>Here you can find information regarding our e-mail service.</p>
+<p>Here you can find information regarding ddmail e-mail service.</p>
 
 <h3>What is ddmail.se</h3>
-A reasonably nice e-mail service. Who value Privacy and Security more than speed, design and avalability.
+E-mail system for reasonable paranoid people. Who value Privacy and Security.
 
 <h3>Privacy</h3>
 We try to honner your privacy. We do not track you in any way. We do not log or save your ip in any way. We do not serve ads. We do not use javascript. The service is avalible as a tor onion service(before known as tor hidden service). The service is avalible as a i2p service. No personal information is needed for registration. We provide anonymous payment options.
 
 <h3>Security</h3>
-We try to follow the principle of less code, less attacksurface. The service is designed with the principel of leased privileged. The server configuration and code is all open source and can be reviewed and used by anyone. We use automatic testing. We see all input as evil. We use hard to crack password hashing with argon2id. We autoupdate the server software every hour. If there was a kernel update we reboot our servers once a day. The service is run on Debian 10. We use mod_security for WAF. We use apparmore as MAC. We do not provide any webmail interface.
+We try to use the following design patterns/principle: less code, less attacksurface, leased privileged, default deny, assume breach. The server configuration and code is all open source and can be reviewed and used by anyone at github.com/drzobin. We see all input as evil. We use hard to crack password hashing with argon2. We autoupdate the server software every 3 hour. We use mod_security for WAF. We use apparmore as MAC. We do not provide any webmail interface.
 
 <h3>Features</h3>
 Unlimited number of e-mails accounts per account. Unlimited number of aliases per account. Unlimited number of own domains per account. Avalible as Tor Onion Service. Avalible as i2p service. Protocol supported for getting emails is imaps.
+
+<h3>Pricing</h3>
+20 Swedish kronor or 2 euro per month for every 1G of totalt storage.
 
 <p>Happy mailing :)</p>
 {% endblock%}
