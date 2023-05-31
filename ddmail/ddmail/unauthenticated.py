@@ -21,5 +21,13 @@ def about():
     else:
         current_user = None
 
-    return render_template('about.html',current_user=current_user)
+@bp.route("/pricing_and_payment")
+def about():
+    # Check if user is athenticated.
+    if "secret" in session:
+        current_user = is_athenticated(session["secret"])
+    else:
+        current_user = None
+
+    return render_template('pricing_and_payment.html',current_user=current_user)
 
