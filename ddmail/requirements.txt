@@ -1,0 +1,9 @@
+flask
+Flask-SQLAlchemy
+Flask-Session
+Flask-WTF
+argon2_cffi
+mysqlclient
+pytest
+coverage
+gunicorn
