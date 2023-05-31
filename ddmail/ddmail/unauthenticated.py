@@ -22,7 +22,7 @@ def about():
         current_user = None
 
 @bp.route("/pricing_and_payment")
-def about():
+def pricing_and_payment():
     # Check if user is athenticated.
     if "secret" in session:
         current_user = is_athenticated(session["secret"])
