@@ -325,6 +325,10 @@ def setings_show_alias():
     if current_user == None:
         return render_template('login.html')
 
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        return render_template('message.html',headline="Show alias error",message="Failed to show alias beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+
     aliases = db.session.query(Alias).filter(Alias.account_id == current_user.account_id)
 
     return render_template('settings_show_alias.html',aliases=aliases,current_user=current_user)
@@ -341,6 +345,10 @@ def settings_add_alias():
     # If user is not athenticated send them to the login page.
     if current_user == None:
         return render_template('login.html')
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        return render_template('message.html',headline="Add alias error",message="Failed to add alias beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     form = AliasForm()
     if request.method == 'GET':
@@ -423,6 +431,10 @@ def settings_remove_alias():
     if current_user == None:
         return render_template('login.html')
 
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        return render_template('message.html',headline="Remove alias error",message="Failed to remove alias beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+
     if request.method == 'GET':
         aliases = db.session.query(Alias).filter(Alias.account_id == current_user.account_id)
         return render_template('settings_remove_alias.html',aliases=aliases,current_user=current_user)
@@ -459,6 +471,10 @@ def settings_show_domains():
     # If user is not athenticated send them to the login page.
     if current_user == None:
         return render_template('login.html')
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        return render_template('message.html',headline="Show domains error",message="Failed to show domains beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     # Get the orgs domains.
     domains = db.session.query(Domain).filter(Domain.account_id == current_user.account_id)
@@ -519,6 +535,10 @@ def settings_remove_domain():
     # If user is not athenticated send them to the login page.
     if current_user == None:
         return render_template('login.html')
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        return render_template('message.html',headline="Remove domains error",message="Failed to remove domains beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
         domains = db.session.query(Domain).filter(Domain.account_id == current_user.account_id)
