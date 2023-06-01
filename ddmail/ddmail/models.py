@@ -9,9 +9,10 @@ class Account(db.Model):
     __tablename__ = 'accounts'
     id = db.Column(db.Integer, primary_key=True)
     account = db.Column(db.String(100), unique=True, nullable=False)
-    payment_id = db.Column(db.String(100), unique=True, nullable=False)
+    payment_token = db.Column(db.String(12), unique=True, nullable=False)
     assets_in_sek = db.Column(db.Integer)
     is_enabled = db.Column(db.Boolean, unique=False, nullable=False)
+    is_gratis = db.Column(db.Boolean, unique=False, nullable=False)
     aliases = relationship("Alias")
     emails = relationship("Email")
     domains = relationship("Domain")
