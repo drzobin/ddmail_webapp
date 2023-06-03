@@ -5,12 +5,27 @@ from ddmail.validators import isUserPassAllowed
 import random
 import string
 import datetime
+import secrets
 
 bp = Blueprint("auth", __name__, url_prefix="/")
 
-# Generate a random string with digits, uppercases and lowercases.
-def generateRandom(length):
-    return ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits + string.ascii_lowercase) for _ in range(length))
+# Generate a token that is easy to write down on paper frpm screen.
+def generate_token(length):
+    alphabet = string.ascii_uppercase + string.digits
+    while True:
+        token = ''.join(secrets.choice(alphabet) for i in range(length))
+        if (any(c.isupper() for c in token) and sum(c.isdigit() for c in token) >= 4):
+            break
+    return token
+
+# Generate a password with digit, upparcase letters and lowercase letters.
+def generate_password(length):
+    alphabet = string.ascii_letters + string.digits
+    while True:
+        password = ''.join(secrets.choice(alphabet) for i in range(length))
+        if (any(c.islower() for c in password) and any(c.isupper() for c in password) and sum(c.isdigit() for c in password) >= 3):
+            break
+    return password
 
 # Check if a user is authenticated, if the user is authenticated the user id will be returned else None.
 def is_athenticated(cookie):
@@ -50,8 +65,8 @@ def register():
         ph = PasswordHasher()
 
         # Generate new account.
-        account = generateRandom(12)
-        payment_token = generateRandom(12)
+        account = generate_token(12)
+        payment_token = generate_token(12)
 
         # Add new org to the db.
         new_account = Account(account=account, payment_token=payment_token,assets_in_sek=0,is_enabled=False)
@@ -59,9 +74,9 @@ def register():
         db.session.commit()
 
         # Generate all the user data.
-        user = generateRandom(12)
-        cleartext_password = generateRandom(24)
-        cleartext_password_key = generateRandom(4096)
+        user = generate_token(12)
+        cleartext_password = generate_password(24)
+        cleartext_password_key = generate_password(4096)
 
         # Generate password hashes for password and password-key.
         password_hash = ph.hash(cleartext_password)
@@ -112,7 +127,7 @@ def login():
         try:
             if ph.verify(user_from_db.password_hash, cleartext_password_from_form) == True and ph.verify(user_from_db.password_key_hash, cleartext_password_key_from_form) == True:
                 # Generate a secret random cookie.
-                cookie = generateRandom(128)
+                cookie = generate_password(128)
 
                 # Sign the cookie and store it in the browser.
                 session["secret"] = cookie
