@@ -1,6 +1,6 @@
 from flask import Blueprint, session, render_template, request
 from argon2 import PasswordHasher
-from ddmail.auth import is_athenticated, generateRandom
+from ddmail.auth import is_athenticated, generate_password
 from ddmail.models import db, Email, Domain, Alias
 from ddmail.forms import EmailForm, AliasForm, DomainForm
 from ddmail.validators import isEmailAllowed, isDomainAllowed
@@ -60,7 +60,7 @@ def settings_change_password_on_user():
         return render_template('settings_change_password_on_user.html',current_user = current_user)
     elif request.method == 'POST':
         # Generate new password for user.
-        cleartext_password = generateRandom(24)
+        cleartext_password = generate_password(24)
 
         # Generate password hashes for password.
         ph = PasswordHasher()
@@ -94,7 +94,7 @@ def settings_change_key_on_user():
         return render_template('settings_change_key_on_user.html',current_user = current_user)
     elif request.method == 'POST':
         # Generate new key for user.
-        cleartext_password_key = generateRandom(4096)
+        cleartext_password_key = generate_password(4096)
 
         # Generate password hashes for password key.
         ph = PasswordHasher()
@@ -173,7 +173,7 @@ def settings_add_email():
                 return render_template('message.html',headline="Add email error",message="Failed to add email, email already exist.",current_user=current_user)
 
             # Generate password.
-            cleartext_password = generateRandom(24)
+            cleartext_password = generate_password(24)
 
             # Hash the password SSHA512.
             #password_hash = createSSHA512(cleartext_password)
@@ -306,7 +306,7 @@ def settings_change_password_on_email():
             return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, validation failed.",current_user=current_user)
 
         # Generate password.
-        cleartext_password = generateRandom(24)
+        cleartext_password = generate_password(24)
         print("cleartext_password:" + cleartext_password)
 
         # Hash the password SSHA512.
