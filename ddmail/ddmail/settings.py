@@ -35,7 +35,7 @@ def payment_token():
     if current_user == None:
         return render_template('login.html')
 
-    return render_template('settings_payment_token.html',current_user = current_user)
+    return render_template('settings_payment_token.html',payment_token = current_user.account.payment_token, current_user = current_user)
 
 
 
