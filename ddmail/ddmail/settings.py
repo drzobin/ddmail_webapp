@@ -22,6 +22,23 @@ def settings():
 
     return render_template('settings.html', current_user = current_user)
 
+@bp.route("/settings/payment_token", methods=['GET'])
+def payment_token():
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        return render_template('login.html')
+
+    # Check if user is athenticated
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        return render_template('login.html')
+
+    return render_template('settings_payment_token.html',current_user = current_user)
+
+
+
 @bp.route("/settings/change_password_on_user", methods=['POST', 'GET'])
 def settings_change_password_on_user():
     # Check if cookie secret is set.
