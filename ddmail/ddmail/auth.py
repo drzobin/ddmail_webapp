@@ -51,10 +51,10 @@ def register():
 
         # Generate new account.
         account = generateRandom(12)
-        payment_id = generateRandom(24)
+        payment_token = generateRandom(12)
 
         # Add new org to the db.
-        new_account = Account(account=account, payment_id=payment_id,assets_in_sek=0,is_enabled=False)
+        new_account = Account(account=account, payment_token=payment_token,assets_in_sek=0,is_enabled=False)
         db.session.add(new_account)
         db.session.commit()
 
