@@ -1,0 +1,13 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h2>Add new user to account</h2>
+<p>To create a new user for this account push the button below</p>
+<p>
+<form action="" method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+<input type="submit" value="Add new user">
+</form>
+</p>
+<p>Happy mailing :)</p>
+{% endblock%}
