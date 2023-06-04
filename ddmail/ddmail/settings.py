@@ -1,7 +1,7 @@
 from flask import Blueprint, session, render_template, request
 from argon2 import PasswordHasher
 from ddmail.auth import is_athenticated, generate_password
-from ddmail.models import db, Email, Domain, Alias
+from ddmail.models import db, Email, Domain, Alias, Global_domain
 from ddmail.forms import EmailForm, AliasForm, DomainForm
 from ddmail.validators import isEmailAllowed, isDomainAllowed
 
@@ -128,7 +128,11 @@ def settings_add_email():
     if request.method == 'GET':
 
         # Get the accounts domains.
-        domains = db.session.query(Domain).filter(Domain.account_id == current_user.account_id)
+        #session.query(SomeModel.col1)
+        account_domains = db.session.query(Domain.domain).filter(Domain.account_id == current_user.account_id)
+        global_domains = db.session.query(Global_domain.domain).filter(Global_domain.is_enabled == True)
+
+        domains = account_domains.union(global_domains)
 
         return render_template('settings_add_email.html',form=form, current_user = current_user, domains=domains)
 
@@ -154,7 +158,8 @@ def settings_add_email():
                 return render_template('message.html',headline="Add email error",message="Failed to add email, domain validation failed.",current_user=current_user)
 
             # Check if domain is global.
-            isDomainGlobal = isDomainMine = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1], Domain.is_global == True).count()
+            #isDomainGlobal = isDomainMine = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1], Domain.is_global == True).count()
+            isDomainGlobal = db.session.query(Global_domain).filter(Global_domain.domain == validate_email_domain[1], Global_domain.is_enabled == True).count()
 
             # Check if domain is owned by the org.
             isDomainMine = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1], Domain.account_id == current_user.account_id).count()
@@ -180,13 +185,17 @@ def settings_add_email():
             ph = PasswordHasher(time_cost=3,memory_cost=65536,parallelism=1)
             password_hash = ph.hash(cleartext_password)
 
-            # Get the domain id.
-            domain = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1]).first()
-
-            # Add the new email account to db.
-            new_email = Email(account_id=int(current_user.account_id), email=add_email_from_form,password_hash=password_hash, domain_id=domain.id)
-            db.session.add(new_email)
-            db.session.commit()
+            # Get the domain id and aff the new email account to db.
+            if isDomainMine == 1:
+                domain = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1]).first()
+                new_email = Email(account_id=int(current_user.account_id), email=add_email_from_form,password_hash=password_hash, domain_id=domain.id)
+                db.session.add(new_email)
+                db.session.commit()
+            elif isDomainGlobal == 1:
+                global_domain = db.session.query(Global_domain).filter(Global_domain.domain == validate_email_domain[1]).first()
+                new_email = Email(account_id=int(current_user.account_id), email=add_email_from_form,password_hash=password_hash, global_domain_id=global_domain.id)
+                db.session.add(new_email)
+                db.session.commit()
 
             return render_template('message.html',headline="Add email",message="Successfully added email: " + add_email_from_form + " with password: " + cleartext_password ,current_user=current_user)
         else:
@@ -370,11 +379,14 @@ def settings_add_alias():
     form = AliasForm()
     if request.method == 'GET':
         emails = db.session.query(Email).filter(Email.account_id == current_user.account_id)
-        domains = db.session.query(Domain).filter(Domain.account_id == current_user.account_id)
+        account_domains = db.session.query(Domain.domain).filter(Domain.account_id == current_user.account_id)
+        global_domains = db.session.query(Global_domain.domain).filter(Global_domain.is_enabled == True)
+
+        domains = account_domains.union(global_domains)
 
         return render_template('settings_add_alias.html', form=form, current_user=current_user, emails=emails, domains=domains)
     if request.method == 'POST':
-        # Check if org is enabled.
+        # Check if account is enabled.
         if current_user.account.is_enabled != True:
             return render_template('message.html',headline="Add alias error",message="Failed to add alias beacuse this account is disabled.",current_user=current_user)
 
@@ -412,24 +424,28 @@ def settings_add_alias():
             if isAliasUniq != 0:
                 return render_template('message.html',headline="Add alias error",message="Failed to add alias, source email exist.",current_user=current_user)
 
-            # Check that src email domain is owned by org or is global.
-            src_email_domain = db.session.query(Domain).filter(Domain.domain == validate_src_email_domain[1]).first()
+            # Check that src email domain is owned by account or is global.
+            is_src_email_domain_mine = db.session.query(Domain).filter(Domain.domain == validate_src_email_domain[1], Domain.account_id == current_user.account_id).count()
+            is_src_email_domain_global = db.session.query(Global_domain).filter(Global_domain.domain == validate_src_email_domain[1]).count()
 
-
-            if not src_email_domain:
-                return render_template('message.html',headline="Add alias error",message="Failed to add alias, source email domain is not allowed.",current_user=current_user)
-
-            if src_email_domain.account_id != current_user.account_id and src_email_domain.is_global != True:
+            if not is_src_email_domain_mine == 1 and not is_src_email_domain_global == 1:
                 return render_template('message.html',headline="Add alias error",message="Failed to add alias, source email domain is not allowed.",current_user=current_user)
 
             # Check that dst email already exist in db and is owned by current user.
             dst_email = db.session.query(Email).filter(Email.email == dst_email_from_form, Email.account_id == current_user.account_id).first()
             if not dst_email.email:
                 return render_template('message.html',headline="Add alias error",message="Failed to add alias, can not find destination email.",current_user=current_user)
-
-            new_alias = Alias(account_id=current_user.account_id, src_email=src_email_from_form, src_domain_id=src_email_domain.id, dst_email_id=dst_email.id)
-            db.session.add(new_alias)
-            db.session.commit()
+            # Add alias to database.
+            if is_src_email_domain_mine == 1:
+                src_email_domain = db.session.query(Domain).filter(Domain.domain == validate_src_email_domain[1], Domain.account_id == current_user.account_id).first()
+                new_alias = Alias(account_id=current_user.account_id, src_email=src_email_from_form, src_domain_id=src_email_domain.id, dst_email_id=dst_email.id)
+                db.session.add(new_alias)
+                db.session.commit()
+            elif is_src_email_domain_global == 1:
+                src_email_global_domain = db.session.query(Global_domain).filter(Global_domain.domain == validate_src_email_domain[1]).first()
+                new_alias = Alias(account_id=current_user.account_id, src_email=src_email_from_form, src_global_domain_id=src_email_global_domain.id, dst_email_id=dst_email.id)
+                db.session.add(new_alias)
+                db.session.commit()
 
             return render_template('message.html',headline="Add alias",message="Alias added successfully.",current_user=current_user)
         else:
