@@ -51,7 +51,6 @@ class Domain(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     account_id = db.mapped_column(db.Integer, ForeignKey('accounts.id'), nullable=False)
     domain = db.Column(db.String(200), unique=True, nullable=False)
-    is_global = db.Column(db.Boolean, unique=False, nullable=False,default=False)
 
     account = relationship("Account", back_populates="domains")
     emails = relationship("Email", back_populates="domain")
