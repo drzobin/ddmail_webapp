@@ -1,7 +1,7 @@
 from flask import Blueprint, session, render_template, request
 from argon2 import PasswordHasher
-from ddmail.auth import is_athenticated, generate_password
-from ddmail.models import db, Email, Domain, Alias, Global_domain
+from ddmail.auth import is_athenticated, generate_password, generate_token
+from ddmail.models import db, Email, Domain, Alias, Global_domain, User
 from ddmail.forms import EmailForm, AliasForm, DomainForm
 from ddmail.validators import isEmailAllowed, isDomainAllowed
 
@@ -106,6 +106,46 @@ def settings_change_key_on_user():
         db.session.commit()
 
         return render_template('message.html',headline="Change password on user",message="Successfully changed password key on user: " + current_user.user + " to new password key: " + cleartext_password_key ,current_user=current_user)
+
+
+@bp.route("/settings/add_user_to_account", methods=['POST', 'GET'])
+def settings_add_user_to_account():
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        return render_template('login.html')
+
+    # Check if user is athenticated
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        return render_template('login.html')
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        return render_template('message.html',headline="Add email error",message="Failed to add email beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+
+    if request.method == 'GET':
+        return render_template('settings_add_user_to_account.html',current_user = current_user)
+
+    if request.method == 'POST':
+        ph = PasswordHasher()
+        # Generate all the user data.
+        user = generate_token(12)
+        cleartext_password = generate_password(24)
+        cleartext_password_key = generate_password(4096)
+
+        # Generate password hashes for password and password-key.
+        password_hash = ph.hash(cleartext_password)
+        password_key_hash = ph.hash(cleartext_password_key)
+
+        # Add the user data to the db.
+        new_user = User(account_id=current_user.account_id, user=user, password_hash=password_hash,password_key_hash=password_key_hash)
+        db.session.add(new_user)
+        db.session.commit()
+
+        # Give the data to the user.
+        return render_template('settings_added_user_to_account.html',current_user=current_user,account=current_user.account.account,user=user,cleartext_password=cleartext_password,cleartext_password_key=cleartext_password_key)
 
 @bp.route("/settings/add_email", methods=['POST', 'GET'])
 def settings_add_email():
