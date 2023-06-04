@@ -25,24 +25,28 @@ class Alias(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     account_id = db.mapped_column(ForeignKey("accounts.id"), nullable=False)
     src_email = db.Column(db.String(200), unique=True, nullable=False)
-    src_domain_id = db.mapped_column(db.Integer, ForeignKey('domains.id'), nullable=False)
+    src_domain_id = db.mapped_column(db.Integer, ForeignKey('domains.id'), nullable=True)
+    src_global_domain_id = db.mapped_column(db.Integer, ForeignKey('global_domains.id'), nullable=True)
     dst_email_id = db.mapped_column(db.Integer, ForeignKey('emails.id'), nullable=False)
 
     account = relationship("Account", back_populates="aliases")
     email = relationship("Email", back_populates="aliases")
     domain = relationship("Domain", back_populates="aliases")
+    global_domain = relationship("Global_domain", back_populates="aliases")
 
 # DB modul for emails.
 class Email(db.Model):
     __tablename__ = 'emails'
     id = db.Column(db.Integer, primary_key=True,nullable=False)
     account_id = db.mapped_column(db.Integer, ForeignKey('accounts.id'),nullable=False)
-    domain_id = db.mapped_column(db.Integer, ForeignKey('domains.id'),nullable=False)
+    domain_id = db.mapped_column(db.Integer, ForeignKey('domains.id'),nullable=True)
+    global_domain_id = db.mapped_column(db.Integer, ForeignKey('global_domains.id'),nullable=True)
     email = db.Column(db.String(200), unique=True, nullable=False)
     password_hash = db.Column(db.String(2096), nullable=False)
 
     account = relationship("Account", back_populates="emails")
     domain = relationship("Domain", back_populates="emails")
+    global_domain = relationship("Global_domain", back_populates="emails")
     aliases = relationship("Alias", back_populates="email")
 
 # DB modul for domains.
@@ -62,6 +66,9 @@ class Global_domain(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     domain = db.Column(db.String(200), unique=True, nullable=False)
     is_enabled = db.Column(db.Boolean, unique=False, nullable=False,default=True)
+
+    emails = relationship("Email", back_populates="global_domain")
+    aliases = relationship("Alias", back_populates="global_domain")
 
 
 # DB modul for users.
