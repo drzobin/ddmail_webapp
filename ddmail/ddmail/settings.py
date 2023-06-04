@@ -130,6 +130,7 @@ def settings_add_user_to_account():
 
     if request.method == 'POST':
         ph = PasswordHasher()
+
         # Generate all the user data.
         user = generate_token(12)
         cleartext_password = generate_password(24)
@@ -146,6 +147,28 @@ def settings_add_user_to_account():
 
         # Give the data to the user.
         return render_template('settings_added_user_to_account.html',current_user=current_user,account=current_user.account.account,user=user,cleartext_password=cleartext_password,cleartext_password_key=cleartext_password_key)
+
+@bp.route("/settings/show_account_users")
+def settings_show_account_users():
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        return render_template('login.html')
+
+    # Check if user is athenticated.
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        return render_template('login.html')
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        return render_template('message.html',headline="Show email error",message="Failed to show email beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+
+    users = db.session.query(User).filter(User.account_id == current_user.account_id)
+
+    return render_template('settings_show_account_users.html',users=users, current_user = current_user)
+
 
 @bp.route("/settings/add_email", methods=['POST', 'GET'])
 def settings_add_email():
