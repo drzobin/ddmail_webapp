@@ -509,8 +509,11 @@ def settings_show_domains():
     if current_user.account.is_enabled != True:
         return render_template('message.html',headline="Show domains error",message="Failed to show domains beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
-    # Get the orgs domains.
-    domains = db.session.query(Domain).filter(Domain.account_id == current_user.account_id)
+    # Get the account domains and global domains.
+    account_domains = db.session.query(Domain.domain).filter(Domain.account_id == current_user.account_id)
+    global_domains = db.session.query(Global_domain.domain).filter(Global_domain.is_enabled == True)
+
+    domains = account_domains.union(global_domains)
 
     return render_template('settings_show_domains.html',domains=domains,current_user=current_user)
 
