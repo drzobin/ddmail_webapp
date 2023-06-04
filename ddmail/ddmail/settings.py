@@ -542,8 +542,10 @@ def settings_add_domain():
                 return render_template('message.html',headline="Add domain error",message="Failed to add domain, domain validation failed.",current_user=current_user)
 
             # Check that domain do not already exsist.
-            doesDomainExist = db.session.query(Domain).filter(Domain.domain == form.domain.data).count()
-            if doesDomainExist != 0:
+            does_domain_exist = db.session.query(Domain).filter(Domain.domain == form.domain.data).count()
+            does_global_domain_exist = db.session.query(Global_domain).filter(Global_domain.domain == form.domain.data).count()
+            print(does_global_domain_exist)
+            if not does_domain_exist == 1 or not does_global_domain_exist == 1:
                 return render_template('message.html',headline="Add domain error",message="Failed to add domain, the current domain already exist.",current_user=current_user)
 
             # Add domain to db.
