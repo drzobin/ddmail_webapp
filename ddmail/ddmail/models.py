@@ -57,6 +57,14 @@ class Domain(db.Model):
     emails = relationship("Email", back_populates="domain")
     aliases = relationship("Alias", back_populates="domain")
 
+# DB modul for global domains.
+class Global_domain(db.Model):
+    __tablename__ = 'global_domains'
+    id = db.Column(db.Integer, primary_key=True, nullable=False)
+    domain = db.Column(db.String(200), unique=True, nullable=False)
+    is_enabled = db.Column(db.Boolean, unique=False, nullable=False,default=True)
+
+
 # DB modul for users.
 class User(db.Model):
     __tablename__ = 'users'
