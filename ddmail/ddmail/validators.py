@@ -49,3 +49,12 @@ def isEmailAllowed(email):
 
     return True
 
+# Validate account user.
+def is_user_allowed(user):
+    pattern = re.compile(r"[A-Z0-9]")
+
+    for char in user:
+        if not re.match(pattern, char):
+            return False
+
+    return True
