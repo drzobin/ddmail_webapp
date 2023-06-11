@@ -3,7 +3,7 @@ from argon2 import PasswordHasher
 from ddmail.auth import is_athenticated, generate_password, generate_token
 from ddmail.models import db, Email, Domain, Alias, Global_domain, User
 from ddmail.forms import EmailForm, AliasForm, DomainForm
-from ddmail.validators import isEmailAllowed, isDomainAllowed
+from ddmail.validators import isEmailAllowed, isDomainAllowed, is_user_allowed
 
 bp = Blueprint("settings", __name__, url_prefix="/")
 
@@ -169,6 +169,53 @@ def settings_show_account_users():
 
     return render_template('settings_show_account_users.html',users=users, current_user = current_user)
 
+@bp.route("/settings/remove_account_user", methods=['POST', 'GET'])
+def settings_remove_account_user():
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        return render_template('login.html')
+
+    # Check if user is athenticated
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        return render_template('login.html')
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        return render_template('message.html',headline="Remove email error",message="Failed to remove email beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+
+    if request.method == 'GET':
+        users = db.session.query(User).filter(User.account_id == current_user.account_id)
+
+        return render_template('settings_remove_account_user.html',users=users, current_user=current_user)
+
+    if request.method == 'POST':
+        # Check if account is enabled.
+        if current_user.account.is_enabled != True:
+            return render_template('message.html',headline="Remove email error",message="Failed to remove email beacuse this account is disabled.",current_user=current_user)
+
+        remove_user_from_form = request.form["remove_user"].strip()
+
+        # Validate user data from form.
+        if is_user_allowed(remove_user_from_form) == False:
+            return render_template('message.html',headline="Remove user error",message="Failed to removed user, validation failed.",current_user=current_user)
+
+        # Check that user already exist in db and is owned by current account.
+        is_user_mine = db.session.query(User).filter(User.user == remove_user_from_form, User.account_id == current_user.account_id).count()
+        if is_user_mine != 1:
+            return render_template('message.html',headline="Remove user error",message="Failed to removed user, validation failed.",current_user=current_user)
+
+        # Do not allow to remove current loged in user.
+        if remove_user_from_form == current_user.user:
+            return render_template('message.html',headline="Remove user error",message="Failed to removed user, you can not remove the same user as you are logged in as.",current_user=current_user)
+
+        # Remove email account from db.
+        db.session.query(User).filter(User.account_id == current_user.account_id, User.user == remove_user_from_form).delete()
+        db.session.commit()
+
+        return render_template('message.html',headline="Remove user",message="Successfully removed user.",current_user=current_user)
 
 @bp.route("/settings/add_email", methods=['POST', 'GET'])
 def settings_add_email():
