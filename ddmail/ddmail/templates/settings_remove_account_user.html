@@ -1,0 +1,15 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h3>Remove Account user</h3>
+<form action="" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <select name="remove_user">
+  {% for user in users %}
+    <option value="{{ user.user }}">{{ user.user}}</option>
+  {% endfor %}
+  </select>
+  <br><br>
+  <input type="submit">
+</form>
+{% endblock%}
