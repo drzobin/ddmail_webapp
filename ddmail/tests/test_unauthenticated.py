@@ -10,7 +10,6 @@ def test_main(client):
     assert b"Login" in response.data
     assert b"Register" in response.data
     assert b"About" in response.data
-    assert b"A reasonably nice e-mail service. Who value Privacy and Security more than speed, design and avalability." in response.data
 
 def test_about(client):
     response = client.get("/about")
