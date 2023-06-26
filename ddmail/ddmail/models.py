@@ -13,6 +13,7 @@ class Account(db.Model):
     assets_in_sek = db.Column(db.Integer)
     is_enabled = db.Column(db.Boolean, unique=False, nullable=False)
     is_gratis = db.Column(db.Boolean, unique=False, nullable=False)
+    created = db.Column(db.DateTime, nullable=False)
 
     aliases = relationship("Alias", back_populates="account")
     emails = relationship("Email", back_populates="account")
