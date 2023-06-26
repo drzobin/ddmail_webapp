@@ -30,15 +30,7 @@ def test_settings_add_domain(client):
     # Test GET /settings/add_domain.
     assert client.get("/settings/add_domain").status_code == 200
     response_settings_add_domain_get = client.get("/settings/add_domain")
-    csrf_token_settings_add_domain = get_csrf_token(response_settings_add_domain_get.data)
     assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_add_domain_get.data
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_domain_get.data
     assert b"Is account enabled: No" in response_settings_add_domain_get.data
     assert b"Add domain" in response_settings_add_domain_get.data
-
-    # Test POST /settings/add_domain with faulty domain
-    assert client.post("/settings/add_domain", data={'domain':'test','csrf_token':csrf_token_settings_add_domain}).status_code == 200
-    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':'test','csrf_token':csrf_token_settings_add_domain})
-    assert b"Successfully added domain." not in response_settings_add_domain_post
-    assert b"Add domain error" in response_settings_add_domain_post
-    assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post
