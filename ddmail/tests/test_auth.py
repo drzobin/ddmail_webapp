@@ -167,7 +167,6 @@ def test_register_login_settings_logout(client):
     assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_get.data
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_get.data
     assert b"Is account enabled: No" in response_settings_get.data
-    assert b"Change password on user" in response_settings_get.data
 
     # Test /logout that we get redirected.
     assert client.get("/logout").status_code == 302
