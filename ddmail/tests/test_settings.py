@@ -27,10 +27,10 @@ def test_settings_disabled_account(client):
 
     # Test GET /settings.
     assert client.get("/settings").status_code == 200
-    response_settings_add_domain_get = client.get("/settings")
-    assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_add_domain_get.data
-    assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_domain_get.data
-    assert b"Is account enabled: No" in response_settings_add_domain_get.data
+    response_settings_get = client.get("/settings")
+    assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_get.data
+    assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_get.data
+    assert b"Is account enabled: No" in response_settings_get.data
 
 def test_settings_disabled_account_payment_token(client):
     # Get the csrf token for /register
