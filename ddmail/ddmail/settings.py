@@ -184,7 +184,7 @@ def settings_remove_account_user():
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
-        return render_template('message.html',headline="Remove email error",message="Failed to remove email beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+        return render_template('message.html',headline="Remove account user error",message="Failed to remove account user beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
         users = db.session.query(User).filter(User.account_id == current_user.account_id)
