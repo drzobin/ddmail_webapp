@@ -686,7 +686,7 @@ def settings_remove_domain():
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
-        return render_template('message.html',headline="Remove domains error",message="Failed to remove domains beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+        return render_template('message.html',headline="Remove domain error",message="Failed to remove domains beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
         domains = db.session.query(Domain).filter(Domain.account_id == current_user.account_id)
