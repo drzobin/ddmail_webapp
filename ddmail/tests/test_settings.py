@@ -722,7 +722,7 @@ def test_settings_disabled_account_remove_domain(client,app):
     assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_remove_domain_get.data
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_remove_domain_get.data
     assert b"Is account enabled: No" in response_settings_remove_domain_get.data
-    assert b"Failed to remove domain beacuse this account is disabled." in response_settings_remove_domain_get.data
+    assert b"Failed to remove domains beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_remove_domain_get.data
 
     # Remove authenticated, user and account that was used in testcase.
     with app.app_context():
