@@ -163,7 +163,7 @@ def settings_show_account_users():
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
-        return render_template('message.html',headline="Show email error",message="Failed to show email beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+        return render_template('message.html',headline="Show account users error",message="Failed to show account users beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     users = db.session.query(User).filter(User.account_id == current_user.account_id)
 
