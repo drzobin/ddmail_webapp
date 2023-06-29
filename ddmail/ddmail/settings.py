@@ -123,7 +123,7 @@ def settings_add_user_to_account():
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
-        return render_template('message.html',headline="Add email error",message="Failed to add email beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+        return render_template('message.html',headline="Add email error",message="Failed to add user beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
         return render_template('settings_add_user_to_account.html',current_user = current_user)
