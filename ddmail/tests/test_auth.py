@@ -223,3 +223,14 @@ def test_is_athenticated(client,app):
         assert is_athenticated(session_secret) != None
         user_from_is_athenticated = is_athenticated(session_secret)
         assert user_from_is_athenticated.user == register_data["username"]
+
+    # Remove authenticated, user and account that was used in testcase.
+    with app.app_context():
+        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
+        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
+        db.session.commit()
+
+        db.session.query(User).filter(User.user == register_data["username"]).delete()
+        db.session.commit()
+
+        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
