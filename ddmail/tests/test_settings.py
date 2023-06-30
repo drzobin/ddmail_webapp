@@ -674,7 +674,7 @@ def test_settings_disabled_account_add_domain(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_login_post.data
     assert b"Is account enabled: No" in response_login_post.data
 
-    # Test GET /settings/add_domain.
+    # Test GET /settings/add_domain
     assert client.get("/settings/add_domain").status_code == 200
     response_settings_add_domain_get = client.get("/settings/add_domain")
     assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_add_domain_get.data
