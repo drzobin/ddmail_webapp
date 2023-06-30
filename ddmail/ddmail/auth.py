@@ -36,9 +36,8 @@ def is_athenticated(cookie):
     # Try to find the cookie in the db.
     authenticated = Authenticated.query.filter_by(cookie = cookie).first()
 
-    # Check if the cookie and ip_hash was in the authenticated table.
+    # Check if the cookie was in the authenticated table.
     if authenticated == None:
-        print("no auth")
         return None
 
     # Get the cookie valid_to time in datetime object.
@@ -69,7 +68,7 @@ def register():
         payment_token = generate_token(12)
 
         # Add new org to the db.
-        new_account = Account(account=account, payment_token=payment_token,assets_in_sek=0,is_enabled=False, is_gratis=False, created=datetime.datetime.now())
+        new_account = Account(account=account, payment_token=payment_token, assets_in_sek=0, is_enabled=False, is_gratis=False, created=datetime.datetime.now())
         db.session.add(new_account)
         db.session.commit()
 
