@@ -575,7 +575,7 @@ def test_settings_disabled_account_remove_alias(client,app):
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
-    # Register account and user
+    # Register account and user.
     response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
     register_data = get_register_data(response_register_post.data)
 
