@@ -5,8 +5,22 @@ from flask import session
 from werkzeug.http import parse_cookie
 from tests.helpers import get_csrf_token
 from tests.helpers import get_register_data
-from ddmail.auth import is_athenticated
+from ddmail.auth import is_athenticated, generate_password, generate_token
 from ddmail.models import db, Account, Email, Domain, Alias, Global_domain, User, Authenticated
+
+def test_generate_password():
+    password = generate_password(10)
+    assert len(password) == 10
+
+def test_generate_token():
+    token = generate_token(10)
+
+    # Check to see that all chars is uppercase.
+    is_uppercase = token.isupper() or token.isdigit()
+    assert is_uppercase == True
+
+    # Check to see that lenth is 10.
+    assert len(token) == 10
 
 def test_register_get(client):
     response = client.get("/register")
@@ -43,10 +57,6 @@ def test_login_post_CSRF(client):
 def test_login_post(client):
     # Get the csrf token
     response_get = client.get("/login")
-    #m = re.search(b'<input type="hidden" name="csrf_token" value="(.*)"/>', response_get.data)
-    #csrf_token = m.group(1).decode("utf-8")
-    #print("csrf_token: " + m.group(0).decode("utf-8"))
-    #print("csrf_token: " + csrf_token)
     csrf_token = get_csrf_token(response_get.data)
 
     # Test that we get status code 200
@@ -88,22 +98,18 @@ def test_register_login_post(client):
     # Get account
     m = re.search(b'<p>Account: (.*)</p>', response.data)
     account = m.group(1).decode("utf-8")
-    #print("Account: " + account)
 
     # Get username
     m = re.search(b'<p>Username: (.*)</p>', response.data)
     username = m.group(1).decode("utf-8")
-    #print("Username: " + username)
 
     #Get password
     m = re.search(b'<p>Password: (.*)</p>', response.data)
     password = m.group(1).decode("utf-8")
-    #print("Password: " + password)
 
     #Get key
     m = re.search(b'<p>Key file content: (.*)</p>', response.data)
     key = m.group(1).decode("utf-8")
-    #print("Key: " + key)
     
     # Get csrf_token from /login
     response_login_get = client.get("/login")
@@ -142,7 +148,7 @@ def test_logout_get(client):
     assert b"Logged in on account: Not logged in" in response.data
     assert b"Logged in as user: Not logged in" in response.data
 
-def test_register_login_settings_logout(client):
+def test_register_login_settings_logout(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
@@ -186,6 +192,17 @@ def test_register_login_settings_logout(client):
     assert b"Is account enabled: No" not in response_settings_get2.data
     assert b"Change password on user" not in response_settings_get2.data
 
+    # Remove authenticated, user and account that was used in testcase.
+    with app.app_context():
+        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
+        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
+        db.session.commit()
+
+        db.session.query(User).filter(User.user == register_data["username"]).delete()
+        db.session.commit()
+
+        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
+
 def test_is_athenticated(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -212,6 +229,10 @@ def test_is_athenticated(client,app):
     # Test that is_athenticated return None when cookie do not excist in db.
     with app.app_context():
         assert is_athenticated("test") == None
+
+    # Test that is_athenticated return None when cookie has illigal char.
+    with app.app_context():
+        assert is_athenticated("''") == None
 
     # Test that is_athenticated cookie is linked to correct user.
     session_secret = ""
