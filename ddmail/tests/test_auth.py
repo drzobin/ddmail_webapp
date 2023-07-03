@@ -9,18 +9,38 @@ from ddmail.auth import is_athenticated, generate_password, generate_token
 from ddmail.models import db, Account, Email, Domain, Alias, Global_domain, User, Authenticated
 
 def test_generate_password():
-    password = generate_password(10)
-    assert len(password) == 10
+    # Test to see that lenth is 21.
+    password = generate_password(21)
+    print("password:" + password)
+    assert len(password) == 21
+
+    # Test to see that all chars is uppercase or digits or lowercase.
+    is_uppercase_digit_lowercase = password.isupper() or password.isdigit() or password.islower()
+    assert is_uppercase_digit_lowercase == True
+
+    # Test that token contain both uppercase, lowercase and digits.
+    contains_uppercase = any(char.isupper() for char in password)
+    contains_lowercase = any(char.islower() for char in password)
+    contains_digit = any(char.isdigit() for char in password)
+    assert contains_uppercase == True
+    assert contains_lowercase == True
+    assert contains_digit == True
 
 def test_generate_token():
-    token = generate_token(10)
+    token = generate_token(12)
 
-    # Check to see that all chars is uppercase.
+    # Test to see that all chars is uppercase or digits.
     is_uppercase = token.isupper() or token.isdigit()
     assert is_uppercase == True
 
-    # Check to see that lenth is 10.
-    assert len(token) == 10
+    # Test that token contain both uppercase and digits.
+    contains_uppercase = any(char.isupper() for char in token)
+    contains_digit = any(char.isdigit() for char in token)
+    assert contains_uppercase == True
+    assert contains_digit == True
+
+    # Test to see that lenth is 12.
+    assert len(token) == 12
 
 def test_register_get(client):
     response = client.get("/register")
