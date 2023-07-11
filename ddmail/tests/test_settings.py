@@ -7,37 +7,6 @@ from tests.helpers import get_register_data
 
 from ddmail.models import db, Account, Email, Domain, Alias, Global_domain, User, Authenticated
 
-def add_testdata_to_db(app):
-    with app.app_context():
-        # Add account_test01 that is not enabled
-        new_account_test01 = Account(account="account_test01", payment_token="111111111111" ,assets_in_sek=0,is_enabled=False, is_gratis=False, created=datetime.datetime.now())
-        db.session.add(new_account_test01)
-        db.session.commit()
-
-        # Add account account_test02 that is enabled and gratis
-        new_account_test02 = Account(account="account_test02", payment_token="222222222222" ,assets_in_sek=0,is_enabled=True, is_gratis=True, created=datetime.datetime.now())
-        db.session.add(new_account_test02)
-        db.session.commit()
-
-        # Add account account_test03 that is enabled and gratis
-        new_account_test03 = Account(account="account_test03", payment_token="333333333333" ,assets_in_sek=0,is_enabled=True, is_gratis=True, created=datetime.datetime.now())
-        db.session.add(new_account_test03)
-        db.session.commit()
-
-def remove_testdata_from_db(app):
-    with app.app_context():
-        # Remove account account_test01
-        db.session.query(Account).filter(Account.account == "account_test01").delete()
-        db.session.commit()
-
-        # Remove account account_test02
-        db.session.query(Account).filter(Account.account == "account_test01").delete()
-        db.session.commit()
-
-        # Remove account account_test03
-        db.session.query(Account).filter(Account.account == "account_test03").delete()
-        db.session.commit()
-
 def test_settings_disabled_account(client,app):
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
