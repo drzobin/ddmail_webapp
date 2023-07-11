@@ -208,6 +208,13 @@ def test_settings_enabled_account_change_password_on_user(client, app):
     # Get csrf_token from /settings/change_password_on_user
     csrf_token_settings_change_password_on_user = get_csrf_token(response_settings_change_password_on_user_get.data)
 
+    # Test wrong csrf_token on /settings/change_password_on_user
+    assert client.post("/settings/change_password_on_user", data={'csrf_token':"wrong csrf_token"}).status_code == 400
+
+    # Test empty csrf_token
+    response_settings_change_password_on_user_empty_csrf_post = client.post("/settings/change_password_on_user", data={'csrf_token':""})
+    assert b"The CSRF token is missing" in response_settings_change_password_on_user_empty_csrf_post.data
+
     # Test POST /settings/change-password_on_user
     response_settings_change_password_on_user_post = client.post("/settings/change_password_on_user", data={'csrf_token':csrf_token_settings_change_password_on_user})
     assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_change_password_on_user_post.data
