@@ -298,6 +298,96 @@ def test_settings_disabled_change_key_on_user(client,app):
 
         db.session.query(Account).filter(Account.account == register_data["account"]).delete()
 
+def test_settings_enabled_account_change_key_on_user(client, app):
+    # Get the csrf token for /register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
+    register_data = get_register_data(response_register_post.data)
+
+    # Enable account.
+    with app.app_context():
+        account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
+        account.is_enabled = True        
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Test POST /login with newly registred account and user.
+    assert client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login}).status_code == 302
+
+    # Test GET /settings/change_key_on_user.
+    assert client.get("/settings/change_key_on_user").status_code == 200
+    response_settings_change_key_on_user_get = client.get("/settings/change_key_on_user")
+    assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_change_key_on_user_get.data
+    assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_change_key_on_user_get.data
+    assert b"Is account enabled: Yes" in response_settings_change_key_on_user_get.data
+    assert b"Change password" in response_settings_change_key_on_user_get.data
+
+    # Get csrf_token from /settings/change_key_on_user
+    csrf_token_settings_change_key_on_user = get_csrf_token(response_settings_change_key_on_user_get.data)
+
+    # Test wrong csrf_token on /settings/change_key_on_user
+    assert client.post("/settings/change_key_on_user", data={'csrf_token':"wrong csrf_token"}).status_code == 400
+
+    # Test empty csrf_token on /settings/change_key_on_user
+    response_settings_change_key_on_user_empty_csrf_post = client.post("/settings/change_key_on_user", data={'csrf_token':""})
+    assert b"The CSRF token is missing" in response_settings_change_key_on_user_empty_csrf_post.data
+
+    # Test POST /settings/change_key_on_user
+    response_settings_change_key_on_user_post = client.post("/settings/change_key_on_user", data={'csrf_token':csrf_token_settings_change_key_on_user})
+    assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_change_key_on_user_post.data
+    assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_change_key_on_user_post.data
+    assert b"Is account enabled: Yes" in response_settings_change_key_on_user_post.data
+    assert b"Successfully changed key on user: " + bytes(register_data["username"], 'utf-8') in response_settings_change_key_on_user_post.data
+
+    # Get new key.
+    m = re.search(b'to new key: (.*)</p>', response_settings_change_key_on_user_post.data)
+    new_user_key = m.group(1).decode("utf-8")
+
+    # Logout current user /logout
+    assert client.get("/logout").status_code == 302
+
+    # Test that user is not logged in.
+    assert client.get("/").status_code == 200
+    response_main_get = client.get("/")
+    assert b"Logged in on account: Not logged in" in response_main_get.data
+    assert b"Logged in as user: Not logged in" in response_main_get.data
+    assert b"Main" in response_main_get.data
+    assert b"Login" in response_main_get.data
+    assert b"Register" in response_main_get.data
+    assert b"About" in response_main_get.data
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Test POST /login with newly registred account and user.
+    assert client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes(new_user_key, 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login}).status_code == 302
+
+    # Test GET /settings/change_key_on_user.
+    assert client.get("/settings").status_code == 200
+    response_settings_get = client.get("/settings")
+    assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_get.data
+    assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_get.data
+    assert b"Is account enabled: Yes" in response_settings_get.data
+    assert b"Change password" in response_settings_get.data
+
+    # Remove authenticated, user and account that was used in testcase.
+    with app.app_context():
+        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
+        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
+        db.session.commit()
+        
+        db.session.query(User).filter(User.user == register_data["username"]).delete()
+        db.session.commit()
+
+        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
+        
 def test_settings_disabled_account_add_user_to_account(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
