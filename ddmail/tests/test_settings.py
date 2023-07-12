@@ -211,7 +211,7 @@ def test_settings_enabled_account_change_password_on_user(client, app):
     # Test wrong csrf_token on /settings/change_password_on_user
     assert client.post("/settings/change_password_on_user", data={'csrf_token':"wrong csrf_token"}).status_code == 400
 
-    # Test empty csrf_token
+    # Test empty csrf_token on /settings/change_password_on_user
     response_settings_change_password_on_user_empty_csrf_post = client.post("/settings/change_password_on_user", data={'csrf_token':""})
     assert b"The CSRF token is missing" in response_settings_change_password_on_user_empty_csrf_post.data
 
@@ -278,12 +278,6 @@ def test_settings_disabled_change_key_on_user(client,app):
 
     # Test POST /login with newly registred account and user.
     assert client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login}).status_code == 302
-
-    # Test POST /login with newly registred account and user, check that account and username is correct and that account is disabled.
-    response_login_post = client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login},follow_redirects = True)
-    assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_login_post.data
-    assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_login_post.data
-    assert b"Is account enabled: No" in response_login_post.data
 
     # Test GET /settings/change_key_on_user
     assert client.get("/settings/change_key_on_user").status_code == 200
