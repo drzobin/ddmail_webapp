@@ -105,7 +105,7 @@ def settings_change_key_on_user():
         user.password_key_hash = password_key_hash
         db.session.commit()
 
-        return render_template('message.html',headline="Change password on user",message="Successfully changed password key on user: " + current_user.user + " to new password key: " + cleartext_password_key ,current_user=current_user)
+        return render_template('message.html',headline="Change key on user",message="Successfully changed key on user: " + current_user.user + " to new key: " + cleartext_password_key ,current_user=current_user)
 
 
 @bp.route("/settings/add_user_to_account", methods=['POST', 'GET'])
