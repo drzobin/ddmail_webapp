@@ -553,6 +553,48 @@ def test_settings_disabled_account_show_account_users(client,app):
         db.session.commit()
 
         db.session.query(Account).filter(Account.account == register_data["account"]).delete()
+        
+def test_settings_enabled_account_show_account_users(client,app):
+    # Get the csrf token for /register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
+    register_data = get_register_data(response_register_post.data)
+
+    # Enable account.
+    with app.app_context():
+        account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
+        account.is_enabled = True        
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Test POST /login with newly registred account and user.
+    assert client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login}).status_code == 302
+
+    # Test GET /settings/show_account_users.
+    assert client.get("/settings/show_account_users").status_code == 200
+    response_settings_show_account_users_get = client.get("/settings/show_account_users")
+    assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_show_account_users_get.data
+    assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_show_account_users_get.data
+    assert b"Is account enabled: Yes" in response_settings_show_account_users_get.data
+    assert b"<h3>Show Account Users</h3>" in response_settings_show_account_users_get.data
+    assert b"Current active users for this account:\n\n<br>\n" + bytes(register_data["username"], 'utf-8') in response_settings_show_account_users_get.data
+
+    # Remove authenticated, user and account that was used in testcase.
+    with app.app_context():
+        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
+        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
+        db.session.commit()
+
+        db.session.query(User).filter(User.user == register_data["username"]).delete()
+        db.session.commit()
+
+        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
 
 def test_settings_disabled_account_remove_account_user(client,app):
     # Get the csrf token for /register
