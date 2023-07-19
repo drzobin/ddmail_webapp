@@ -194,13 +194,13 @@ def settings_remove_account_user():
     if request.method == 'POST':
         # Check if account is enabled.
         if current_user.account.is_enabled != True:
-            return render_template('message.html',headline="Remove email error",message="Failed to remove email beacuse this account is disabled.",current_user=current_user)
+            return render_template('message.html',headline="Remove email error",message="Failed to remove user beacuse this account is disabled.",current_user=current_user)
 
         remove_user_from_form = request.form["remove_user"].strip()
 
         # Validate user data from form.
         if is_user_allowed(remove_user_from_form) == False:
-            return render_template('message.html',headline="Remove user error",message="Failed to removed user, validation failed.",current_user=current_user)
+            return render_template('message.html',headline="Remove user error",message="Failed to removed account user, validation failed.",current_user=current_user)
 
         # Check that user already exist in db and is owned by current account.
         is_user_mine = db.session.query(User).filter(User.user == remove_user_from_form, User.account_id == current_user.account_id).count()
@@ -209,7 +209,7 @@ def settings_remove_account_user():
 
         # Do not allow to remove current loged in user.
         if remove_user_from_form == current_user.user:
-            return render_template('message.html',headline="Remove user error",message="Failed to removed user, you can not remove the same user as you are logged in as.",current_user=current_user)
+            return render_template('message.html',headline="Remove user error",message="Failed to remove account user, you can not remove the same user as you are logged in as.",current_user=current_user)
 
         # Remove email account from db.
         db.session.query(User).filter(User.account_id == current_user.account_id, User.user == remove_user_from_form).delete()
