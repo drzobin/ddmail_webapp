@@ -247,7 +247,9 @@ def settings_add_email():
         return render_template('settings_add_email.html',form=form, current_user = current_user, domains=domains)
 
     if request.method == 'POST':
-        if form.validate_on_submit():
+        if not form.validate_on_submit():
+            return render_template('message.html',headline="Add email error",message="Failed to add email, csrf validation failed.",current_user=current_user)
+        else:
             email_from_form = form.email.data.strip()
             domain_from_form = form.domain.data.strip()
 
@@ -255,32 +257,32 @@ def settings_add_email():
             #add_email_from_form = form.email.data
 
             # Validate email from form.
-            if isEmailAllowed(add_email_from_form) == False:
+            if is_email_allowed(add_email_from_form) == False:
                 return render_template('message.html',headline="Add email error",message="Failed to add email, email validation failed.",current_user=current_user)
 
             # Validate domain part of email from form.
             validate_email_domain = add_email_from_form.split('@')
-            if isDomainAllowed(validate_email_domain[1]) == False:
+            if is_domain_allowed(validate_email_domain[1]) == False:
                 return render_template('message.html',headline="Add email error",message="Failed to add email, domain validation failed.",current_user=current_user)
 
             # Check if domain is global.
             #isDomainGlobal = isDomainMine = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1], Domain.is_global == True).count()
-            isDomainGlobal = db.session.query(Global_domain).filter(Global_domain.domain == validate_email_domain[1], Global_domain.is_enabled == True).count()
+            is_domain_global = db.session.query(Global_domain).filter(Global_domain.domain == validate_email_domain[1], Global_domain.is_enabled == True).count()
 
             # Check if domain is owned by the org.
-            isDomainMine = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1], Domain.account_id == current_user.account_id).count()
+            is_domain_mine = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1], Domain.account_id == current_user.account_id).count()
 
-            if isDomainMine != 1 and isDomainGlobal != 1:
-                return render_template('message.html',headline="Add email error",message="Failed to add email, domain is not owned by you.",current_user=current_user)
+            if is_domain_mine != 1 and is_domain_global != 1:
+                return render_template('message.html',headline="Add email error",message="Failed to add email, domain is active in our system.",current_user=current_user)
 
             # Check that email does not already exist in emails table in db.
-            isEmailUniq = db.session.query(Email).filter(Email.email == add_email_from_form).count()
-            if isEmailUniq != 0:
+            is_email_uniq = db.session.query(Email).filter(Email.email == add_email_from_form).count()
+            if is_email_uniq != 0:
                 return render_template('message.html',headline="Add email error",message="Failed to add email, email already exist.",current_user=current_user)
 
             # Check that email does not already exist in alias table in db.
-            isEmailUniq = db.session.query(Alias).filter(Alias.src_email == add_email_from_form).count()
-            if isEmailUniq != 0:
+            is_email_uniq = db.session.query(Alias).filter(Alias.src_email == add_email_from_form).count()
+            if is_email_uniq != 0:
                 return render_template('message.html',headline="Add email error",message="Failed to add email, email already exist.",current_user=current_user)
 
             # Generate password.
@@ -292,21 +294,18 @@ def settings_add_email():
             password_hash = ph.hash(cleartext_password)
 
             # Get the domain id and aff the new email account to db.
-            if isDomainMine == 1:
+            if is_domain_mine == 1:
                 domain = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1]).first()
                 new_email = Email(account_id=int(current_user.account_id), email=add_email_from_form,password_hash=password_hash, domain_id=domain.id)
                 db.session.add(new_email)
                 db.session.commit()
-            elif isDomainGlobal == 1:
+            elif is_domain_global == 1:
                 global_domain = db.session.query(Global_domain).filter(Global_domain.domain == validate_email_domain[1]).first()
                 new_email = Email(account_id=int(current_user.account_id), email=add_email_from_form,password_hash=password_hash, global_domain_id=global_domain.id)
                 db.session.add(new_email)
                 db.session.commit()
 
             return render_template('message.html',headline="Add email",message="Successfully added email: " + add_email_from_form + " with password: " + cleartext_password ,current_user=current_user)
-        else:
-            return render_template('message.html',headline="Add email error",message="Failed to add email, csrf validation failed.",current_user=current_user)
-
 
 @bp.route("/settings/show_email")
 def settings_show_email():
