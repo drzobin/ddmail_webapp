@@ -3,7 +3,7 @@ from argon2 import PasswordHasher
 from ddmail.auth import is_athenticated, generate_password, generate_token
 from ddmail.models import db, Email, Domain, Alias, Global_domain, User
 from ddmail.forms import EmailForm, AliasForm, DomainForm
-from ddmail.validators import isEmailAllowed, isDomainAllowed, is_user_allowed
+from ddmail.validators import is_email_allowed, is_domain_allowed, is_username_allowed
 
 bp = Blueprint("settings", __name__, url_prefix="/")
 
@@ -199,7 +199,7 @@ def settings_remove_account_user():
         remove_user_from_form = request.form["remove_user"].strip()
 
         # Validate user data from form.
-        if is_user_allowed(remove_user_from_form) == False:
+        if is_username_allowed(remove_user_from_form) == False:
             return render_template('message.html',headline="Remove user error",message="Failed to removed account user, illigal character in string.",current_user=current_user)
 
         # Check that user already exist in db and is owned by current account.
