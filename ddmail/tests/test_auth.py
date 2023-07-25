@@ -7,7 +7,7 @@ from tests.helpers import get_csrf_token
 from tests.helpers import get_register_data
 from ddmail.auth import is_athenticated, generate_password, generate_token
 from ddmail.models import db, Account, Email, Domain, Alias, Global_domain, User, Authenticated
-from ddmail.validators import isUserPassAllowed
+from ddmail.validators import is_password_allowed
 
 def test_generate_password():
     # Test to see that length is 21.
@@ -16,7 +16,7 @@ def test_generate_password():
     assert len(password) == 21
 
     # Test to see that all chars in string is uppercase A-Z or digits 0-9 or lowercase a-z.
-    assert isUserPassAllowed(password) == True
+    assert is_password_allowed(password) == True
 
     # Test that token contain both uppercase, lowercase and digits.
     contains_uppercase = any(char.isupper() for char in password)
