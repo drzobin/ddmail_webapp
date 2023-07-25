@@ -1,7 +1,7 @@
 from flask import Blueprint, request, render_template, session, redirect, url_for
 from argon2 import PasswordHasher
 from ddmail.models import db, Account, User, Authenticated
-from ddmail.validators import isUserPassAllowed
+from ddmail.validators import is_username_allowed, is_password_allowed
 import random
 import string
 import datetime
@@ -30,7 +30,7 @@ def generate_password(length):
 # Check if a user is authenticated, if the user is authenticated the user id will be returned else None.
 def is_athenticated(cookie):
     # Validate the cookie
-    if isUserPassAllowed(cookie) != True:
+    if is_password_allowed(cookie) != True:
         return None
 
     # Try to find the cookie in the db.
@@ -111,7 +111,7 @@ def login():
             return render_template('message.html',headline="Login error",message="Failed to login, wrong username and/or password and/or key.",current_user=current_user)
 
         # Validate the form data.
-        if isUserPassAllowed(user_from_form) != True or isUserPassAllowed(cleartext_password_from_form) != True or isUserPassAllowed(cleartext_password_key_from_form) != True:
+        if is_username_allowed(user_from_form) != True or is_password_allowed(cleartext_password_from_form) != True or is_password_allowed(cleartext_password_key_from_form) != True:
             # Login failed.
             return render_template('message.html',headline="Login error",message="Failed to login, wrong username and/or password and/or key.",current_user=current_user)
 
