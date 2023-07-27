@@ -273,7 +273,7 @@ def settings_add_email():
             is_domain_mine = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1], Domain.account_id == current_user.account_id).count()
 
             if is_domain_mine != 1 and is_domain_global != 1:
-                return render_template('message.html',headline="Add email error",message="Failed to add email, domain is active in our system.",current_user=current_user)
+                return render_template('message.html',headline="Add email error",message="Failed to add email, domain is not active in our system.",current_user=current_user)
 
             # Check that email does not already exist in emails table in db.
             is_email_uniq = db.session.query(Email).filter(Email.email == add_email_from_form).count()
