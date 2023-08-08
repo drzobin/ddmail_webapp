@@ -1,0 +1,20 @@
+body {
+    background-color: #3b224c;
+    color: #dbbfef;
+}
+
+a {
+    color: #eccdba;
+    
+}
+
+h1, h2, h3 {
+    color: #eccdba;
+}
+
+html {
+  font-size: 20px;
+  font-family: "Open Sans", sans-serif;
+}
+
+
