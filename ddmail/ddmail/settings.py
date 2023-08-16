@@ -490,43 +490,46 @@ def settings_add_alias():
         domains = account_domains.union(global_domains)
 
         return render_template('settings_add_alias.html', form=form, current_user=current_user, emails=emails, domains=domains)
+
     if request.method == 'POST':
         # Check if account is enabled.
         if current_user.account.is_enabled != True:
             return render_template('message.html',headline="Add alias error",message="Failed to add alias beacuse this account is disabled.",current_user=current_user)
 
-        if form.validate_on_submit():
+        if not form.validate_on_submit():
+            return render_template('message.html',headline="Add alias error",message="Failed to add alias, failed csrf validation",current_user=current_user)
+        else:
             src_domain_from_form = form.domain.data.strip()
             src_from_form = form.src.data.strip()
             src_email_from_form = src_from_form + "@" + src_domain_from_form
             dst_email_from_form = form.dst.data.strip()
 
             # Validate src email from form.
-            if isEmailAllowed(src_email_from_form) == False:
+            if is_email_allowed(src_email_from_form) == False:
                 return render_template('message.html',headline="Add alias error",message="Failed to add alias, source email validation failed.",current_user=current_user)
 
             # Validate dst email from form.
-            if isEmailAllowed(dst_email_from_form) == False:
+            if is_email_allowed(dst_email_from_form) == False:
                 return render_template('message.html',headline="Add alias error",message="Failed to add alias, destination email validation failed.",current_user=current_user)
 
             # Validate domain part of src email from form.
             validate_src_email_domain = src_email_from_form.split('@')
-            if isDomainAllowed(validate_src_email_domain[1]) == False:
+            if is_domain_allowed(validate_src_email_domain[1]) == False:
                 return render_template('message.html',headline="Add alias error",message="Failed to add alias, source email domain validation failed.",current_user=current_user)
 
             # Validate domain part of dst email from form.
             validate_dst_email_domain = dst_email_from_form.split('@')
-            if isDomainAllowed(validate_dst_email_domain[1]) == False:
+            if is_domain_allowed(validate_dst_email_domain[1]) == False:
                 return render_template('message.html',headline="Add alias error",message="Failed to add alias, destination email validation failed.",current_user=current_user)
 
             # Check that src email does not already exist in emails table in db.
-            isEmailUniq = db.session.query(Email).filter(Email.email == src_email_from_form).count()
-            if isEmailUniq != 0:
+            is_email_uniq = db.session.query(Email).filter(Email.email == src_email_from_form).count()
+            if is_email_uniq != 0:
                 return render_template('message.html',headline="Add alias error",message="Failed to add alias, source email exist.",current_user=current_user)
 
             # Check that src email does not already exist in aliases table in db.
-            isAliasUniq = db.session.query(Alias).filter(Alias.src_email == src_email_from_form).count()
-            if isAliasUniq != 0:
+            is_alias_uniq = db.session.query(Alias).filter(Alias.src_email == src_email_from_form).count()
+            if is_alias_uniq != 0:
                 return render_template('message.html',headline="Add alias error",message="Failed to add alias, source email exist.",current_user=current_user)
 
             # Check that src email domain is owned by account or is global.
@@ -553,8 +556,6 @@ def settings_add_alias():
                 db.session.commit()
 
             return render_template('message.html',headline="Add alias",message="Alias added successfully.",current_user=current_user)
-        else:
-            return render_template('message.html',headline="Add alias error",message="Failed to add alias, failed csrf validation",current_user=current_user)
 
 @bp.route("/settings/remove_alias", methods=['POST', 'GET'])
 def settings_remove_alias():
