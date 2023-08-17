@@ -1134,6 +1134,102 @@ def test_settings_disabled_account_add_alias(client,app):
 
         db.session.query(Account).filter(Account.account == register_data["account"]).delete()
 
+def test_settings_enabled_account_add_alias(client,app):
+    # Add global domain used in test.
+    with app.app_context():
+        does_it_exist = db.session.query(Global_domain).filter(Global_domain.domain == "globaltestdomain01.se", Global_domain.is_enabled == 1).count()
+        if does_it_exist == 0:
+            new_global_domain = Global_domain(domain = "globaltestdomain01.se", is_enabled = 1)
+            db.session.add(new_global_domain)
+            db.session.commit()
+
+    # Get the csrf token for /register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
+    register_data = get_register_data(response_register_post.data)
+
+    # Enable account.
+    with app.app_context():
+        account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
+        account.is_enabled = True        
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Test POST /login with newly registred account and user.
+    assert client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login}).status_code == 302
+
+    # Test GET /settings/add_email.
+    assert client.get("/settings/add_email").status_code == 200
+    response_settings_add_email_get = client.get("/settings/add_email")
+    assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_add_email_get.data
+    assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_email_get.data
+    assert b"Is account enabled: Yes" in response_settings_add_email_get.data
+
+    # Get csrf_token from /settings/change_key_on_user
+    csrf_token_settings_add_email = get_csrf_token(response_settings_add_email_get.data)
+
+    # Test to add email account with a global domain.
+    response_settings_add_email_post = client.post("/settings/add_email", data={'domain':"globaltestdomain01.se", 'email':"test01", 'csrf_token':csrf_token_settings_add_email})
+    assert b"<h3>Add email</h3>" in response_settings_add_email_post.data
+    assert b"Successfully added email:" in response_settings_add_email_post.data
+
+    # Test GET /settings/add_alias
+    assert client.get("/settings/add_alias").status_code == 200
+    response_settings_add_alias_get = client.get("/settings/add_alias")
+    assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_add_alias_get.data
+    assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_alias_get.data
+    assert b"Is account enabled: Yes" in response_settings_add_alias_get.data
+    
+    # Get csrf_token from /settings/add_alias
+    csrf_token_settings_add_alias = get_csrf_token(response_settings_add_alias_get.data)
+
+    #
+    #
+    # Test wrong csrf_token on /settings/add_alias
+    assert client.post("/settings/add_alias", data={'domain':"globaltestdomain01.se", 'src':"testalias01", 'dst':"test01@globaltestdomain01.se", 'csrf_token':"wrong csrf_token"}).status_code == 400
+
+    #
+    #
+    # Test empty csrf_token on /settings/add_alias
+    response_settings_add_alias_empty_csrf_post = client.post("/settings/add_alias", data={'domain':"globaltestdomain01.se", 'src':"testalias01" ,'dst':"test01@globaltestdomain01.se",'csrf_token':""})
+    assert b"The CSRF token is missing" in response_settings_add_alias_empty_csrf_post.data
+    
+
+    #
+    #
+    # Test to add alias
+    response_settings_add_alias_post = client.post("/settings/add_alias", data={'domain':"globaltestdomain01.se", 'src':"testalias01" ,'dst':"test01@globaltestdomain01.se",'csrf_token':csrf_token_settings_add_alias})
+    assert b"<h3>Add alias</h3>" in response_settings_add_alias_post.data
+    assert b"Alias added successfully" in response_settings_add_alias_post.data
+
+    # Remove authenticated, user and account that was used in testcase.
+    with app.app_context():
+        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
+
+        db.session.query(Alias).filter(Alias.src_email == "testalias01@globaltestdomain01.se").delete()
+        db.session.commit()
+
+        db.session.query(Email).filter(Email.email == "test01@globaltestdomain01.se").delete()
+        db.session.commit()
+
+        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
+        db.session.commit()
+
+        db.session.query(User).filter(User.user == register_data["username"]).delete()
+        db.session.commit()
+
+        db.session.query(Global_domain).filter(Global_domain.domain == "globaltestdomain01.se").delete()
+        db.session.commit()
+
+        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
+        db.session.commit()
+
 def test_settings_disabled_account_remove_alias(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
