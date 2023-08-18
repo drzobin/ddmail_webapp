@@ -362,7 +362,7 @@ def settings_remove_email():
 
         # Validate domain part of email from form.
         validate_email_domain = remove_email_from_form.split('@')
-        if isDomainAllowed(validate_email_domain[1]) == False:
+        if is_domain_allowed(validate_email_domain[1]) == False:
             return render_template('message.html',headline="Remove email error",message="Failed to removed email, validation failed.",current_user=current_user)
 
         # Check that email already exist in db and is owned by current user.
