@@ -305,7 +305,7 @@ def settings_add_email():
                 db.session.add(new_email)
                 db.session.commit()
 
-            return render_template('message.html',headline="Add email",message="Successfully added email: " + add_email_from_form + " with password: " + cleartext_password ,current_user=current_user)
+            return render_template('message.html',headline="Add Email Account",message="Successfully added email: " + add_email_from_form + " with password: " + cleartext_password ,current_user=current_user)
 
 @bp.route("/settings/show_email")
 def settings_show_email():
@@ -357,7 +357,7 @@ def settings_remove_email():
         remove_email_from_form = request.form["remove_email"].strip()
 
         # Validate email from form.
-        if isEmailAllowed(remove_email_from_form) == False:
+        if is_email_allowed(remove_email_from_form) == False:
             return render_template('message.html',headline="Remove email error",message="Failed to removed email, validation failed.",current_user=current_user)
 
         # Validate domain part of email from form.
@@ -366,15 +366,15 @@ def settings_remove_email():
             return render_template('message.html',headline="Remove email error",message="Failed to removed email, validation failed.",current_user=current_user)
 
         # Check that email already exist in db and is owned by current user.
-        isEmailMine = db.session.query(Email).filter(Email.email == remove_email_from_form, Email.account_id == current_user.account_id).count()
-        if isEmailMine != 1:
+        is_email_mine = db.session.query(Email).filter(Email.email == remove_email_from_form, Email.account_id == current_user.account_id).count()
+        if is_email_mine != 1:
             return render_template('message.html',headline="Remove email error",message="Failed to removed email, validation failed.",current_user=current_user)
 
         # Remove email account from db.
         db.session.query(Email).filter(Email.account_id == current_user.account_id, Email.email == remove_email_from_form).delete()
         db.session.commit()
 
-        return render_template('message.html',headline="Remove email",message="Successfully removed email.",current_user=current_user)
+        return render_template('message.html',headline="Remove Email Account",message="Successfully removed email.",current_user=current_user)
 
 @bp.route("/settings/change_password_on_email", methods=['POST', 'GET'])
 def settings_change_password_on_email():
@@ -540,10 +540,12 @@ def settings_add_alias():
                 return render_template('message.html',headline="Add alias error",message="Failed to add alias, source email domain is not allowed.",current_user=current_user)
 
             # Check that dst email already exist in db and is owned by current user.
-            dst_email = db.session.query(Email).filter(Email.email == dst_email_from_form, Email.account_id == current_user.account_id).first()
-            if not dst_email.email:
+            dst_email = db.session.query(Email).filter(Email.email == dst_email_from_form, Email.account_id == current_user.account_id).count()
+            print("dst:" + dst_email_from_form)
+            if dst_email != 1:
                 return render_template('message.html',headline="Add alias error",message="Failed to add alias, can not find destination email.",current_user=current_user)
             # Add alias to database.
+            dst_email = db.session.query(Email).filter(Email.email == dst_email_from_form, Email.account_id == current_user.account_id).first()
             if is_src_email_domain_mine == 1:
                 src_email_domain = db.session.query(Domain).filter(Domain.domain == validate_src_email_domain[1], Domain.account_id == current_user.account_id).first()
                 new_alias = Alias(account_id=current_user.account_id, src_email=src_email_from_form, src_domain_id=src_email_domain.id, dst_email_id=dst_email.id)
