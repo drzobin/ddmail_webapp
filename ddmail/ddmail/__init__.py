@@ -8,7 +8,14 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
 
     # Set app configurations from configuration file config.py
-    app.config.from_object("config.Prod")
+    mode=os.environ.get('MODE')
+    if mode == "PRODUCTION":
+        app.config.from_object("config.Prod")
+    elif mode == "TESTING":
+        app.config.from_object("config.Test")
+    else:
+        app.config.from_object("config.Dev")
+    
     app.secret_key = app.config["SECRET_KEY"]
     app.WTF_CSRF_SECRET_KEY = app.config["WTF_CSRF_SECRET_KEY"]
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI']
@@ -21,10 +28,6 @@ def create_app(test_config=None):
         os.makedirs(app.instance_path)
     except OSError:
         pass
-
-    @app.route("/hello")
-    def hello():
-        return "Hello, World!"
 
     # Import the database models.
     from ddmail.models import db
