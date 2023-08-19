@@ -406,34 +406,29 @@ def settings_change_password_on_email():
         change_password_on_email_from_form = request.form["change_password_on_email"].strip()
 
         # Validate email from form.
-        if isEmailAllowed(change_password_on_email_from_form) == False:
+        if is_email_allowed(change_password_on_email_from_form) == False:
             return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, validation failed.",current_user=current_user)
 
         # Validate domain part of email from form.
         validate_email_domain = change_password_on_email_from_form.split('@')
-        if isDomainAllowed(validate_email_domain[1]) == False:
+        if is_domain_allowed(validate_email_domain[1]) == False:
             return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, validation failed.",current_user=current_user)
 
         # Check that email already exist in db and is owned by current user.
-        isEmailMine = db.session.query(Email).filter(Email.email == change_password_on_email_from_form, Email.account_id == current_user.account_id).count()
-        if isEmailMine != 1:
+        is_email_mine = db.session.query(Email).filter(Email.email == change_password_on_email_from_form, Email.account_id == current_user.account_id).count()
+        if is_email_mine != 1:
             return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, validation failed.",current_user=current_user)
 
         # Generate password.
         cleartext_password = generate_password(24)
-        print("cleartext_password:" + cleartext_password)
-
-        # Hash the password SSHA512.
-        #password_hash = createSSHA512(cleartext_password)
+        #print("cleartext_password:" + cleartext_password)
 
         # Hash the password argon2.
-        #ph = PasswordHasher()
         ph = PasswordHasher(time_cost=3,memory_cost=65536,parallelism=1)
         password_hash = ph.hash(cleartext_password)
-        print("password_hash:" + password_hash)
 
         # Get the domain id.
-        domain = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1]).first()
+        #domain = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1]).first()
 
         # Change password on email account from db.
         #db.session.query(Email).filter(Email.account_id == current_user.account_id, Email.email == change_password_on_email_from_form).update({'password_hash': password_hash})
@@ -441,7 +436,7 @@ def settings_change_password_on_email():
         email.password_hash = password_hash
         db.session.commit()
 
-        return render_template('message.html',headline="Change password on email account",message="Successfully changed password on email account: " + change_password_on_email_from_form + " to new password: " + cleartext_password ,current_user=current_user)
+        return render_template('message.html',headline="Change password on Email Account",message="Successfully changed password on email account: " + change_password_on_email_from_form + " to new password: " + cleartext_password ,current_user=current_user)
 
 @bp.route("/settings/show_alias")
 def setings_show_alias():
