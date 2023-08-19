@@ -35,18 +35,6 @@ def test_settings_disabled_account(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_get.data
     assert b"Is account enabled: No" in response_settings_get.data
 
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-        db.session.commit()
-
 def test_settings_enabled_account(client,app):
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
@@ -81,18 +69,6 @@ def test_settings_enabled_account(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_get.data
     assert b"Is account enabled: Yes" in response_settings_get.data
 
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-        db.session.commit()
-
 def test_settings_disabled_account_payment_token(client, app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -123,17 +99,6 @@ def test_settings_disabled_account_payment_token(client, app):
     assert b"Is account enabled: No" in response_settings_payment_token_get.data
     assert b"Payment token for this accounts:" in response_settings_payment_token_get.data
 
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-
 def test_settings_disabled_account_change_password_on_user(client, app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -157,17 +122,6 @@ def test_settings_disabled_account_change_password_on_user(client, app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_change_password_on_user_get.data
     assert b"Is account enabled: No" in response_settings_change_password_on_user_get.data
     assert b"Failed to change users password beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_change_password_on_user_get.data
-
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
 
 def test_settings_enabled_account_change_password_on_user(client, app):
     # Get the csrf token for /register
@@ -246,17 +200,6 @@ def test_settings_enabled_account_change_password_on_user(client, app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_login_post.data
     assert b"Is account enabled: Yes" in response_login_post.data
 
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-        
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-
 def test_settings_disabled_change_key_on_user(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -280,17 +223,6 @@ def test_settings_disabled_change_key_on_user(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_change_key_on_user_get.data
     assert b"Is account enabled: No" in response_settings_change_key_on_user_get.data
     assert b"Failed to change users key beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_change_key_on_user_get.data
-
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
 
 def test_settings_enabled_account_change_key_on_user(client, app):
     # Get the csrf token for /register
@@ -370,17 +302,6 @@ def test_settings_enabled_account_change_key_on_user(client, app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_get.data
     assert b"Is account enabled: Yes" in response_settings_get.data
     assert b"Change password" in response_settings_get.data
-
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-        
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
         
 def test_settings_disabled_account_add_user_to_account(client,app):
     # Get the csrf token for /register
@@ -405,17 +326,6 @@ def test_settings_disabled_account_add_user_to_account(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_user_to_account_get.data
     assert b"Is account enabled: No" in response_settings_add_user_to_account_get.data
     assert b"Failed to add user beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_add_user_to_account_get.data
-
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
 
 def test_settings_enabled_account_add_user_to_account(client,app):
     # Get the csrf token for /register
@@ -495,24 +405,6 @@ def test_settings_enabled_account_add_user_to_account(client,app):
     assert b"Logged in as user: " + bytes(new_user_data["username"], 'utf-8') in response_settings_get.data
     assert b"Is account enabled: Yes" in response_settings_get.data
     
-    # Remove authenticated, users and account that was used in testcase.
-    with app.app_context():
-        user_from_db1 = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db1.id).delete()
-        db.session.commit()
-        
-        user_from_db2 = db.session.query(User).filter(User.user == new_user_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db2.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-        
-        db.session.query(User).filter(User.user == new_user_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-        
 def test_settings_disabled_account_show_account_users(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -542,17 +434,6 @@ def test_settings_disabled_account_show_account_users(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_show_account_users_get.data
     assert b"Is account enabled: No" in response_settings_show_account_users_get.data
     assert b"Failed to show account users beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_show_account_users_get.data
-
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
         
 def test_settings_enabled_account_show_account_users(client,app):
     # Get the csrf token for /register
@@ -585,17 +466,6 @@ def test_settings_enabled_account_show_account_users(client,app):
     assert b"<h3>Show Account Users</h3>" in response_settings_show_account_users_get.data
     assert b"Current active users for this account:\n\n<br>\n" + bytes(register_data["username"], 'utf-8') in response_settings_show_account_users_get.data
 
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-
 def test_settings_disabled_account_remove_account_user(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -625,17 +495,6 @@ def test_settings_disabled_account_remove_account_user(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_remove_account_user_get.data
     assert b"Is account enabled: No" in response_settings_remove_account_user_get.data
     assert b"Failed to remove account user beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_remove_account_user_get.data
-
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
 
 def test_settings_enabled_account_remove_account_user(client,app):
     # Get the csrf token for /register
@@ -756,25 +615,7 @@ def test_settings_enabled_account_remove_account_user(client,app):
     response_settings_remove_account_user_post = client.post("/settings/remove_account_user", data={'remove_user':new_user_data["username"],'csrf_token':csrf_token_register})
     assert b"<h3>Remove user</h3" in response_settings_remove_account_user_post.data
     assert b"Successfully removed user." in response_settings_remove_account_user_post.data
-    
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-        
-        db.session.query(User).filter(User.user == new_account_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-        db.session.commit()
-        
-        db.session.query(Account).filter(Account.account == new_account_data["account"]).delete()
-        db.session.commit()
-        
+      
 def test_settings_disabled_account_add_email(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -805,17 +646,6 @@ def test_settings_disabled_account_add_email(client,app):
     assert b"Is account enabled: No" in response_settings_add_email_get.data
     assert b"Failed to add email beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_add_email_get.data
 
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-        
 def test_settings_enabled_account_add_email(client,app):
     # Add global domain used in test.
     with app.app_context():
@@ -911,24 +741,6 @@ def test_settings_enabled_account_add_email(client,app):
     assert b"<h3>Add email error</h3>" in response_settings_add_email_post.data
     assert b"Failed to add email, csrf validation failed." in response_settings_add_email_post.data
 
-    # Remove authenticated, global domains, emails, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Email).filter(Email.email == "test01@globaltestdomain01.se").delete()
-        db.session.commit()
-
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-        db.session.commit()
-        
-        db.session.query(Global_domain).filter(Global_domain.domain == "globaltestdomain01.se").delete()
-        db.session.commit()
-
 def test_settings_disabled_account_show_email(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -958,17 +770,6 @@ def test_settings_disabled_account_show_email(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_show_email_get.data
     assert b"Is account enabled: No" in response_settings_show_email_get.data
     assert b"Failed to show email beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_show_email_get.data
-
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
 
 def test_settings_enabled_account_show_email(client,app):
     # Add global domain used in test.
@@ -1025,25 +826,6 @@ def test_settings_enabled_account_show_email(client,app):
     assert b"Current active email accounts for this user:" in response_settings_show_email_get.data
     assert b"test01@globaltestdomain01.se" in response_settings_show_email_get.data
 
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        
-        db.session.query(Email).filter(Email.email == "test01@globaltestdomain01.se").delete()
-        db.session.commit()
-        
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-        db.session.commit()
-
-        db.session.query(Global_domain).filter(Global_domain.domain == "globaltestdomain01.se").delete()
-        db.session.commit()
-        
 def test_settings_disabled_account_remove_email(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -1073,18 +855,6 @@ def test_settings_disabled_account_remove_email(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_remove_email_get.data
     assert b"Is account enabled: No" in response_settings_remove_email_get.data
     assert b"Failed to remove email beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_remove_email_get.data
-
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-        db.session.commit()
 
 def test_settings_enabled_account_remove_email(client,app):
     # Add global domain used in test.
@@ -1186,23 +956,6 @@ def test_settings_enabled_account_remove_email(client,app):
     #
     # Test to remove email that has a alias.
   
-    
-
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-        db.session.commit()
-
-        db.session.query(Global_domain).filter(Global_domain.domain == "globaltestdomain01.se").delete()
-        db.session.commit()
 
 def test_settings_disabled_account_change_password_on_email(client,app):
     # Get the csrf token for /register
@@ -1233,17 +986,6 @@ def test_settings_disabled_account_change_password_on_email(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_change_password_on_email_get.data
     assert b"Is account enabled: No" in response_settings_change_password_on_email_get.data
     assert b"Failed to change password on email account beacuse this account is disabled." in response_settings_change_password_on_email_get.data
-
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
 
 def test_settings_enabled_account_change_password_on_email(client,app):
     # Add global domain used in test.
@@ -1305,25 +1047,6 @@ def test_settings_enabled_account_change_password_on_email(client,app):
     assert b"Successfully changed password on email account:" in response_settings_change_password_on_email_post.data
     assert b"to new password:" in response_settings_change_password_on_email_post.data
 
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-
-        db.session.query(Email).filter(Email.email == "test01@globaltestdomain01.se").delete()
-        db.session.commit()
-
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-        db.session.commit()
-
-        db.session.query(Global_domain).filter(Global_domain.domain == "globaltestdomain01.se").delete()
-        db.session.commit()
-        
 def test_settings_disabled_account_show_alias(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -1353,17 +1076,6 @@ def test_settings_disabled_account_show_alias(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_show_alias_get.data
     assert b"Is account enabled: No" in response_settings_show_alias_get.data
     assert b"Failed to show alias beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_show_alias_get.data
-
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
 
 def test_settings_enabled_account_show_alias(client,app):
     # Get the csrf token for /register
@@ -1423,17 +1135,6 @@ def test_settings_disabled_account_add_alias(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_alias_get.data
     assert b"Is account enabled: No" in response_settings_add_alias_get.data
     assert b"ailed to add alias beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_add_alias_get.data
-
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
 
 def test_settings_enabled_account_add_alias(client,app):
     # Add global domain used in test.
@@ -1509,28 +1210,6 @@ def test_settings_enabled_account_add_alias(client,app):
     assert b"<h3>Add alias</h3>" in response_settings_add_alias_post.data
     assert b"Alias added successfully" in response_settings_add_alias_post.data
 
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-
-        db.session.query(Alias).filter(Alias.src_email == "testalias01@globaltestdomain01.se").delete()
-        db.session.commit()
-
-        db.session.query(Email).filter(Email.email == "test01@globaltestdomain01.se").delete()
-        db.session.commit()
-
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Global_domain).filter(Global_domain.domain == "globaltestdomain01.se").delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-        db.session.commit()
-
 def test_settings_disabled_account_remove_alias(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -1560,17 +1239,6 @@ def test_settings_disabled_account_remove_alias(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_remove_alias_get.data
     assert b"Is account enabled: No" in response_settings_remove_alias_get.data
     assert b"Failed to remove alias beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_remove_alias_get.data
-
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
 
 def test_settings_enabled_account_remove_alias(client,app):
     # Add global domain used in test.
@@ -1718,17 +1386,6 @@ def test_settings_disabled_account_show_domains(client,app):
     assert b"Is account enabled: No" in response_settings_show_domains_get.data
     assert b"Failed to show domains beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_show_domains_get.data
 
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-
 def test_settings_disabled_account_add_domain(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -1760,17 +1417,6 @@ def test_settings_disabled_account_add_domain(client,app):
     assert b"Add domain" in response_settings_add_domain_get.data
     assert b"Failed to add domain beacuse this account is disabled." in response_settings_add_domain_get.data
 
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
-
 def test_settings_disabled_account_remove_domain(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -1800,14 +1446,3 @@ def test_settings_disabled_account_remove_domain(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_remove_domain_get.data
     assert b"Is account enabled: No" in response_settings_remove_domain_get.data
     assert b"Failed to remove domains beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_remove_domain_get.data
-
-    # Remove authenticated, user and account that was used in testcase.
-    with app.app_context():
-        user_from_db = db.session.query(User).filter(User.user == register_data["username"]).first()
-        db.session.query(Authenticated).filter(Authenticated.user_id == user_from_db.id).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
-        db.session.query(Account).filter(Account.account == register_data["account"]).delete()
