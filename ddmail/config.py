@@ -1,7 +1,17 @@
 class Prod():
-    WTF_CSRF_SECRET_KEY = 'changeme'
-    SECRET_KEY = 'changeme'
-    SERVER_NAME = 'www.ddmail.se'
+    WTF_CSRF_SECRET_KEY = 'password'
+    SECRET_KEY = 'password'
     SQLALCHEMY_DATABASE_URI = 'mysql://mail_rw:password@localhost/mail'
     SQLALCHEMY_TRACK_MODIFICATIONS = False 
 
+class Test():
+    WTF_CSRF_SECRET_KEY = 'password'
+    SECRET_KEY = 'password'
+    SQLALCHEMY_DATABASE_URI = 'mysql://mail_rw:password@localhost/mail_test'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False 
+
+class Dev():
+    WTF_CSRF_SECRET_KEY = 'password'
+    SECRET_KEY = 'password'
+    SQLALCHEMY_DATABASE_URI = 'mysql://mail_rw:password@localhost/mail_dev'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False 
