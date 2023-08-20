@@ -13,8 +13,11 @@ def create_app(test_config=None):
         app.config.from_object("config.Prod")
     elif mode == "TESTING":
         app.config.from_object("config.Test")
-    else:
+    elif mode == "DEVELOPMENT":
         app.config.from_object("config.Dev")
+    else:
+        print("Error: you need to set env variabel MODE to PRODUCTION/TESTING/DEVELOPMENT")
+        exit(1)
     
     app.secret_key = app.config["SECRET_KEY"]
     app.WTF_CSRF_SECRET_KEY = app.config["WTF_CSRF_SECRET_KEY"]
