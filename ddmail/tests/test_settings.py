@@ -1386,6 +1386,55 @@ def test_settings_disabled_account_show_domains(client,app):
     assert b"Is account enabled: No" in response_settings_show_domains_get.data
     assert b"Failed to show domains beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_show_domains_get.data
 
+def test_settings_enabled_account_show_domains(client,app):
+    # Get the csrf token for /register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
+    register_data = get_register_data(response_register_post.data)
+
+    # Enable account.
+    with app.app_context():
+        account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
+        account.is_enabled = True        
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Test POST /login with newly registred account and user.
+    assert client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login}).status_code == 302
+    
+    # Test GET /settings/add_domain
+    response_settings_add_domain_get = client.get("/settings/add_domain")
+    assert response_settings_add_domain_get.status_code == 200
+    assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_add_domain_get.data
+    assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_domain_get.data
+    assert b"Is account enabled: Yes" in response_settings_add_domain_get.data
+    assert b"<h3>Add Domain</h3>" in response_settings_add_domain_get.data
+    
+    # Get csrf_token from /settings/add_domain
+    csrf_token_settings_add_domain = get_csrf_token(response_settings_add_domain_get.data)
+
+    # Test to add account domain
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydomain.se", 'csrf_token':csrf_token_settings_add_domain})
+    assert response_settings_add_domain_post.status_code == 200
+    assert b"<h3>Add Domain</h3>" in response_settings_add_domain_post.data
+    assert b"Successfully added domain." in response_settings_add_domain_post.data
+
+    # Test GET /settings/show_domains
+    assert client.get("/settings/show_domains").status_code == 200
+    response_settings_show_domains_get = client.get("/settings/show_domains")
+    assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_show_domains_get.data
+    assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_show_domains_get.data
+    assert b"Is account enabled: Yes" in response_settings_show_domains_get.data
+    assert b"<h3>Show Domains</h3>" in response_settings_show_domains_get.data
+    assert b"Current active domains for this account:" in response_settings_show_domains_get.data
+    assert b"mydomain.se" in response_settings_show_domains_get.data
+
 def test_settings_disabled_account_add_domain(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -1417,6 +1466,123 @@ def test_settings_disabled_account_add_domain(client,app):
     assert b"Add domain" in response_settings_add_domain_get.data
     assert b"Failed to add domain beacuse this account is disabled." in response_settings_add_domain_get.data
 
+def test_settings_enabled_account_add_domain(client,app):
+    # Get the csrf token for /register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
+    register_data = get_register_data(response_register_post.data)
+    
+    # Enable account.
+    with app.app_context():
+        account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
+        account.is_enabled = True        
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Test POST /login with newly registred account and user.
+    assert client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login}).status_code == 302
+
+    # Test GET /settings/add_domain
+    response_settings_add_domain_get = client.get("/settings/add_domain")
+    assert response_settings_add_domain_get.status_code == 200
+    assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_add_domain_get.data
+    assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_domain_get.data
+    assert b"Is account enabled: Yes" in response_settings_add_domain_get.data
+    assert b"<h3>Add Domain</h3>" in response_settings_add_domain_get.data
+    
+    # Get csrf_token from /settings/add_domain
+    csrf_token_settings_add_domain = get_csrf_token(response_settings_add_domain_get.data)
+
+    #
+    #
+    # Test wrong csrf_token on /settings/add_domain
+    assert client.post("/settings/add_domain", data={'domain':"mydomain.se", 'csrf_token':"wrong csrf_token"}).status_code == 400
+
+    #
+    #
+    # Test empty csrf_token on /settings/add_domain
+    response_settings_add_domain_empty_csrf_post = client.post("/settings/add_domain", data={'domain':"mydomain.se", 'csrf_token':""})
+    assert b"The CSRF token is missing" in response_settings_add_domain_empty_csrf_post.data
+
+    #
+    #
+    # Test to add account domain
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydomain.se", 'csrf_token':csrf_token_settings_add_domain})
+    assert response_settings_add_domain_post.status_code == 200
+    assert b"<h3>Add Domain</h3>" in response_settings_add_domain_post.data
+    assert b"Successfully added domain." in response_settings_add_domain_post.data
+
+    #
+    #
+    # Test to add a domain that already exsist in current/same account 
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydomain.se", 'csrf_token':csrf_token_settings_add_domain})
+    assert response_settings_add_domain_post.status_code == 200
+    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
+    assert b"Failed to add domain, the current domain already exist." in response_settings_add_domain_post.data
+    
+    #
+    #
+    # Test to add a domain that failes backend validation. 
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydoma<in.se", 'csrf_token':csrf_token_settings_add_domain})
+    assert response_settings_add_domain_post.status_code == 200
+    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
+    assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
+
+    #
+    #
+    # Test to add a domain that failes backend validation. 
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydoma\"in.se", 'csrf_token':csrf_token_settings_add_domain})
+    assert response_settings_add_domain_post.status_code == 200
+    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
+    assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
+    
+    #
+    #
+    # Test to add a domain that failes backend validation. 
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydoma--in.se", 'csrf_token':csrf_token_settings_add_domain})
+    assert response_settings_add_domain_post.status_code == 200
+    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
+    assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
+    
+    #
+    #
+    # Test to add a domain that failes backend validation. 
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydoma..in.se", 'csrf_token':csrf_token_settings_add_domain})
+    assert response_settings_add_domain_post.status_code == 200
+    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
+    assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
+
+    #
+    #
+    # Test to add a domain that failes backend validation. 
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"m;ydomain.se", 'csrf_token':csrf_token_settings_add_domain})
+    assert response_settings_add_domain_post.status_code == 200
+    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
+    assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
+    
+    #
+    #
+    # Test to add a domain that failes backend validation. 
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"m\'ydomain.se", 'csrf_token':csrf_token_settings_add_domain})
+    assert response_settings_add_domain_post.status_code == 200
+    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
+    assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
+    
+    #
+    #
+    # Test to add a domain that failes form validation. 
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"a.s", 'csrf_token':csrf_token_settings_add_domain})
+    assert response_settings_add_domain_post.status_code == 200
+    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
+    assert b"Failed to add domain, form validation failed." in response_settings_add_domain_post.data
+
+    
 def test_settings_disabled_account_remove_domain(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
