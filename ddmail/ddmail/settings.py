@@ -684,36 +684,29 @@ def settings_remove_domain():
         domains = db.session.query(Domain).filter(Domain.account_id == current_user.account_id)
         return render_template('settings_remove_domain.html', domains=domains,current_user=current_user)
     if request.method == 'POST':
-        # Check if org is enabled.
-        if current_user.account.is_enabled != True:
-            return render_template('message.html',headline="Remove domain error",message="Failed to remove domain beacuse this account is disabled.",current_user=current_user)
 
         remove_domain_from_form = request.form["remove_domain"].strip()
 
         # Validate domain.
-        if isDomainAllowed(remove_domain_from_form) == False:
-            return render_template('message.html',headline="Remove domain error",message="Failed to remove domain, domain validation failed.",current_user=current_user)
+        if is_domain_allowed(remove_domain_from_form) == False:
+            return render_template('message.html',headline="Remove Domain Error",message="Failed to remove domain, domain backend validation failed.",current_user=current_user)
 
-        # Check domain already exist in db and is owned by current user.
-        isDomainMine = db.session.query(Domain).filter(Domain.domain == remove_domain_from_form, Domain.account_id == current_user.account_id).count()
-        if isDomainMine != 1:
-            return render_template('message.html',headline="Remove domain error",message="Filed to remove domain",current_user=current_user)
+        # Check if domain exist in db and is owned by current account.
+        is_domain_mine = db.session.query(Domain).filter(Domain.domain == remove_domain_from_form, Domain.account_id == current_user.account_id).count()
+        if is_domain_mine != 1:
+            return render_template('message.html',headline="Remove Domain Error",message="Failed to remove domain, domain does not exsist or is not owned by your account.",current_user=current_user)
 
         domain = db.session.query(Domain).filter(Domain.domain == remove_domain_from_form).first()
 
         # Check that domain does not have emails or aliases.
-        numberOfEmails = db.session.query(Email).filter(Email.domain_id == domain.id).count()
+        number_off_emails = db.session.query(Email).filter(Email.domain_id == domain.id).count()
+        number_off_aliases = db.session.query(Alias).filter(Alias.src_domain_id == domain.id).count()
 
-        numberOfAliases = db.session.query(Alias).filter(Alias.src_domain_id == domain.id).count()
-
-        if numberOfEmails != 0 or numberOfAliases != 0:
-            return render_template('message.html',headline="Remove domain error",message="Failed to remove domain, domain is used in email or alias, remove those first.",current_user=current_user)
-
+        if number_off_emails != 0 or number_off_aliases != 0:
+            return render_template('message.html',headline="Remove Domain Error",message="Failed to remove domain, domain is used in email or alias, remove those first.",current_user=current_user)
 
         # Remove domain account from db.
         db.session.query(Domain).filter(Domain.account_id == current_user.account_id, Domain.domain == remove_domain_from_form).delete()
         db.session.commit()
 
-        return render_template('message.html',headline="Remove domain",message="Successfully removed domain",current_user=current_user)
-
-
+        return render_template('message.html',headline="Remove Domain",message="Successfully removed domain",current_user=current_user)
