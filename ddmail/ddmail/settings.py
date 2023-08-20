@@ -641,27 +641,26 @@ def settings_add_domain():
     if request.method == 'GET':
         return render_template('settings_add_domain.html', form=form,current_user=current_user)
     if request.method == 'POST':
-        if form.validate_on_submit():
-
-            # Validate domain some more.
-            if isDomainAllowed(form.domain.data) == False:
-                return render_template('message.html',headline="Add domain error",message="Failed to add domain, domain validation failed.",current_user=current_user)
+        if not form.validate_on_submit():
+           return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, form validation failed.",current_user=current_user)
+        else:
+            # Validate domain.
+            if is_domain_allowed(form.domain.data) == False:
+                return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, domain validation failed.",current_user=current_user)
 
             # Check that domain do not already exsist.
             does_domain_exist = db.session.query(Domain).filter(Domain.domain == form.domain.data).count()
             does_global_domain_exist = db.session.query(Global_domain).filter(Global_domain.domain == form.domain.data).count()
 
-            if not does_domain_exist == 1 or not does_global_domain_exist == 1:
-                return render_template('message.html',headline="Add domain error",message="Failed to add domain, the current domain already exist.",current_user=current_user)
+            if does_domain_exist == 1 or does_global_domain_exist == 1:
+                return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the current domain already exist.",current_user=current_user)
 
             # Add domain to db.
             domain = Domain(account_id=current_user.account_id, domain=form.domain.data)
             db.session.add(domain)
             db.session.commit()
 
-            return render_template('message.html',headline="Add domain",message="Successfully added domain.",current_user=current_user)
-        else:
-            return render_template('message.html',headline="Add domain error",message="Failed to add domain.",current_user=current_user)
+            return render_template('message.html',headline="Add Domain",message="Successfully added domain.",current_user=current_user)
 
 
 @bp.route("/settings/remove_domain", methods=['POST', 'GET'])
