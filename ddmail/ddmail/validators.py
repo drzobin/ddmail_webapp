@@ -26,6 +26,10 @@ def is_domain_allowed(domain):
         return False
     if domain.endswith('.') or domain.endswith('-'):
         return False
+    if '--' in domain:
+        return False
+    if '..' in domain:
+        return False
 
     if domain.find(".") == -1:
         return False
@@ -50,6 +54,10 @@ def is_email_allowed(email):
     if splitted_email[0].startswith('.') or splitted_email[0].startswith('-'):
         return False
     if splitted_email[0].endswith('.') or splitted_email[0].endswith('-'):
+        return False
+    if '--' in splitted_email[0]:
+        return False
+    if '..' in splitted_email[0]:
         return False
 
     pattern = re.compile(r"[a-z0-9@.-]")
