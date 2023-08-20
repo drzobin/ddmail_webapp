@@ -16,8 +16,8 @@ def app():
     with app.app_context():
         db.session.query(Authenticated).delete()
         db.session.query(User).delete()
-        db.session.query(Email).delete()
         db.session.query(Alias).delete()
+        db.session.query(Email).delete()
         db.session.query(Domain).delete()
         db.session.query(Global_domain).delete()
         db.session.query(Account).delete()
