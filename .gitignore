@@ -1,0 +1,4 @@
+.coverage
+ddmail/__pycache__/
+ddmail/ddmail/__pycache__/
+ddmail/tests/__pycache__/
