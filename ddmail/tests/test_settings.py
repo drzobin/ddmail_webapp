@@ -5,7 +5,7 @@ from io import BytesIO
 from tests.helpers import get_csrf_token
 from tests.helpers import get_register_data
 
-from ddmail.models import db, Account, Email, Domain, Alias, Global_domain, User, Authenticated
+from ddmail.models import db, Account, Email, Account_domain, Alias, Global_domain, User, Authenticated
 
 def test_settings_disabled_account(client,app):
     response_register_get = client.get("/register")
@@ -1721,4 +1721,4 @@ def test_settings_enabled_account_remove_domain(client,app):
     # Test to remove account domain with domain that does not exist.
     response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"mydomain2.se", 'csrf_token':csrf_token_settings_remove_domain})
     assert b"<h3>Remove Domain Error</h3>" in response_settings_remove_domain_post.data
-    assert b"Failed to remove domain, domain does not exsist or is not owned by your account." in response_settings_remove_domain_post.data
+    assert b"Failed to remove domain, domain does not exist or is not owned by your account." in response_settings_remove_domain_post.data
