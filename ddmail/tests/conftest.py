@@ -4,7 +4,7 @@ import tempfile
 import pytest
 
 from ddmail import create_app
-from ddmail.models import db, Account, Email, Domain, Alias, Global_domain, User, Authenticated
+from ddmail.models import db, Account, Email, Account_domain, Alias, Global_domain, User, Authenticated
 
 @pytest.fixture
 def app():
@@ -18,7 +18,7 @@ def app():
         db.session.query(User).delete()
         db.session.query(Alias).delete()
         db.session.query(Email).delete()
-        db.session.query(Domain).delete()
+        db.session.query(Account_domain).delete()
         db.session.query(Global_domain).delete()
         db.session.query(Account).delete()
         db.session.commit()
