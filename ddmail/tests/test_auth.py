@@ -6,7 +6,7 @@ from werkzeug.http import parse_cookie
 from tests.helpers import get_csrf_token
 from tests.helpers import get_register_data
 from ddmail.auth import is_athenticated, generate_password, generate_token
-from ddmail.models import db, Account, Email, Domain, Alias, Global_domain, User, Authenticated
+from ddmail.models import db, Account, Email, Account_domain, Alias, Global_domain, User, Authenticated
 from ddmail.validators import is_password_allowed
 
 def test_generate_password():
