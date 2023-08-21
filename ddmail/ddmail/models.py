@@ -17,7 +17,7 @@ class Account(db.Model):
 
     aliases = relationship("Alias", back_populates="account")
     emails = relationship("Email", back_populates="account")
-    domains = relationship("Domain", back_populates="account")
+    account_domains = relationship("Account_domain", back_populates="account")
     users = relationship("User", back_populates="account")
 
 # DB modul for aliases.
@@ -26,13 +26,13 @@ class Alias(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     account_id = db.mapped_column(ForeignKey("accounts.id"), nullable=False)
     src_email = db.Column(db.String(200), unique=True, nullable=False)
-    src_domain_id = db.mapped_column(db.Integer, ForeignKey('domains.id'), nullable=True)
+    src_account_domain_id = db.mapped_column(db.Integer, ForeignKey('account_domains.id'), nullable=True)
     src_global_domain_id = db.mapped_column(db.Integer, ForeignKey('global_domains.id'), nullable=True)
     dst_email_id = db.mapped_column(db.Integer, ForeignKey('emails.id'), nullable=False)
 
     account = relationship("Account", back_populates="aliases")
     email = relationship("Email", back_populates="aliases")
-    domain = relationship("Domain", back_populates="aliases")
+    account_domain = relationship("Account_domain", back_populates="aliases")
     global_domain = relationship("Global_domain", back_populates="aliases")
 
 # DB modul for emails.
@@ -40,26 +40,26 @@ class Email(db.Model):
     __tablename__ = 'emails'
     id = db.Column(db.Integer, primary_key=True,nullable=False)
     account_id = db.mapped_column(db.Integer, ForeignKey('accounts.id'),nullable=False)
-    domain_id = db.mapped_column(db.Integer, ForeignKey('domains.id'),nullable=True)
+    account_domain_id = db.mapped_column(db.Integer, ForeignKey('account_domains.id'),nullable=True)
     global_domain_id = db.mapped_column(db.Integer, ForeignKey('global_domains.id'),nullable=True)
     email = db.Column(db.String(200), unique=True, nullable=False)
     password_hash = db.Column(db.String(2096), nullable=False)
 
     account = relationship("Account", back_populates="emails")
-    domain = relationship("Domain", back_populates="emails")
+    account_domain = relationship("Account_domain", back_populates="emails")
     global_domain = relationship("Global_domain", back_populates="emails")
     aliases = relationship("Alias", back_populates="email")
 
-# DB modul for domains.
-class Domain(db.Model):
-    __tablename__ = 'domains'
+# DB modul for account domains.
+class Account_domain(db.Model):
+    __tablename__ = 'account_domains'
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     account_id = db.mapped_column(db.Integer, ForeignKey('accounts.id'), nullable=False)
     domain = db.Column(db.String(200), unique=True, nullable=False)
 
-    account = relationship("Account", back_populates="domains")
-    emails = relationship("Email", back_populates="domain")
-    aliases = relationship("Alias", back_populates="domain")
+    account = relationship("Account", back_populates="account_domains")
+    emails = relationship("Email", back_populates="account_domain")
+    aliases = relationship("Alias", back_populates="account_domain")
 
 # DB modul for global domains.
 class Global_domain(db.Model):
