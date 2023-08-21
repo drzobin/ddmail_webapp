@@ -1,7 +1,7 @@
 from flask import Blueprint, session, render_template, request
 from argon2 import PasswordHasher
 from ddmail.auth import is_athenticated, generate_password, generate_token
-from ddmail.models import db, Email, Domain, Alias, Global_domain, User
+from ddmail.models import db, Email, Account_domain, Alias, Global_domain, User
 from ddmail.forms import EmailForm, AliasForm, DomainForm
 from ddmail.validators import is_email_allowed, is_domain_allowed, is_username_allowed
 
@@ -239,7 +239,7 @@ def settings_add_email():
 
         # Get the accounts domains.
         #session.query(SomeModel.col1)
-        account_domains = db.session.query(Domain.domain).filter(Domain.account_id == current_user.account_id)
+        account_domains = db.session.query(Account_domain.domain).filter(Account_domain.account_id == current_user.account_id)
         global_domains = db.session.query(Global_domain.domain).filter(Global_domain.is_enabled == True)
 
         domains = account_domains.union(global_domains)
@@ -269,8 +269,8 @@ def settings_add_email():
             #isDomainGlobal = isDomainMine = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1], Domain.is_global == True).count()
             is_domain_global = db.session.query(Global_domain).filter(Global_domain.domain == validate_email_domain[1], Global_domain.is_enabled == True).count()
 
-            # Check if domain is owned by the org.
-            is_domain_mine = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1], Domain.account_id == current_user.account_id).count()
+            # Check if domain is owned by the account.
+            is_domain_mine = db.session.query(Account_domain).filter(Account_domain.domain == validate_email_domain[1], Account_domain.account_id == current_user.account_id).count()
 
             if is_domain_mine != 1 and is_domain_global != 1:
                 return render_template('message.html',headline="Add email error",message="Failed to add email, domain is not active in our system.",current_user=current_user)
@@ -296,7 +296,7 @@ def settings_add_email():
             # Get the domain id and aff the new email account to db.
             if is_domain_mine == 1:
                 domain = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1]).first()
-                new_email = Email(account_id=int(current_user.account_id), email=add_email_from_form,password_hash=password_hash, domain_id=domain.id)
+                new_email = Email(account_id=int(current_user.account_id), email=add_email_from_form,password_hash=password_hash, account_domain_id=account_domain.id)
                 db.session.add(new_email)
                 db.session.commit()
             elif is_domain_global == 1:
@@ -350,7 +350,7 @@ def settings_remove_email():
 
         return render_template('settings_remove_email.html',emails=emails, current_user=current_user)
     if request.method == 'POST':
-        # Check if org is enabled.
+        # Check if account is enabled.
         if current_user.account.is_enabled != True:
             return render_template('message.html',headline="Remove email error",message="Failed to remove email beacuse this account is disabled.",current_user=current_user)
 
@@ -479,7 +479,7 @@ def settings_add_alias():
     form = AliasForm()
     if request.method == 'GET':
         emails = db.session.query(Email).filter(Email.account_id == current_user.account_id)
-        account_domains = db.session.query(Domain.domain).filter(Domain.account_id == current_user.account_id)
+        account_domains = db.session.query(Account_domain.domain).filter(Account_domain.account_id == current_user.account_id)
         global_domains = db.session.query(Global_domain.domain).filter(Global_domain.is_enabled == True)
 
         domains = account_domains.union(global_domains)
@@ -528,7 +528,7 @@ def settings_add_alias():
                 return render_template('message.html',headline="Add alias error",message="Failed to add alias, source email exist.",current_user=current_user)
 
             # Check that src email domain is owned by account or is global.
-            is_src_email_domain_mine = db.session.query(Domain).filter(Domain.domain == validate_src_email_domain[1], Domain.account_id == current_user.account_id).count()
+            is_src_email_domain_mine = db.session.query(Account_domain).filter(Account_domain.domain == validate_src_email_domain[1], Account_domain.account_id == current_user.account_id).count()
             is_src_email_domain_global = db.session.query(Global_domain).filter(Global_domain.domain == validate_src_email_domain[1]).count()
 
             if not is_src_email_domain_mine == 1 and not is_src_email_domain_global == 1:
@@ -536,13 +536,12 @@ def settings_add_alias():
 
             # Check that dst email already exist in db and is owned by current user.
             dst_email = db.session.query(Email).filter(Email.email == dst_email_from_form, Email.account_id == current_user.account_id).count()
-            print("dst:" + dst_email_from_form)
             if dst_email != 1:
                 return render_template('message.html',headline="Add alias error",message="Failed to add alias, can not find destination email.",current_user=current_user)
             # Add alias to database.
             dst_email = db.session.query(Email).filter(Email.email == dst_email_from_form, Email.account_id == current_user.account_id).first()
             if is_src_email_domain_mine == 1:
-                src_email_domain = db.session.query(Domain).filter(Domain.domain == validate_src_email_domain[1], Domain.account_id == current_user.account_id).first()
+                src_email_domain = db.session.query(Account_domain).filter(Account_domain.domain == validate_src_email_domain[1], Account_domain.account_id == current_user.account_id).first()
                 new_alias = Alias(account_id=current_user.account_id, src_email=src_email_from_form, src_domain_id=src_email_domain.id, dst_email_id=dst_email.id)
                 db.session.add(new_alias)
                 db.session.commit()
@@ -575,7 +574,7 @@ def settings_remove_alias():
         aliases = db.session.query(Alias).filter(Alias.account_id == current_user.account_id)
         return render_template('settings_remove_alias.html',aliases=aliases,current_user=current_user)
     if request.method == 'POST':
-        # Check if org is enabled.
+        # Check if account is enabled.
         if current_user.account.is_enabled != True:
             return render_template('message.html',headline="Remove Alias Error",message="Failed to remove alias beacuse this account is disabled.",current_user=current_user)
 
@@ -613,7 +612,7 @@ def settings_show_domains():
         return render_template('message.html',headline="Show domains error",message="Failed to show domains beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     # Get the account domains and global domains.
-    account_domains = db.session.query(Domain.domain).filter(Domain.account_id == current_user.account_id)
+    account_domains = db.session.query(Account_domain.domain).filter(Account_domain.account_id == current_user.account_id)
     global_domains = db.session.query(Global_domain.domain).filter(Global_domain.is_enabled == True)
 
     domains = account_domains.union(global_domains)
@@ -649,15 +648,15 @@ def settings_add_domain():
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, domain validation failed.",current_user=current_user)
 
             # Check that domain do not already exsist.
-            does_domain_exist = db.session.query(Domain).filter(Domain.domain == form.domain.data).count()
+            does_account_domain_exist = db.session.query(Account_domain).filter(Account_domain.domain == form.domain.data).count()
             does_global_domain_exist = db.session.query(Global_domain).filter(Global_domain.domain == form.domain.data).count()
 
-            if does_domain_exist == 1 or does_global_domain_exist == 1:
+            if does_account_domain_exist == 1 or does_global_domain_exist == 1:
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the current domain already exist.",current_user=current_user)
 
             # Add domain to db.
-            domain = Domain(account_id=current_user.account_id, domain=form.domain.data)
-            db.session.add(domain)
+            account_domain = Account_domain(account_id=current_user.account_id, domain=form.domain.data)
+            db.session.add(account_domain)
             db.session.commit()
 
             return render_template('message.html',headline="Add Domain",message="Successfully added domain.",current_user=current_user)
@@ -681,7 +680,7 @@ def settings_remove_domain():
         return render_template('message.html',headline="Remove domain error",message="Failed to remove domains beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
-        domains = db.session.query(Domain).filter(Domain.account_id == current_user.account_id)
+        domains = db.session.query(Account_domain).filter(Account_domain.account_id == current_user.account_id)
         return render_template('settings_remove_domain.html', domains=domains,current_user=current_user)
     if request.method == 'POST':
 
@@ -692,21 +691,21 @@ def settings_remove_domain():
             return render_template('message.html',headline="Remove Domain Error",message="Failed to remove domain, domain backend validation failed.",current_user=current_user)
 
         # Check if domain exist in db and is owned by current account.
-        is_domain_mine = db.session.query(Domain).filter(Domain.domain == remove_domain_from_form, Domain.account_id == current_user.account_id).count()
+        is_domain_mine = db.session.query(Account_domain).filter(Account_domain.domain == remove_domain_from_form, Account_domain.account_id == current_user.account_id).count()
         if is_domain_mine != 1:
-            return render_template('message.html',headline="Remove Domain Error",message="Failed to remove domain, domain does not exsist or is not owned by your account.",current_user=current_user)
+            return render_template('message.html',headline="Remove Domain Error",message="Failed to remove domain, domain does not exist or is not owned by your account.",current_user=current_user)
 
-        domain = db.session.query(Domain).filter(Domain.domain == remove_domain_from_form).first()
+        domain = db.session.query(Account_domain).filter(Account_domain.domain == remove_domain_from_form).first()
 
         # Check that domain does not have emails or aliases.
-        number_off_emails = db.session.query(Email).filter(Email.domain_id == domain.id).count()
-        number_off_aliases = db.session.query(Alias).filter(Alias.src_domain_id == domain.id).count()
+        number_off_emails = db.session.query(Email).filter(Email.account_domain_id == domain.id).count()
+        number_off_aliases = db.session.query(Alias).filter(Alias.src_account_domain_id == domain.id).count()
 
         if number_off_emails != 0 or number_off_aliases != 0:
             return render_template('message.html',headline="Remove Domain Error",message="Failed to remove domain, domain is used in email or alias, remove those first.",current_user=current_user)
 
         # Remove domain account from db.
-        db.session.query(Domain).filter(Domain.account_id == current_user.account_id, Domain.domain == remove_domain_from_form).delete()
+        db.session.query(Account_domain).filter(Account_domain.account_id == current_user.account_id, Account_domain.domain == remove_domain_from_form).delete()
         db.session.commit()
 
         return render_template('message.html',headline="Remove Domain",message="Successfully removed domain",current_user=current_user)
