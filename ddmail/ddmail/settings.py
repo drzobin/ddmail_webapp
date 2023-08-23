@@ -295,7 +295,7 @@ def settings_add_email():
 
             # Get the domain id and aff the new email account to db.
             if is_domain_mine == 1:
-                domain = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1]).first()
+                account_domain = db.session.query(Account_domain).filter(Account_domain.domain == validate_email_domain[1]).first()
                 new_email = Email(account_id=int(current_user.account_id), email=add_email_from_form,password_hash=password_hash, account_domain_id=account_domain.id)
                 db.session.add(new_email)
                 db.session.commit()
