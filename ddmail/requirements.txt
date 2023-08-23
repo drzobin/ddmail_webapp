@@ -4,6 +4,7 @@ Flask-Session
 Flask-WTF
 argon2_cffi
 mysqlclient
+dnspython
 pytest
 coverage
 gunicorn
