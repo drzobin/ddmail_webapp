@@ -14,6 +14,7 @@ class Account(db.Model):
     is_enabled = db.Column(db.Boolean, unique=False, nullable=False)
     is_gratis = db.Column(db.Boolean, unique=False, nullable=False)
     created = db.Column(db.DateTime, nullable=False)
+    last_time_disabled = db.Column(db.DateTime, nullable=True)
 
     aliases = relationship("Alias", back_populates="account")
     emails = relationship("Email", back_populates="account")
