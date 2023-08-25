@@ -569,7 +569,7 @@ def settings_remove_alias():
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
-        return render_template('message.html',headline="Remove alias error",message="Failed to remove alias beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+        return render_template('message.html',headline="Remove Alias Error",message="Failed to remove alias beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
         aliases = db.session.query(Alias).filter(Alias.account_id == current_user.account_id)
@@ -577,23 +577,23 @@ def settings_remove_alias():
     if request.method == 'POST':
         # Check if org is enabled.
         if current_user.account.is_enabled != True:
-            return render_template('message.html',headline="Remove alias error",message="Failed to remove alias beacuse this account is disabled.",current_user=current_user)
+            return render_template('message.html',headline="Remove Alias Error",message="Failed to remove alias beacuse this account is disabled.",current_user=current_user)
 
         alias_id_from_form = request.form["remove_alias"].strip()
 
         if alias_id_from_form.isdigit() != True:
-            return render_template('message.html',headline="Remove alias error",message="Failed to remove alias, validation failed.",current_user=current_user)
+            return render_template('message.html',headline="Remove Alias Error",message="Failed to remove alias, validation failed.",current_user=current_user)
 
         # Check alias already exist in db and is owned by current user.
-        isAliasMine = db.session.query(Alias).filter(Alias.id == alias_id_from_form, Alias.account_id == current_user.account_id).count()
-        if isAliasMine != 1:
-            return render_template('message.html',headline="Remove alias error",message="Failed to remove alias, validation failed.",current_user=current_user)
+        is_alias_mine = db.session.query(Alias).filter(Alias.id == alias_id_from_form, Alias.account_id == current_user.account_id).count()
+        if is_alias_mine != 1:
+            return render_template('message.html',headline="Remove Alias Error",message="Failed to remove alias, validation failed.",current_user=current_user)
 
         # Remove alias from db.
         db.session.query(Alias).filter(Alias.account_id == current_user.account_id, Alias.id == alias_id_from_form).delete()
         db.session.commit()
 
-        return render_template('message.html',headline="Remove alias",message="Successfully removed alias.",current_user=current_user)
+        return render_template('message.html',headline="Remove Alias",message="Successfully removed alias.",current_user=current_user)
 
 @bp.route("/settings/show_domains", methods=['GET'])
 def settings_show_domains():
