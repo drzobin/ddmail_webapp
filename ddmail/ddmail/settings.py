@@ -542,7 +542,7 @@ def settings_add_alias():
             dst_email = db.session.query(Email).filter(Email.email == dst_email_from_form, Email.account_id == current_user.account_id).first()
             if is_src_email_domain_mine == 1:
                 src_email_domain = db.session.query(Account_domain).filter(Account_domain.domain == validate_src_email_domain[1], Account_domain.account_id == current_user.account_id).first()
-                new_alias = Alias(account_id=current_user.account_id, src_email=src_email_from_form, src_domain_id=src_email_domain.id, dst_email_id=dst_email.id)
+                new_alias = Alias(account_id=current_user.account_id, src_email=src_email_from_form, src_account_domain_id=src_email_domain.id, dst_email_id=dst_email.id)
                 db.session.add(new_alias)
                 db.session.commit()
             elif is_src_email_domain_global == 1:
