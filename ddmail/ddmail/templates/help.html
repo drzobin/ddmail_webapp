@@ -7,7 +7,7 @@
 <h3>Recommended mail clients</h3>
 Thunderbird and K-9 Mail
 
-<h3>IMAP(S) mail server</h3>
+<h3>IMAP mail server</h3>
 Server name: mail.ddmail.se<br> 
 Port: 993<br>
 Connection security: SSL/TLS<br>
@@ -23,5 +23,20 @@ Authentication method: normal password<br>
 Username: [email account address]<br>
 Password: [email account password]<br>
 
+<h3>IMAP mail server using tor onion service</h3>
+Server name: {% include 'tor_hostname' %}<br> 
+Port: 143<br>
+Connection security: None<br>
+Authentication method: normal password<br>
+Username: [email account address]<br>
+Password: [email account password]<br>
+
+<h3>Outgoing SMTP server using tor onion service</h3>
+Server name: {% include 'tor_hostname' %}<br>
+Port: 25<br>
+Connection security: StartTLS<br>
+Authentication method: normal password<br>
+Username: [email account address]<br>
+Password: [email account password]<br>
 <p>Happy mailing :)</p>
 {% endblock%}
