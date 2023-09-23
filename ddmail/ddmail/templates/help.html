@@ -23,6 +23,15 @@ Authentication method: normal password<br>
 Username: [email account address]<br>
 Password: [email account password]<br>
 
+<h3>Proxy Thunderbird traffic over Tor</h3>
+Step 1: Install Tor(not Tor Browser) on your computer.<br>
+Step 2: Start Thunderbird<br>
+Step 3: Go to Settings -> General -> Network & Disk Space -> Connection -> Settings<br>
+Step 4: Set Socks Host to 127.0.0.1 and port 9050<br>
+Step 5: Enable SOCKS 5<br>
+Step 5: Enable Proxy DNS when using SOCKS 5<br>
+Step 6: Restart Thunderbird<br>
+
 <h3>IMAP mail server using tor onion service</h3>
 Server name: {% include 'tor_hostname' %}<br> 
 Port: 143<br>
