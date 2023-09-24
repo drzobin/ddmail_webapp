@@ -2,6 +2,8 @@
 {% block content %}
 {% include 'settings_menu.html' %}
 <h3>Add Domain</h3>
+{% include 'account_domain_demand.html' %}
+<p>
 <form method="POST">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     {{ form.domain.label }} {{ form.domain(size=20) }}
