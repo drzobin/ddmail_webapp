@@ -1,9 +1,10 @@
-from flask import Blueprint, session, render_template, request
+from flask import Blueprint, session, render_template, request, current_app
 from argon2 import PasswordHasher
 from ddmail.auth import is_athenticated, generate_password, generate_token
 from ddmail.models import db, Email, Account_domain, Alias, Global_domain, User
 from ddmail.forms import EmailForm, AliasForm, DomainForm
 from ddmail.validators import is_email_allowed, is_domain_allowed, is_username_allowed
+import requests
 
 bp = Blueprint("settings", __name__, url_prefix="/")
 
@@ -362,7 +363,8 @@ def settings_remove_email():
 
         # Validate domain part of email from form.
         validate_email_domain = remove_email_from_form.split('@')
-        if is_domain_allowed(validate_email_domain[1]) == False:
+        domain = validate_email_domain[1]
+        if is_domain_allowed(domain) == False:
             return render_template('message.html',headline="Remove email error",message="Failed to removed email, validation failed.",current_user=current_user)
 
         # Check that email already exist in db and is owned by current user.
@@ -373,6 +375,10 @@ def settings_remove_email():
         # Remove email account from db.
         db.session.query(Email).filter(Email.account_id == current_user.account_id, Email.email == remove_email_from_form).delete()
         db.session.commit()
+
+        # Remove email account data from storage.
+        url = current_app.config[EMAIL_REMOVER_URL]
+        requests.post(url, {"password":current_app.config[EMAIL_REMOVER_PASSWORD],"domain":domain,"email":remove_email_from_form})
 
         return render_template('message.html',headline="Remove Email Account",message="Successfully removed email.",current_user=current_user)
 
