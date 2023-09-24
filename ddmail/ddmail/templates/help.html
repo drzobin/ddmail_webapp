@@ -52,7 +52,7 @@ Password: [email account password]<br>
 The following dns records is nedded.<br>
 MX record:<br>[your own domain]		3600	IN	MX	10 mail.ddmail.se.<p>
 SPF as TXT record:<br>[your own domain]	3600	IN	TXT	"v=spf1 mx -all"<p>
-DKIM as TXT record:<br>mail._domainkey.[your own domain] IN TXT 3600	IN	TXT	"v=DKIM1; k=rsa;  \009p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA6Zih0sqbThqyq/ZuJ/VG1uTt3Gk2SOlXDvwLmXZUro1T2qcS+zpuPxIg5APR2Jwg7cdQqj2LzChpESMgsGBKYGChRuUTMwz3UFguduWOQYoZGF15FE1Hnga1+E/mlq2+4QPCXFo4RSJGfrxFD4mUldfRpF1p18N9nJ236SGuM7TLSQr59ITqxaqM8v/0Evj" "xHxAkHZ6aWcj2ID9lp \009K7ccXRhmvNjkMRHzB+Ewb7omuUABX24yp5nzqZU+Uc7CZwM+bgfZ94Lq5Gjsn/k05NiRl22eYKHj0RhysNybP0GG+HxZZlfYcqNfFLdeNL2edyIBFIED4kWgCbNWm6R88kjCwIDAQAB"<p>
+DKIM as TXT record:<br>mail._domainkey.[your own domain] 3600	IN	TXT	"v=DKIM1; k=rsa;  \009p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA6Zih0sqbThqyq/ZuJ/VG1uTt3Gk2SOlXDvwLmXZUro1T2qcS+zpuPxIg5APR2Jwg7cdQqj2LzChpESMgsGBKYGChRuUTMwz3UFguduWOQYoZGF15FE1Hnga1+E/mlq2+4QPCXFo4RSJGfrxFD4mUldfRpF1p18N9nJ236SGuM7TLSQr59ITqxaqM8v/0Evj" "xHxAkHZ6aWcj2ID9lp \009K7ccXRhmvNjkMRHzB+Ewb7omuUABX24yp5nzqZU+Uc7CZwM+bgfZ94Lq5Gjsn/k05NiRl22eYKHj0RhysNybP0GG+HxZZlfYcqNfFLdeNL2edyIBFIED4kWgCbNWm6R88kjCwIDAQAB"<p>
 DMARC as TXT record:<br>_dmarc.[your own domain]	3600	IN	TXT	"v=DMARC1; p=none"<p>
 
 <p>Happy mailing :)</p>
