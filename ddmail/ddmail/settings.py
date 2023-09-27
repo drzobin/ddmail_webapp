@@ -379,7 +379,7 @@ def settings_remove_email():
         # Remove email account data from storage with email_remover.
         email_remover_url = current_app.config["EMAIL_REMOVER_URL"]
         email_remover_password = current_app.config["EMAIL_REMOVER_PASSWORD"]
-        requests.post(email_remover_url, {"password":email_remover_password,"domain":domain,"email":remove_email_from_form})
+        requests.post(email_remover_url, {"password":email_remover_password,"domain":domain,"email":remove_email_from_form}, timeout=5)
 
         return render_template('message.html',headline="Remove Email Account",message="Successfully removed email.",current_user=current_user)
 
