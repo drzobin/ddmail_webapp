@@ -38,8 +38,6 @@ def payment_token():
 
     return render_template('settings_payment_token.html',payment_token = current_user.account.payment_token, current_user = current_user)
 
-
-
 @bp.route("/settings/change_password_on_user", methods=['POST', 'GET'])
 def settings_change_password_on_user():
     # Check if cookie secret is set.
@@ -193,10 +191,6 @@ def settings_remove_account_user():
         return render_template('settings_remove_account_user.html',users=users, current_user=current_user)
 
     if request.method == 'POST':
-        # Check if account is enabled.
-        if current_user.account.is_enabled != True:
-            return render_template('message.html',headline="Remove email error",message="Failed to remove account user beacuse this account is disabled.",current_user=current_user)
-
         remove_user_from_form = request.form["remove_user"].strip()
 
         # Validate user data from form.
@@ -239,7 +233,6 @@ def settings_add_email():
     if request.method == 'GET':
 
         # Get the accounts domains.
-        #session.query(SomeModel.col1)
         account_domains = db.session.query(Account_domain.domain).filter(Account_domain.account_id == current_user.account_id)
         global_domains = db.session.query(Global_domain.domain).filter(Global_domain.is_enabled == True)
 
@@ -255,7 +248,6 @@ def settings_add_email():
             domain_from_form = form.domain.data.strip()
 
             add_email_from_form = email_from_form + "@" + domain_from_form
-            #add_email_from_form = form.email.data
 
             # Validate email from form.
             if is_email_allowed(add_email_from_form) == False:
@@ -267,7 +259,6 @@ def settings_add_email():
                 return render_template('message.html',headline="Add email error",message="Failed to add email, domain validation failed.",current_user=current_user)
 
             # Check if domain is global.
-            #isDomainGlobal = isDomainMine = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1], Domain.is_global == True).count()
             is_domain_global = db.session.query(Global_domain).filter(Global_domain.domain == validate_email_domain[1], Global_domain.is_enabled == True).count()
 
             # Check if domain is owned by the account.
@@ -290,7 +281,6 @@ def settings_add_email():
             cleartext_password = generate_password(24)
 
             # Hash the password SSHA512.
-            #password_hash = createSSHA512(cleartext_password)
             ph = PasswordHasher(time_cost=3,memory_cost=65536,parallelism=1)
             password_hash = ph.hash(cleartext_password)
 
@@ -351,10 +341,6 @@ def settings_remove_email():
 
         return render_template('settings_remove_email.html',emails=emails, current_user=current_user)
     if request.method == 'POST':
-        # Check if account is enabled.
-        if current_user.account.is_enabled != True:
-            return render_template('message.html',headline="Remove email error",message="Failed to remove email beacuse this account is disabled.",current_user=current_user)
-
         remove_email_from_form = request.form["remove_email"].strip()
 
         # Validate email from form.
@@ -406,10 +392,6 @@ def settings_change_password_on_email():
         return render_template('settings_change_password_on_email.html',emails=emails, current_user=current_user)
 
     if request.method == 'POST':
-        # Check if org is enabled.
-        if current_user.account.is_enabled != True:
-            return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account beacuse this account is disabled.",current_user=current_user)
-
         change_password_on_email_from_form = request.form["change_password_on_email"].strip()
 
         # Validate email from form.
@@ -428,17 +410,12 @@ def settings_change_password_on_email():
 
         # Generate password.
         cleartext_password = generate_password(24)
-        #print("cleartext_password:" + cleartext_password)
 
         # Hash the password argon2.
         ph = PasswordHasher(time_cost=3,memory_cost=65536,parallelism=1)
         password_hash = ph.hash(cleartext_password)
 
-        # Get the domain id.
-        #domain = db.session.query(Domain).filter(Domain.domain == validate_email_domain[1]).first()
-
         # Change password on email account from db.
-        #db.session.query(Email).filter(Email.account_id == current_user.account_id, Email.email == change_password_on_email_from_form).update({'password_hash': password_hash})
         email = db.session.query(Email).filter(Email.account_id == current_user.account_id, Email.email == change_password_on_email_from_form).first()
         email.password_hash = password_hash
         db.session.commit()
@@ -494,10 +471,6 @@ def settings_add_alias():
         return render_template('settings_add_alias.html', form=form, current_user=current_user, emails=emails, domains=domains)
 
     if request.method == 'POST':
-        # Check if account is enabled.
-        if current_user.account.is_enabled != True:
-            return render_template('message.html',headline="Add alias error",message="Failed to add alias beacuse this account is disabled.",current_user=current_user)
-
         if not form.validate_on_submit():
             return render_template('message.html',headline="Add alias error",message="Failed to add alias, failed csrf validation",current_user=current_user)
         else:
@@ -581,10 +554,6 @@ def settings_remove_alias():
         aliases = db.session.query(Alias).filter(Alias.account_id == current_user.account_id)
         return render_template('settings_remove_alias.html',aliases=aliases,current_user=current_user)
     if request.method == 'POST':
-        # Check if account is enabled.
-        if current_user.account.is_enabled != True:
-            return render_template('message.html',headline="Remove Alias Error",message="Failed to remove alias beacuse this account is disabled.",current_user=current_user)
-
         alias_id_from_form = request.form["remove_alias"].strip()
 
         if alias_id_from_form.isdigit() != True:
@@ -668,7 +637,6 @@ def settings_add_domain():
 
             return render_template('message.html',headline="Add Domain",message="Successfully added domain.",current_user=current_user)
 
-
 @bp.route("/settings/remove_domain", methods=['POST', 'GET'])
 def settings_remove_domain():
     # Check if cookie secret is set.
@@ -690,7 +658,6 @@ def settings_remove_domain():
         domains = db.session.query(Account_domain).filter(Account_domain.account_id == current_user.account_id)
         return render_template('settings_remove_domain.html', domains=domains,current_user=current_user)
     if request.method == 'POST':
-
         remove_domain_from_form = request.form["remove_domain"].strip()
 
         # Validate domain.
