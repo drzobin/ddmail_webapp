@@ -297,7 +297,7 @@ def settings_add_email():
                 db.session.commit()
 
             # Create encryptions keys and set password for key.
-            dmcp_keyhandler_url = current_app.config["DMCP_KEYHANDLER_URL"]
+            dmcp_keyhandler_url = current_app.config["DMCP_KEYHANDLER_URL"] + "/create_key"
             dmcp_keyhandler_password = current_app.config["DMCP_KEYHANDLER_PASSWORD"]
             r_respone = requests.post(dmcp_keyhandler_url, {"email":add_email_from_form,"key_password":cleartext_password,"password":dmcp_keyhandler_password}, timeout=5)
             # Check if password protected encryption key creation was successfull.
