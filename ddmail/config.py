@@ -5,7 +5,7 @@ class Prod():
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     EMAIL_REMOVER_URL = '127.0.0.1:8001'
     EMAIL_REMOVER_PASSWORD = 'password'
-    DMCP_KEYHANDLER_URL = 'http://127.0.0.1:8001'
+    DMCP_KEYHANDLER_URL = 'http://127.0.0.1:8002'
     DMCP_KEYHANDLER_PASSWORD = 'password'
 
 class Test():
@@ -15,7 +15,7 @@ class Test():
     SQLALCHEMY_TRACK_MODIFICATIONS = False 
     EMAIL_REMOVER_URL = '127.0.0.1:8001'
     EMAIL_REMOVER_PASSWORD = 'password'
-    DMCP_KEYHANDLER_URL = 'http://127.0.0.1:8001'
+    DMCP_KEYHANDLER_URL = 'http://127.0.0.1:8002'
     DMCP_KEYHANDLER_PASSWORD = 'password'
 
 class Dev():
@@ -25,5 +25,5 @@ class Dev():
     SQLALCHEMY_TRACK_MODIFICATIONS = False 
     EMAIL_REMOVER_URL = '127.0.0.1:8001'
     EMAIL_REMOVER_PASSWORD = 'password'
-    DMCP_KEYHANDLER_URL = 'http://127.0.0.1:8001'
+    DMCP_KEYHANDLER_URL = 'http://127.0.0.1:8002'
     DMCP_KEYHANDLER_PASSWORD = 'password'
