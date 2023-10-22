@@ -2,8 +2,8 @@ from flask import Blueprint, session, render_template, request, current_app
 from argon2 import PasswordHasher
 from ddmail.auth import is_athenticated, generate_password, generate_token
 from ddmail.models import db, Email, Account_domain, Alias, Global_domain, User
-from ddmail.forms import EmailForm, AliasForm, DomainForm
-from ddmail.validators import is_email_allowed, is_domain_allowed, is_username_allowed
+from ddmail.forms import EmailForm, AliasForm, DomainForm, EmailPasswordForm
+from ddmail.validators import is_email_allowed, is_domain_allowed, is_username_allowed, is_password_allowed
 import requests
 
 bp = Blueprint("settings", __name__, url_prefix="/")
@@ -394,13 +394,17 @@ def settings_change_password_on_email():
     if current_user.account.is_enabled != True:
         return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
+    form = EmailPasswordForm()
     if request.method == 'GET':
         emails = db.session.query(Email).filter(Email.account_id == current_user.account_id)
 
-        return render_template('settings_change_password_on_email.html',emails=emails, current_user=current_user)
+        return render_template('settings_change_password_on_email.html',form=form,emails=emails, current_user=current_user)
 
     if request.method == 'POST':
+        ph = PasswordHasher()
+
         change_password_on_email_from_form = request.form["change_password_on_email"].strip()
+        current_cleartext_password_from_form = request.form["email_password"].strip()
 
         # Validate email from form.
         if is_email_allowed(change_password_on_email_from_form) == False:
@@ -410,14 +414,39 @@ def settings_change_password_on_email():
         validate_email_domain = change_password_on_email_from_form.split('@')
         if is_domain_allowed(validate_email_domain[1]) == False:
             return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, validation failed.",current_user=current_user)
+        
+        # Validate current password from form.
+        if is_password_allowed(current_cleartext_password_from_form) == False:
+            return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, validation failed on current password.",current_user=current_user)
 
         # Check that email already exist in db and is owned by current user.
         is_email_mine = db.session.query(Email).filter(Email.email == change_password_on_email_from_form, Email.account_id == current_user.account_id).count()
         if is_email_mine != 1:
             return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, validation failed.",current_user=current_user)
 
+        # Get current password hash for email account.
+        email_from_db = db.session.query(Email).filter(Email.email == change_password_on_email_from_form, Email.account_id == current_user.account_id).first()
+
+        # Check current password is correct.
+        try:
+            print(current_cleartext_password_from_form)
+            print(email_from_db.password_hash)
+            if ph.verify(email_from_db.password_hash, current_cleartext_password_from_form) != True:
+                return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, current email account password is wrong.",current_user=current_user)
+        except:
+            return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, current email account password is wrong.",current_user=current_user)
+
         # Generate password.
         cleartext_password = generate_password(24)
+
+        # Change password on encryption key.
+        dmcp_keyhandler_url = current_app.config["DMCP_KEYHANDLER_URL"] + "/change_password_on_key"
+        dmcp_keyhandler_password = current_app.config["DMCP_KEYHANDLER_PASSWORD"]
+        r_respone = requests.post(dmcp_keyhandler_url, {"email":change_password_on_email_from_form,"current_key_password":current_cleartext_password_from_form,"new_key_password":cleartext_password,"password":dmcp_keyhandler_password}, timeout=5)
+            
+        # Check if password on encryption key change was successfull.
+        if r_respone.status_code != 200 or r_respone.content != b'done':
+            return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, failed to change password on encryption key.",current_user=current_user)
 
         # Hash the password argon2.
         ph = PasswordHasher(time_cost=3,memory_cost=65536,parallelism=1)
