@@ -301,7 +301,7 @@ def settings_add_email():
             dmcp_keyhandler_password = current_app.config["DMCP_KEYHANDLER_PASSWORD"]
             r_respone = requests.post(dmcp_keyhandler_url, {"email":add_email_from_form,"key_password":cleartext_password,"password":dmcp_keyhandler_password}, timeout=5)
             # Check if password protected encryption key creation was successfull.
-            if r_respone.status_code != 200 or r_respone.content != "done":
+            if r_respone.status_code != 200 or r_respone.content != b'done':
                 return render_template('message.html',headline="Add email error",message="Failed trying to create password protected encryptions keys.",current_user=current_user)
 
             return render_template('message.html',headline="Add Email Account",message="Successfully added email: " + add_email_from_form + " with password: " + cleartext_password ,current_user=current_user)
