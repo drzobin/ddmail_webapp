@@ -5,6 +5,10 @@ from wtforms import StringField, validators
 class DomainForm(FlaskForm):
     domain = StringField('Domain', [validators.DataRequired(),validators.Length(min=4, max=200)])
 
+# Form modul for email password.
+class EmailPasswordForm(FlaskForm):
+    email_password = StringField('Email account password', [validators.DataRequired(),validators.Length(min=24, max=24)])
+
 # Form modul for email.
 class EmailForm(FlaskForm):
     email = StringField('Email', [validators.DataRequired(),validators.Length(min=1, max=200)])
