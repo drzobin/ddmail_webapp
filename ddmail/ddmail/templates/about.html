@@ -17,7 +17,7 @@ We try to use the following design patterns/principle:<br>- less code, less atta
 Email is encrypted "at rest" using elliptic curve secp521r1 password protected private keys. The private key password is the email account password base64 encoded. This encryption/decryption is done seamlessly to the user. Every e-mail account(Maildir) has different private/public keys. 
 
 <h3>Encryption "in transit"</h3>
-Mail is encrypted "in transit" as offen as possible using TLS encryption. IMAP and HTTP is always encryptet using TLS 1.2 or 1.3 with strong cipher suites, A+ rating on ssllab. SMTP traffic is encrypted using TLS when the counter part SMTP server supports it.
+Mail is encrypted "in transit" as offen as possible using TLS encryption. IMAP and HTTP is always encryptet using TLS 1.2 or TLS 1.3 with strong cipher suites, A+ rating on ssllab. SMTP traffic is encrypted using TLS when the counter part SMTP server supports it.
 
 <h3>Features</h3>
 Unlimited number of e-mails accounts per account. Unlimited number of aliases per account. Unlimited number of own domains per account. Avalible as Tor Onion Service. Avalible as i2p service. Protocol supported for getting emails is imaps and protocol supported for sendning email is smtp.
