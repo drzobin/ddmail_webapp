@@ -5,6 +5,7 @@ from ddmail.models import db, Email, Account_domain, Alias, Global_domain, User
 from ddmail.forms import EmailForm, AliasForm, DomainForm, EmailPasswordForm
 from ddmail.validators import is_email_allowed, is_domain_allowed, is_username_allowed, is_password_allowed
 import requests
+import base64
 
 bp = Blueprint("settings", __name__, url_prefix="/")
 
@@ -299,7 +300,7 @@ def settings_add_email():
             # Create encryptions keys and set password for key.
             dmcp_keyhandler_url = current_app.config["DMCP_KEYHANDLER_URL"] + "/create_key"
             dmcp_keyhandler_password = current_app.config["DMCP_KEYHANDLER_PASSWORD"]
-            r_respone = requests.post(dmcp_keyhandler_url, {"email":add_email_from_form,"key_password":cleartext_password,"password":dmcp_keyhandler_password}, timeout=5)
+            r_respone = requests.post(dmcp_keyhandler_url, {"email":add_email_from_form,"key_password":base64.b64encode(cleartext_password),"password":dmcp_keyhandler_password}, timeout=5)
             # Check if password protected encryption key creation was successfull.
             if r_respone.status_code != 200 or r_respone.content != b'done':
                 return render_template('message.html',headline="Add email error",message="Failed trying to create password protected encryptions keys.",current_user=current_user)
@@ -442,7 +443,7 @@ def settings_change_password_on_email():
         # Change password on encryption key.
         dmcp_keyhandler_url = current_app.config["DMCP_KEYHANDLER_URL"] + "/change_password_on_key"
         dmcp_keyhandler_password = current_app.config["DMCP_KEYHANDLER_PASSWORD"]
-        r_respone = requests.post(dmcp_keyhandler_url, {"email":change_password_on_email_from_form,"current_key_password":current_cleartext_password_from_form,"new_key_password":cleartext_password,"password":dmcp_keyhandler_password}, timeout=5)
+        r_respone = requests.post(dmcp_keyhandler_url, {"email":change_password_on_email_from_form,"current_key_password":base64.b64encode(current_cleartext_password_from_form),"new_key_password":base64.b64encode(cleartext_password),"password":dmcp_keyhandler_password}, timeout=5)
             
         # Check if password on encryption key change was successfull.
         if r_respone.status_code != 200 or r_respone.content != b'done':
