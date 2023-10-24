@@ -1,4 +1,4 @@
-from flask import Blueprint, session, render_template, request, current_app
+from flask import Blueprint, session, render_template, request, current_app, redirect, url_for
 from argon2 import PasswordHasher
 from ddmail.auth import is_athenticated, generate_password, generate_token
 from ddmail.models import db, Email, Account_domain, Alias, Global_domain, User
@@ -13,14 +13,14 @@ bp = Blueprint("settings", __name__, url_prefix="/")
 def settings():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     return render_template('settings.html', current_user = current_user)
 
@@ -28,14 +28,14 @@ def settings():
 def payment_token():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     return render_template('settings_payment_token.html',payment_token = current_user.account.payment_token, current_user = current_user)
 
@@ -43,14 +43,14 @@ def payment_token():
 def settings_change_password_on_user():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
@@ -77,14 +77,14 @@ def settings_change_password_on_user():
 def settings_change_key_on_user():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
@@ -112,14 +112,14 @@ def settings_change_key_on_user():
 def settings_add_user_to_account():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
@@ -152,14 +152,14 @@ def settings_add_user_to_account():
 def settings_show_account_users():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
@@ -173,14 +173,14 @@ def settings_show_account_users():
 def settings_remove_account_user():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
@@ -217,14 +217,14 @@ def settings_remove_account_user():
 def settings_add_email():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
@@ -311,14 +311,14 @@ def settings_add_email():
 def settings_show_email():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
@@ -332,14 +332,14 @@ def settings_show_email():
 def settings_remove_email():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
@@ -382,14 +382,14 @@ def settings_remove_email():
 def settings_change_password_on_email():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
@@ -464,14 +464,14 @@ def settings_change_password_on_email():
 def setings_show_alias():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
@@ -485,14 +485,14 @@ def setings_show_alias():
 def settings_add_alias():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
@@ -575,14 +575,14 @@ def settings_add_alias():
 def settings_remove_alias():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
@@ -612,14 +612,14 @@ def settings_remove_alias():
 def settings_show_domains():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
@@ -637,14 +637,14 @@ def settings_show_domains():
 def settings_add_domain():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is authenticated.
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
@@ -679,14 +679,14 @@ def settings_add_domain():
 def settings_remove_domain():
     # Check if cookie secret is set.
     if not "secret" in session:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
     current_user = is_athenticated(session["secret"])
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
-        return render_template('login.html')
+        return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
