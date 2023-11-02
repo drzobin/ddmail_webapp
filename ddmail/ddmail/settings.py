@@ -374,7 +374,11 @@ def settings_remove_email():
         # Remove email account data from storage with email_remover.
         email_remover_url = current_app.config["EMAIL_REMOVER_URL"]
         email_remover_password = current_app.config["EMAIL_REMOVER_PASSWORD"]
-        requests.post(email_remover_url, {"password":email_remover_password,"domain":domain,"email":remove_email_from_form}, timeout=5)
+        r_respone = requests.post(email_remover_url, {"password":email_remover_password,"domain":domain,"email":remove_email_from_form}, timeout=5)
+
+        # Check if removal was successfull.
+        if r_respone.status_code != 200 or r_respone.content != b'done':
+            return render_template('message.html',headline="Remove email error",message="Failed to remove data on disc for email account.",current_user=current_user)
 
         return render_template('message.html',headline="Remove Email Account",message="Successfully removed email.",current_user=current_user)
 
