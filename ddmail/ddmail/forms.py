@@ -7,7 +7,7 @@ class DomainForm(FlaskForm):
 
 # Form modul for email password.
 class EmailPasswordForm(FlaskForm):
-    email_password = PasswordField('Email account password', [validators.DataRequired(),validators.Length(min=24, max=24)])
+    email_password = PasswordField('Email account current password', [validators.DataRequired(),validators.Length(min=24, max=24)])
 
 # Form modul for email.
 class EmailForm(FlaskForm):
