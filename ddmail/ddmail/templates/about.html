@@ -14,7 +14,7 @@ We try to honner your privacy. We do not track or monitor your activety. We do n
 We try to use the following design patterns/principle:<br>- less code, less attacksurface<br>- leased privileged<br>- default deny<br>- assume breach<br> The server configuration and application code is all open source and can be reviewed and used by anyone at https://github.com/drzobin. We see all input as evil. We use hard to crack password hashing with argon2. We autoupdate the server software every day. We use mod_security as web application firewall (WAF). We use namespaces and seccomp to sandbox processes. We do not provide any webmail interface.
 
 <h3>Security regarding SMTP and DNS</h3>
-We are using DNSSEC, SPF, DKIM, DMARC, CAA and MTA-STS to make the service more resilient to threats.
+We are using DNSSEC, SPF, DKIM, DMARC, CAA, MTA-STS and DANE(311) to make the service more resilient to threats.
 
 <h3>Encryption "at rest"</h3>
 E-mail is encrypted "at rest" using elliptic curve secp521r1 password protected private keys. The private key password is the email account password base64 encoded. This encryption/decryption is done seamlessly to the user on the server. Every e-mail account(Maildir) has different private/public keys. 
