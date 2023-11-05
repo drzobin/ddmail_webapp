@@ -43,3 +43,12 @@ def pricing_and_payment():
 
     return render_template('pricing_and_payment.html',current_user=current_user)
 
+@bp.route("/terms")
+def terms():
+    # Check if user is athenticated.
+    if "secret" in session:
+        current_user = is_athenticated(session["secret"])
+    else:
+        current_user = None
+
+    return render_template('terms.html',current_user=current_user)
