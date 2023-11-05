@@ -22,6 +22,9 @@ def is_password_allowed(password):
 
 # Validate domain names. Only allow the following chars: a-z, 0-9 and .-
 def is_domain_allowed(domain):
+    if not len(domain) > 3:
+        return False
+
     if domain.startswith('.') or domain.startswith('-'):
         return False
     if domain.endswith('.') or domain.endswith('-'):
@@ -43,6 +46,9 @@ def is_domain_allowed(domain):
 
 # Validate email address. Only allow the following chars: a-z, 0-9 and @.-
 def is_email_allowed(email):
+    if not len(email) > 6:
+        return False
+
     if email.count('@') != 1:
         return False
     if email.startswith('.') or email.startswith('@') or email.startswith('-'):
