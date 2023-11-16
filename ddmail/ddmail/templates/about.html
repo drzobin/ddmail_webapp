@@ -14,10 +14,10 @@ We try to honner your privacy. We do not track or monitor your activety. We do n
 We try to use the following design patterns/principle:<br>- less code, less attacksurface<br>- leased privileged<br>- default deny<br>- assume breach<br> The server configuration and application code is all open source and can be reviewed and used by anyone at https://github.com/drzobin. We see all input as evil. We use hard to crack password hashing with argon2. We autoupdate the server software every day. We use mod_security as web application firewall (WAF). We use namespaces and seccomp to sandbox processes. We do not provide any webmail interface.
 
 <h3>Security regarding SMTP and DNS</h3>
-We are using DNSSEC, SPF, DKIM, DMARC, CAA, MTA-STS and DANE(311) to make the service more resilient to threats.
+We are using DNSSEC, SPF, DKIM, DMARC, CAA, MTA-STS and DANE/TLSA(311) to make the service more resilient to threats.
 
 <h3>Encryption "at rest"</h3>
-E-mail is encrypted "at rest" using elliptic curve secp521r1 password protected private keys. The private key password is the email account password base64 encoded. This encryption/decryption is done seamlessly to the user on the server. Every e-mail account(Maildir) has different private/public keys. 
+E-mail is encrypted "at rest" using elliptic curve secp521r1 key pair. The private key is password protected. The password is the email account password base64 encoded. This encryption/decryption is done seamlessly to the user on the server. Every e-mail account(Maildir) has different key pairs. 
 
 <h3>Encryption "in transit"</h3>
 E-mail is encrypted "in transit" as offen as possible using TLS encryption. IMAP and HTTP is always encryptet using TLS 1.2 or TLS 1.3 with strong cipher suites, A+ rating on ssllab. SMTP traffic is encrypted using TLS 1.2 or TLS 1.3 with strong cipher suites when the counter part SMTP server supports it.
@@ -25,14 +25,14 @@ E-mail is encrypted "in transit" as offen as possible using TLS encryption. IMAP
 <h3>Features</h3>
 Unlimited number of e-mails accounts per account. Unlimited number of aliases per account. Unlimited number of own domains per account. Avalible as Tor Onion Service. Avalible as i2p service. Protocol supported for getting emails is imaps and protocol supported for sendning email is smtp.
 
-<h3>For how long is backup saved</h3>
-Backups are saved for 7 days. This means that if you remove you account, account user, email account or alias it takes 7 days before all the data is gone. This also means that when you change any password you need to save the old password for 7 days.
-
 <h3>License</h3>
 All code and server configuration is open source and licensed under GNU Affero General Public License (AGPL).
 
 <h3>Where can i find the code</h3>
 All development is done in the open using github. The code is located at https://github.com/drzobin.
+
+<h3>For how long is backup saved</h3>
+Backups are saved for 7 days. This means that if you remove you account, account user, email account or alias it takes 7 days before all the data is gone. This also means that when you change any password you need to save the old password for 7 days.
 
 <h3>Where is it hosted</h3>
 The system/service and all its data is hosted in Sweden.
