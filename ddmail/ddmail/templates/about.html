@@ -16,6 +16,15 @@ We try to use the following design patterns/principle:<br>- less code, less atta
 <h3>Security regarding SMTP and DNS</h3>
 We are using DNSSEC, SPF, DKIM, DMARC, CAA, MTA-STS and DANE/TLSA(311) to make the service more resilient to threats.
 
+<h3>DANE/TLSA</h3>
+We have DANE/TLSA 311 DNS records for the following services and ports:<br>
+SMTP mail.ddmail.se port 25 with STARTTLS<br>
+SMTP mail.ddmail.se port 587 with STARTTLS<br>
+SMTP mail.ddmail.se over TLS port 465<br>
+IMAP mail.ddmail.se over TLS port 993<br>
+HTTPS ddmail.se port 443<br>
+HTTPS www.ddmail.se port 443<br>
+
 <h3>Encryption "at rest"</h3>
 E-mail is encrypted "at rest" using elliptic curve secp521r1 key pair. The private key is password protected. The password is the email account password base64 encoded. This encryption/decryption is done seamlessly to the user on the server. Every e-mail account(Maildir) has different key pairs. 
 
