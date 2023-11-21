@@ -1,4 +1,4 @@
-# What is ddmail_ansible
+# What is ddmail_webapp
 Main web application for the ddmail project.
 
 # What is ddmail
