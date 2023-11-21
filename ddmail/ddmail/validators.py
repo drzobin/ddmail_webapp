@@ -1,4 +1,5 @@
 import re
+import dns.resolver
 
 # Validate username. Only allow the following chars: A-Z and 0-9
 def is_username_allowed(username):
@@ -72,3 +73,51 @@ def is_email_allowed(email):
             return False
 
     return True
+
+# Validate dns domain mx record
+def is_mx_valid(domain,host,priority):
+    try:
+        answers = dns.resolver.resolve(domain, 'MX')
+        if len(answers) == 1 and str(answers[0].exchange) == host and str(answers[0].preference == priority):
+            return True
+        else:
+            return False
+
+    except:
+        return False
+
+# Validate dns spf (as txt) record
+def is_spf_valid(domain,spf_record):
+    try:
+        answers = dns.resolver.resolve(domain, 'TXT')
+        for rdata in answers:
+            if 'spf1' in str(rdata) and str(rdata) == spf_record:
+                return True
+            else:
+                return False
+    except:
+        return False
+
+# Validate dns dkim (as txt) record
+def is_dkim_valid(domain,dkim_record):
+    try:
+        answers = dns.resolver.resolve("mail._domainkey." + domain, 'TXT')
+        for rdata in answers:
+            if 'DKIM1' in str(rdata) and str(rdata) == dkim_record:
+                return True
+            else:
+                return False
+    except:
+        return False
+            
+# Validate dns dmarc (as txt) record
+def is_dmarc_valid(domain,dmarc_record):
+    try:
+        answers = dns.resolver.resolve("_dmarc." + domain, 'TXT')
+        for rdata in answers:
+            if 'DMARC1' in str(rdata) and str(rdata) == dmarc_record:
+                return True
+            else:
+                return False
+    except:
+        return False
