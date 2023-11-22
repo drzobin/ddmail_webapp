@@ -57,14 +57,20 @@ def is_email_allowed(email):
     if email.endswith('.') or email.endswith('@') or email.endswith('-'):
         return False
 
+    if '--' in email:
+        return False
+    if '..' in email:
+        return False
+
     splitted_email = email.split('@')
     if splitted_email[0].startswith('.') or splitted_email[0].startswith('-'):
         return False
+    if splitted_email[1].startswith('.') or splitted_email[1].startswith('-'):
+        return False
+
     if splitted_email[0].endswith('.') or splitted_email[0].endswith('-'):
         return False
-    if '--' in splitted_email[0]:
-        return False
-    if '..' in splitted_email[0]:
+    if splitted_email[1].endswith('.') or splitted_email[1].endswith('-'):
         return False
 
     pattern = re.compile(r"[a-z0-9@.-]")
