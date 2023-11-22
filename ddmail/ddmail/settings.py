@@ -672,6 +672,27 @@ def settings_add_domain():
             if does_account_domain_exist == 1 or does_global_domain_exist == 1:
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the current domain already exist.",current_user=current_user)
 
+            # Validate domain dns mx record.
+            is_mx = is_mx_valid(form.domain.data,"mail.ddmail.se.",10):
+            if is_mx != True:
+                return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns mx record is not correct.",current_user=current_user)
+
+            # Validate dns spf record.
+            is_spf = is_spf_valid(form.domain.data,"\"v=spf1 mx -all\""):
+            if is_spf != True:
+                return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns spf record is not correct.",current_user=current_user)
+
+            # Validate dns dkim record.
+            dkim = '"v=DKIM1; k=rsa; \009p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApJLX14mun5DlSlcqlJLv1c4eLIbtPxzhuFl5ZI5IUS5ByI6eE/5zHLrdt3XmtTAjM6xmdE4DOn7Un8SigJCcTQHkUktHF3E269qXn3lc0dyBl8BlC7e+WzPoVsVLcdCbHM+ZIgjSJ+7rHnD3zM0AysQaI+N72Rg+sCXLW9KC5BYCcecdtzfJg68+Jq5COuC" "IHEwD1QLyFgqvSW9X5 \009YX2BLRqzrsSqaGet4jEF1x/b/9VWkw8HptbzF0BDSpEin49Jakeiz4pJqtrnu95LuJwEDcHEFe5oNTmTksDd6RGWBbCMQ3WTA1QhANYVpPtL+BxUKGELE6nT0zntVi5wtxYjwIDAQAB"'
+            is_dkim = is_dkim_valid(form.domain.data,dkim):
+            if is_dkim != True:
+                return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns dkim record is not correct.",current_user=current_user)
+            
+            # Validate dns dmarc record.
+            is_dmarc = is_dmarc_valid(form.domain.data,"\"v=DMARC1; p=none\""):
+            if is_dmarc != True:
+                return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns dmarc record is not correct.",current_user=current_user)
+            
             # Add domain to db.
             account_domain = Account_domain(account_id=current_user.account_id, domain=form.domain.data)
             db.session.add(account_domain)
