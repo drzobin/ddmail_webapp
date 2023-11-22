@@ -88,7 +88,6 @@ def is_mx_valid(domain,host,priority):
             return True
         else:
             return False
-
     except:
         return False
 
