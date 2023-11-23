@@ -108,6 +108,7 @@ def is_dkim_valid(domain,dkim_record):
     try:
         answers = dns.resolver.resolve("mail._domainkey." + domain, 'TXT')
         for rdata in answers:
+            print("rdata: " + str(rdata))
             if 'DKIM1' in str(rdata) and str(rdata) == dkim_record:
                 return True
             else:
