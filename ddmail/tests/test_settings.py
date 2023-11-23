@@ -1420,7 +1420,7 @@ def test_settings_enabled_account_show_domains(client,app):
     csrf_token_settings_add_domain = get_csrf_token(response_settings_add_domain_get.data)
 
     # Test to add account domain
-    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydomain.se", 'csrf_token':csrf_token_settings_add_domain})
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"test.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain</h3>" in response_settings_add_domain_post.data
     assert b"Successfully added domain." in response_settings_add_domain_post.data
@@ -1433,7 +1433,7 @@ def test_settings_enabled_account_show_domains(client,app):
     assert b"Is account enabled: Yes" in response_settings_show_domains_get.data
     assert b"<h3>Show Domains</h3>" in response_settings_show_domains_get.data
     assert b"Current active domains for this account:" in response_settings_show_domains_get.data
-    assert b"mydomain.se" in response_settings_show_domains_get.data
+    assert b"test.ddmail.se" in response_settings_show_domains_get.data
 
 def test_settings_disabled_account_add_domain(client,app):
     # Get the csrf token for /register
