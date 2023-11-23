@@ -673,7 +673,7 @@ def settings_add_domain():
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the current domain already exist.",current_user=current_user)
 
             # Validate domain dns mx record.
-            is_mx = is_mx_valid(form.domain.data,"mail.ddmail.se.",10)
+            is_mx = is_mx_valid(str(form.domain.data),"mail.ddmail.se.",10)
             if is_mx != True:
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns mx record is not correct.",current_user=current_user)
 
@@ -683,7 +683,7 @@ def settings_add_domain():
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns spf record is not correct.",current_user=current_user)
 
             # Validate dns dkim record.
-            dkim = '"v=DKIM1; k=rsa; \009p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApJLX14mun5DlSlcqlJLv1c4eLIbtPxzhuFl5ZI5IUS5ByI6eE/5zHLrdt3XmtTAjM6xmdE4DOn7Un8SigJCcTQHkUktHF3E269qXn3lc0dyBl8BlC7e+WzPoVsVLcdCbHM+ZIgjSJ+7rHnD3zM0AysQaI+N72Rg+sCXLW9KC5BYCcecdtzfJg68+Jq5COuC" "IHEwD1QLyFgqvSW9X5 \009YX2BLRqzrsSqaGet4jEF1x/b/9VWkw8HptbzF0BDSpEin49Jakeiz4pJqtrnu95LuJwEDcHEFe5oNTmTksDd6RGWBbCMQ3WTA1QhANYVpPtL+BxUKGELE6nT0zntVi5wtxYjwIDAQAB"'
+            dkim = "\"v=DKIM1; k=rsa;  \\009p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoxbFCUM83lUvHKku3mE/IOb2LArgPsjzhijO4pZfVLrLp7dv8RKDs4MmtFHrdWf4UibDFZtPm4IKcagDD3LlqgPSeewnfesI/kGCdz2SqPA/R5Cip5I1swtQ1lKa41eu6Rxym32fzCrRAhBfOZqM05BKPQQpxcSuyNmKOz+HGlGtkUMk5ebhWDtTsoc7ntw\" \"nhnAxaF+T61YQdYyCL \\009P7l6KRULaDJ3U7AkNAYrXpv0AdfjDVZp+GXu5fqTFTMi5pYGv1pj4621OSysDmjFlPksCgDouE11N+sJVCVPj//8gJCpzDv7y2kET9MIPmIlKGBTC1AQg5KWrbkeQPcEnzhRwIDAQAB\""
             is_dkim = is_dkim_valid(form.domain.data,dkim)
             if is_dkim != True:
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns dkim record is not correct.",current_user=current_user)
