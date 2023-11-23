@@ -673,12 +673,12 @@ def settings_add_domain():
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the current domain already exist.",current_user=current_user)
 
             # Validate domain dns mx record.
-            is_mx = is_mx_valid(form.domain.data,"mail.ddmail.se.",10):
+            is_mx = is_mx_valid(form.domain.data,"mail.ddmail.se.",10)
             if is_mx != True:
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns mx record is not correct.",current_user=current_user)
 
             # Validate dns spf record.
-            is_spf = is_spf_valid(form.domain.data,"\"v=spf1 mx -all\""):
+            is_spf = is_spf_valid(form.domain.data,"\"v=spf1 mx -all\"")
             if is_spf != True:
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns spf record is not correct.",current_user=current_user)
 
@@ -689,7 +689,7 @@ def settings_add_domain():
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns dkim record is not correct.",current_user=current_user)
             
             # Validate dns dmarc record.
-            is_dmarc = is_dmarc_valid(form.domain.data,"\"v=DMARC1; p=none\""):
+            is_dmarc = is_dmarc_valid(form.domain.data,"\"v=DMARC1; p=none\"")
             if is_dmarc != True:
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns dmarc record is not correct.",current_user=current_user)
             
