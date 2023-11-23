@@ -205,7 +205,7 @@ def test_register_login_settings_logout(client,app):
     assert b"Logged in on account: Not logged in" in response.data
 
     # Test that we cant se the data from /settings.
-    assert client.get("/settings").status_code == 200
+    assert client.get("/settings").status_code == 302
     response_settings_get2 = client.get("/settings")
     assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') not in response_settings_get2.data
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') not in response_settings_get2.data
