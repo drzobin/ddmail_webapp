@@ -1502,18 +1502,18 @@ def test_settings_enabled_account_add_domain(client,app):
     #
     #
     # Test wrong csrf_token on /settings/add_domain
-    assert client.post("/settings/add_domain", data={'domain':"mydomain.se", 'csrf_token':"wrong csrf_token"}).status_code == 400
+    assert client.post("/settings/add_domain", data={'domain':"test.ddmail.se", 'csrf_token':"wrong csrf_token"}).status_code == 400
 
     #
     #
     # Test empty csrf_token on /settings/add_domain
-    response_settings_add_domain_empty_csrf_post = client.post("/settings/add_domain", data={'domain':"mydomain.se", 'csrf_token':""})
+    response_settings_add_domain_empty_csrf_post = client.post("/settings/add_domain", data={'domain':"test.ddmail.se", 'csrf_token':""})
     assert b"The CSRF token is missing" in response_settings_add_domain_empty_csrf_post.data
 
     #
     #
     # Test to add account domain
-    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydomain.se", 'csrf_token':csrf_token_settings_add_domain})
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"test.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain</h3>" in response_settings_add_domain_post.data
     assert b"Successfully added domain." in response_settings_add_domain_post.data
@@ -1521,7 +1521,7 @@ def test_settings_enabled_account_add_domain(client,app):
     #
     #
     # Test to add a domain that already exsist in current/same account 
-    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydomain.se", 'csrf_token':csrf_token_settings_add_domain})
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"test.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert b"Failed to add domain, the current domain already exist." in response_settings_add_domain_post.data
@@ -1529,7 +1529,7 @@ def test_settings_enabled_account_add_domain(client,app):
     #
     #
     # Test to add a domain that failes backend validation. 
-    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydoma<in.se", 'csrf_token':csrf_token_settings_add_domain})
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"tes<t.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
@@ -1537,7 +1537,7 @@ def test_settings_enabled_account_add_domain(client,app):
     #
     #
     # Test to add a domain that failes backend validation. 
-    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydoma\"in.se", 'csrf_token':csrf_token_settings_add_domain})
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"tes\"t.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
@@ -1545,7 +1545,7 @@ def test_settings_enabled_account_add_domain(client,app):
     #
     #
     # Test to add a domain that failes backend validation. 
-    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydoma--in.se", 'csrf_token':csrf_token_settings_add_domain})
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"t--iest.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
@@ -1553,7 +1553,7 @@ def test_settings_enabled_account_add_domain(client,app):
     #
     #
     # Test to add a domain that failes backend validation. 
-    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydoma..in.se", 'csrf_token':csrf_token_settings_add_domain})
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"test..ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
@@ -1561,7 +1561,7 @@ def test_settings_enabled_account_add_domain(client,app):
     #
     #
     # Test to add a domain that failes backend validation. 
-    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"m;ydomain.se", 'csrf_token':csrf_token_settings_add_domain})
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"t;est.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
@@ -1569,7 +1569,7 @@ def test_settings_enabled_account_add_domain(client,app):
     #
     #
     # Test to add a domain that failes backend validation. 
-    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"m\'ydomain.se", 'csrf_token':csrf_token_settings_add_domain})
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"t\'est.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
@@ -1647,7 +1647,7 @@ def test_settings_enabled_account_remove_domain(client,app):
     csrf_token_settings_add_domain = get_csrf_token(response_settings_add_domain_get.data)
 
     # Test to add account domain
-    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"mydomain.se", 'csrf_token':csrf_token_settings_add_domain})
+    response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"test.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain</h3>" in response_settings_add_domain_post.data
     assert b"Successfully added domain." in response_settings_add_domain_post.data
@@ -1666,53 +1666,53 @@ def test_settings_enabled_account_remove_domain(client,app):
     #
     #
     # Test wrong csrf_token on /settings/remove_domain
-    assert client.post("/settings/remove_domain", data={'remove_domain':"mydomain.se", 'csrf_token':"wrong csrf_token"}).status_code == 400
+    assert client.post("/settings/remove_domain", data={'remove_domain':"test.ddmail.se", 'csrf_token':"wrong csrf_token"}).status_code == 400
 
     #
     #
     # Test empty csrf_token on /settings/remove_domain
-    response_settings_remove_domain_empty_csrf_post = client.post("/settings/remove_domain", data={'remove_domain':"mydomain.se", 'csrf_token':""})
+    response_settings_remove_domain_empty_csrf_post = client.post("/settings/remove_domain", data={'remove_domain':"test.ddmail.se", 'csrf_token':""})
     assert b"The CSRF token is missing" in response_settings_remove_domain_empty_csrf_post.data
     
     #
     #
     # Test to remove account domain.
-    response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"mydomain.se", 'csrf_token':csrf_token_settings_remove_domain})
+    response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"test.ddmail.se", 'csrf_token':csrf_token_settings_remove_domain})
     assert b"<h3>Remove Domain</h3>" in response_settings_remove_domain_post.data
     assert b"Successfully removed domain" in response_settings_remove_domain_post.data
     
     #
     #
     # Test to remove account domain with illigal char.
-    response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"m..ydomain.se", 'csrf_token':csrf_token_settings_remove_domain})
+    response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"t..est.ddmail.se", 'csrf_token':csrf_token_settings_remove_domain})
     assert b"<h3>Remove Domain Error</h3>" in response_settings_remove_domain_post.data
     assert b"Failed to remove domain, domain backend validation failed." in response_settings_remove_domain_post.data
     
     #
     #
     # Test to remove account domain with illigal char.
-    response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"my--domain.se", 'csrf_token':csrf_token_settings_remove_domain})
+    response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"te--st.ddmail.se.se", 'csrf_token':csrf_token_settings_remove_domain})
     assert b"<h3>Remove Domain Error</h3>" in response_settings_remove_domain_post.data
     assert b"Failed to remove domain, domain backend validation failed." in response_settings_remove_domain_post.data
     
     #
     #
     # Test to remove account domain with illigal char.
-    response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"my\"domain.se", 'csrf_token':csrf_token_settings_remove_domain})
+    response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"t\"est.ddmail.se", 'csrf_token':csrf_token_settings_remove_domain})
     assert b"<h3>Remove Domain Error</h3>" in response_settings_remove_domain_post.data
     assert b"Failed to remove domain, domain backend validation failed." in response_settings_remove_domain_post.data
     
     #
     #
     # Test to remove account domain with illigal char.
-    response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"my\"'domain.se", 'csrf_token':csrf_token_settings_remove_domain})
+    response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"test.ddm#ail.se", 'csrf_token':csrf_token_settings_remove_domain})
     assert b"<h3>Remove Domain Error</h3>" in response_settings_remove_domain_post.data
     assert b"Failed to remove domain, domain backend validation failed." in response_settings_remove_domain_post.data
     
     #
     #
     # Test to remove account domain with illigal char.
-    response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"my<'domain.se", 'csrf_token':csrf_token_settings_remove_domain})
+    response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"test.ddm<ail.se", 'csrf_token':csrf_token_settings_remove_domain})
     assert b"<h3>Remove Domain Error</h3>" in response_settings_remove_domain_post.data
     assert b"Failed to remove domain, domain backend validation failed." in response_settings_remove_domain_post.data
     
