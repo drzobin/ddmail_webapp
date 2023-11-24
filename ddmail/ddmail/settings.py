@@ -673,23 +673,27 @@ def settings_add_domain():
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the current domain already exist.",current_user=current_user)
 
             # Validate domain dns mx record.
-            is_mx = is_mx_valid(str(form.domain.data),"mail.ddmail.se.",10)
+            mx_record_host = current_app.config["MX_RECORD_HOST"]
+            mx_record_priority = current_app.config["MX_RECORD_PRIORITY"]
+            is_mx = is_mx_valid(str(form.domain.data),mx_record_host,mx_record_priority)
             if is_mx != True:
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns mx record is not correct.",current_user=current_user)
 
             # Validate dns spf record.
-            is_spf = is_spf_valid(form.domain.data,"\"v=spf1 mx -all\"")
+            spf_record = current_app.config["SPF_RECORD"]
+            is_spf = is_spf_valid(form.domain.data,spf_record)
             if is_spf != True:
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns spf record is not correct.",current_user=current_user)
 
             # Validate dns dkim record.
-            dkim = "\"v=DKIM1; k=rsa;  \\009p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoxbFCUM83lUvHKku3mE/IOb2LArgPsjzhijO4pZfVLrLp7dv8RKDs4MmtFHrdWf4UibDFZtPm4IKcagDD3LlqgPSeewnfesI/kGCdz2SqPA/R5Cip5I1swtQ1lKa41eu6Rxym32fzCrRAhBfOZqM05BKPQQpxcSuyNmKOz+HGlGtkUMk5ebhWDtTsoc7ntw\" \"nhnAxaF+T61YQdYyCL \\009P7l6KRULaDJ3U7AkNAYrXpv0AdfjDVZp+GXu5fqTFTMi5pYGv1pj4621OSysDmjFlPksCgDouE11N+sJVCVPj//8gJCpzDv7y2kET9MIPmIlKGBTC1AQg5KWrbkeQPcEnzhRwIDAQAB\""
-            is_dkim = is_dkim_valid(form.domain.data,dkim)
+            dkim_record = current_app.config["DKIM_RECORD"]
+            is_dkim = is_dkim_valid(form.domain.data,dkim_record)
             if is_dkim != True:
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns dkim record is not correct.",current_user=current_user)
             
             # Validate dns dmarc record.
-            is_dmarc = is_dmarc_valid(form.domain.data,"\"v=DMARC1; p=none\"")
+            dmarc_record = current_app.config["DMARC_RECORD"]
+            is_dmarc = is_dmarc_valid(form.domain.data,dmarc_record)
             if is_dmarc != True:
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns dmarc record is not correct.",current_user=current_user)
             
