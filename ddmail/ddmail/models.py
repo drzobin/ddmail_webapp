@@ -10,9 +10,10 @@ class Account(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     account = db.Column(db.String(100), unique=True, nullable=False)
     payment_token = db.Column(db.String(12), unique=True, nullable=False)
-    assets_in_sek = db.Column(db.Integer)
+    assets_in_sek = db.Column(db.Integer, nullable=False)
     is_enabled = db.Column(db.Boolean, unique=False, nullable=False)
     is_gratis = db.Column(db.Boolean, unique=False, nullable=False)
+    total_storage_space_mb = db.Column(db.Integer, nullable=False)
     created = db.Column(db.DateTime, nullable=False)
     last_time_disabled = db.Column(db.DateTime, nullable=True)
 
@@ -45,6 +46,7 @@ class Email(db.Model):
     global_domain_id = db.mapped_column(db.Integer, ForeignKey('global_domains.id'),nullable=True)
     email = db.Column(db.String(200), unique=True, nullable=False)
     password_hash = db.Column(db.String(2096), nullable=False)
+    storage_space_mb = db.Column(db.Integer, nullable=False)
 
     account = relationship("Account", back_populates="emails")
     account_domain = relationship("Account_domain", back_populates="emails")
