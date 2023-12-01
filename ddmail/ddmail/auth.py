@@ -68,7 +68,7 @@ def register():
         payment_token = generate_token(12)
 
         # Add new org to the db.
-        new_account = Account(account=account, payment_token=payment_token, assets_in_sek=0, is_enabled=False, is_gratis=False, created=datetime.datetime.now())
+        new_account = Account(account=account, payment_token=payment_token, assets_in_sek=0, is_enabled=False, is_gratis=False, total_storage_space_mb=0 ,created=datetime.datetime.now())
         db.session.add(new_account)
         db.session.commit()
 
