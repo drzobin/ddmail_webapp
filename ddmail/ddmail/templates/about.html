@@ -25,6 +25,9 @@ IMAPS mail.ddmail.se over TLS port 993<br>
 HTTPS ddmail.se port 443<br>
 HTTPS www.ddmail.se port 443<br>
 
+<h3>Security regarding mail content</h3>
+We use clamav and rspamd to fight malware, phishing and spam.
+
 <h3>Encryption "at rest"</h3>
 E-mail is encrypted "at rest" using elliptic curve secp521r1 key pair. The private key is password protected. The password is the email account password base64 encoded. This encryption/decryption is done seamlessly to the user on the server. Every e-mail account(Maildir) has different key pairs. 
 
