@@ -656,7 +656,14 @@ def settings_add_domain():
 
     form = DomainForm()
     if request.method == 'GET':
-        return render_template('settings_add_domain.html', form=form,current_user=current_user)
+        mx_record_host = current_app.config["MX_RECORD_HOST"]
+        mx_record_priority = current_app.config["MX_RECORD_PRIORITY"]
+        spf_record = current_app.config["SPF_RECORD"]
+        dkim_record = current_app.config["DKIM_RECORD"]
+        dmarc_record = current_app.config["DMARC_RECORD"]
+
+        return render_template('settings_add_domain.html', form=form,current_user=current_user,mx_record_host=mx_record_host,mx_record_priority=mx_record_priority,spf_record=spf_record,dkim_record=dkim_record,dmarc_record=dmarc_record)
+
     if request.method == 'POST':
         if not form.validate_on_submit():
            return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, form validation failed.",current_user=current_user)
