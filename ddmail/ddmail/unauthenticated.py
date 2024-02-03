@@ -1,4 +1,4 @@
-from flask import Blueprint, session, render_template
+from flask import Blueprint, session, render_template, current_app
 from ddmail.auth import is_athenticated
 
 bp = Blueprint("unauthenticated", __name__, url_prefix="/")
@@ -21,7 +21,13 @@ def help():
     else:
         current_user = None
 
-    return render_template('help.html',current_user=current_user)
+    mx_record_host = current_app.config["MX_RECORD_HOST"]
+    mx_record_priority = current_app.config["MX_RECORD_PRIORITY"]
+    spf_record = current_app.config["SPF_RECORD"]
+    dkim_record = current_app.config["DKIM_RECORD"]
+    dmarc_record = current_app.config["DMARC_RECORD"]
+
+    return render_template('help.html',current_user=current_user,mx_record_host=mx_record_host,mx_record_priority=mx_record_priority,spf_record=spf_record,dkim_record=dkim_record,dmarc_record=dmarc_record)
 
 @bp.route("/about")
 def about():
