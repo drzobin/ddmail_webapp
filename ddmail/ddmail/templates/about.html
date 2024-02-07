@@ -1,4 +1,4 @@
-{% extends "all.html" %}:wq
+{% extends "all.html" %}
 
 {% block content %}
 <h2>About</h2>
@@ -11,22 +11,22 @@ E-mail system/service for reasonable paranoid people who value privacy and secur
 We try to honner your privacy. We do not track or monitor your activety. We do not serve ads. We do not use javascript. The service is avalible as a tor onion service(before known as tor hidden service). The service is avalible as a i2p service. No personal information is needed for registration. We provide privacy friendly payment options.
 
 <h3>Security</h3>
-We try to use the following design patterns/principle:<br>- less code, less attacksurface<br>- leased privileged<br>- default deny<br>- assume breach<br> The server configuration and application code is all open source and can be reviewed and used by anyone at https://github.com/drzobin. We see all input as evil. We use hard to crack password hashing with argon2. We autoupdate the server software every day. We use mod_security as web application firewall (WAF). We use namespaces and seccomp to sandbox processes. We do not provide any webmail interface.
+We try to use the following design patterns/principle:<br>- less code, less attacksurface<br>- leased privileged<br>- default deny<br>- assume breach<br> The server configuration and application code is all open source and can be reviewed and used by anyone at https://github.com/drzobin. We see all input as evil. We use hard to crack password hashing with argon2. We autoupdate the server software every day. We use mod_security as web application firewall (WAF). We use apparmore as mandatory access control (MAC) in enforce mode. We use apparmore, namespaces and seccomp to sandbox processes. We do not provide any webmail interface.
 
 <h3>Security regarding SMTP and DNS</h3>
 We are using DNSSEC, SPF, DKIM, DMARC, CAA, MTA-STS and DANE/TLSA(311) to make the service more resilient to threats.
 
 <h3>DANE/TLSA</h3>
 We have DANE/TLSA 311 DNS records for the following services and ports:<br>
-SMTP mail.ddmail.se port 25 with STARTTLS<br>
-SMTP mail.ddmail.se port 587 with STARTTLS<br>
-SMTP mail.ddmail.se over TLS port 465<br>
-IMAPS mail.ddmail.se over TLS port 993<br>
-HTTPS ddmail.se over TLS port 443<br>
-HTTPS www.ddmail.se over TLS port 443<br>
+SMTP mail.ddmail.se port 25 (with STARTTLS)<br>
+SMTP mail.ddmail.se port 587 (with STARTTLS)<br>
+SMTPS mail.ddmail.se port 465 (SMTP wrapped in TLS)<br>
+IMAPS mail.ddmail.se port 993 (IMAP wrapped in TLS)<br>
+HTTPS ddmail.se port 443 (HTTP wrapped in TLS)<br>
+HTTPS www.ddmail.se port 443 (HTTP wrapped in TLS)<br>
 
 <h3>Security regarding mail content</h3>
-We use clamav and rspamd to fight malware, phishing and spam.
+We use clamav, oletools with olefy and rspamd to fight malware, phishing and spam.
 
 <h3>Encryption "at rest"</h3>
 E-mail is encrypted "at rest" using elliptic curve secp521r1 key pair. The private key is password protected. The password is the email account password base64 encoded. This encryption/decryption is done seamlessly to the user on the server. Every e-mail account(Maildir) has different key pairs. 
