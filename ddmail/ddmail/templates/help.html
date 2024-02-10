@@ -56,10 +56,10 @@ DKIM as TXT record:<br>mail._domainkey.[your own domain] 3600	IN	TXT	{{ dkim_rec
 DMARC as TXT record:<br>_dmarc.[your own domain]	3600	IN	TXT	{{ dmarc_record }}<p>
 
 <h3>Malware, phishing and spam</h3>
-Mail content that clamav catigorize as malware will have the subject changed to: *** MALWARE *** [original subject]<br>
-Mail content with office file attachments that oletools catigorize av risky will have the subject changed to: *** RISKY OFFICE MACRO *** [original subject]<br>
-Mail contenct that rspamd catigorize as phishing will have the subject changed to: *** PHISHING *** [original subject]<br>
-Mail contect that rspamd catigorize as spam will have the subject changed to: *** SPAM *** [original subject]<br>
+Mail content catigorized as malware will have the subject changed to: *** MALWARE *** [original subject]<br>
+Mail content with office file attachments catigorized as risky will have the subject changed to: *** RISKY OFFICE MACRO *** [original subject]<br>
+Mail content catigorized as phishing will have the subject changed to: *** PHISHING *** [original subject]<br>
+Mail content catigorized as spam will have the subject changed to: *** SPAM *** [original subject]<br>
 
 <p>Happy mailing :)</p>
 {% endblock%}
