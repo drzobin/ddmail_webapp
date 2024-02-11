@@ -56,12 +56,12 @@ DKIM as TXT record:<br>mail._domainkey.[your own domain] 3600	IN	TXT	{{ dkim_rec
 DMARC as TXT record:<br>_dmarc.[your own domain]	3600	IN	TXT	{{ dmarc_record }}<p>
 
 <h3>Malware and phishing</h3>
-Mail content catigorized as malware will have the subject changed to: *** MALWARE *** [original subject]<br>
-Mail content with office file attachments catigorized as risky will have the subject changed to: *** RISKY OFFICE MACRO *** [original subject]<br>
-Mail content catigorized as phishing will have the subject changed to: *** PHISHING *** [original subject]<br>
+Mail content catigorized as malware will have the subject changed to: *** MALWARE *** [original subject]. Mail content with office file attachments catigorized as risky will have the subject changed to: *** RISKY OFFICE MACRO *** [original subject]. Mail content catigorized as phishing will have the subject changed to: *** PHISHING *** [original subject]<br>
 
 <h3>Spam</h3>
 Mail content catigorized as spam will have the subject changed to: *** SPAM *** [original subject]. It will also have the following mail headers set "X-Spamd-Bar: [spam score as bar]" and "X-Spam-Status: Yes, score=[spam score]".<br>
+
+<h3>Contact</h3>
 
 <p>Happy mailing :)</p>
 {% endblock%}
