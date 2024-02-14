@@ -48,6 +48,31 @@ Authentication method: normal password<br>
 Username: [email account address]<br>
 Password: [email account password]<br>
 
+<h3>Proxy Thunderbird traffic over i2p</h3>
+Step 1: Install i2pd or i2p on your computer.<br>
+Step 2: Start Thunderbird<br>
+Step 3: Go to Settings -> General -> Network & Disk Space -> Connection -> Settings<br>
+Step 4: Set Socks Host to 127.0.0.1 and port 4447<br>
+Step 5: Enable SOCKS 5<br>
+Step 5: Enable Proxy DNS when using SOCKS 5<br>
+Step 6: Restart Thunderbird<br>
+
+<h3>IMAP mail server using i2p</h3>
+Server name: {% include 'i2p_hostname' %}<br> 
+Port: 143<br>
+Connection security: None<br>
+Authentication method: normal password<br>
+Username: [email account address]<br>
+Password: [email account password]<br>
+
+<h3>Outgoing SMTP server using i2p</h3>
+Server name: {% include 'i2p_hostname' %}<br>
+Port: 25<br>
+Connection security: None<br>
+Authentication method: normal password<br>
+Username: [email account address]<br>
+Password: [email account password]<br>
+
 <h3>What is needed to add/use custom domain with ddmail</h3>
 The following dns records is needed before you can add custom domain.<br>
 MX record:<br>[your own domain]		3600	IN	MX	{{ mx_record_priority }} {{ mx_record_host }}<p>
