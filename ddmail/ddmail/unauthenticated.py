@@ -67,4 +67,4 @@ def contact():
     else:
         current_user = None
 
-    return render_template('contect.html',current_user=current_user)
+    return render_template('contact.html',current_user=current_user)
