@@ -58,3 +58,13 @@ def terms():
         current_user = None
 
     return render_template('terms.html',current_user=current_user)
+
+@bp.route("/contact")
+def contact():
+    # Check if user is athenticated.
+    if "secret" in session:
+        current_user = is_athenticated(session["secret"])
+    else:
+        current_user = None
+
+    return render_template('contect.html',current_user=current_user)
