@@ -7,7 +7,10 @@
 <h3>Recommended mail clients</h3>
 Thunderbird and K-9 Mail
 
-<h3>IMAP mail server</h3>
+<h3>Thunderbird settings</h3>
+Here you can find thunderbird settings.
+
+<h4>IMAP mail server</h4>
 Server name: mail.ddmail.se<br> 
 Port: 993<br>
 Connection security: SSL/TLS<br>
@@ -15,7 +18,7 @@ Authentication method: normal password<br>
 Username: [email account address]<br>
 Password: [email account password]<br>
 
-<h3>Outgoing SMTP server</h3>
+<h4>Outgoing SMTP server</h4>
 Server name: mail.ddmail.se<br>
 Port: 465<br>
 Connection security: SSL/TLS<br>
@@ -23,7 +26,10 @@ Authentication method: normal password<br>
 Username: [email account address]<br>
 Password: [email account password]<br>
 
-<h3>Proxy Thunderbird traffic over Tor</h3>
+<h3>Thunderbird settings using Tor onion service address</h3>
+Here you can find settings and instruction for using ddmail tor onion service address with thunderbird. By using this method all thunderbird traffic between you and ddmail will be sent over the Tor network.
+
+<h4>Proxy Thunderbird traffic over Tor</h4>
 Step 1: Install Tor(not Tor Browser) on your computer.<br>
 Step 2: Start Thunderbird<br>
 Step 3: Go to Settings -> General -> Network & Disk Space -> Connection -> Settings<br>
@@ -32,7 +38,7 @@ Step 5: Enable SOCKS 5<br>
 Step 5: Enable Proxy DNS when using SOCKS 5<br>
 Step 6: Restart Thunderbird<br>
 
-<h3>IMAP mail server using tor onion service</h3>
+<h4>IMAP mail server</h4>
 Server name: {% include 'tor_hostname' %}<br> 
 Port: 143<br>
 Connection security: None<br>
@@ -40,7 +46,7 @@ Authentication method: normal password<br>
 Username: [email account address]<br>
 Password: [email account password]<br>
 
-<h3>Outgoing SMTP server using tor onion service</h3>
+<h4>Outgoing SMTP server</h4>
 Server name: {% include 'tor_hostname' %}<br>
 Port: 25<br>
 Connection security: None<br>
@@ -49,7 +55,10 @@ Username: [email account address]<br>
 Password: [email account password]<br>
 
 <h3>Proxy Thunderbird traffic over i2p</h3>
-Step 1: Install i2pd or i2p on your computer.<br>
+Here you can find settings and instruction for using ddmail i2p b32 service address with thunderbird. By using this method all thunderbird traffic between you and ddmail will be sent over the i2p network.
+
+<h4>Thunderbird traffic over i2p using i2pd socks proxy</h4>
+Step 1: Install i2pd on your computer.<br>
 Step 2: Start Thunderbird<br>
 Step 3: Go to Settings -> General -> Network & Disk Space -> Connection -> Settings<br>
 Step 4: Set Socks Host to 127.0.0.1 and port 4447<br>
@@ -57,7 +66,7 @@ Step 5: Enable SOCKS 5<br>
 Step 5: Enable Proxy DNS when using SOCKS 5<br>
 Step 6: Restart Thunderbird<br>
 
-<h3>IMAP mail server using i2p</h3>
+<h4>IMAP mail server</h4>
 Server name: {% include 'i2p_hostname' %}<br> 
 Port: 143<br>
 Connection security: None<br>
@@ -65,7 +74,7 @@ Authentication method: normal password<br>
 Username: [email account address]<br>
 Password: [email account password]<br>
 
-<h3>Outgoing SMTP server using i2p</h3>
+<h4>Outgoing SMTP server</h4>
 Server name: {% include 'i2p_hostname' %}<br>
 Port: 25<br>
 Connection security: None<br>
@@ -87,7 +96,9 @@ Mail content catigorized as malware will have the subject changed to: *** MALWAR
 Mail content catigorized as spam will have the subject changed to: *** SPAM *** [original subject]. It will also have the following mail headers set "X-Spamd-Bar: [spam score as bar]" and "X-Spam-Status: Yes, score=[spam score]".<br>
 
 <h3>Help and support</h3>
-support[at]crew.ddmail.se
+support[at]crew.ddmail.se<br>
+Openpgp key fingerprint: 3DB6CB432FAFA87E4E8C315AA1784FCB6F76C514<br>
+Openpgp key server: keys.openpgp.org
 
 <p>Happy mailing :)</p>
 {% endblock%}
