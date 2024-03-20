@@ -1,21 +1,43 @@
 {% if current_user %}
 <h2>Settings</h2>
+    <h3>Payment Information</h3>
     <ul>
         <li><a href="/settings/payment_token">Payment token</a></li>
+    </ul>
+    <h3>User Settings</h3>
+    <ul>
         <li><a href="/settings/change_password_on_user">Change password on current user</a></li>
         <li><a href="/settings/change_key_on_user">Change key on current user</a></li>
         <li><a href="/settings/show_account_users">Show account users</a></li>
         <li><a href="/settings/add_user_to_account">Add new user to account</a></li>
         <li><a href="/settings/remove_account_user">Remove account user</a></li>
+    </ul>
+    <h3>Email Settings</h3>
+    <ul>
         <li><a href="/settings/show_email">Show Email Accounts</a></li>
         <li><a href="/settings/add_email">Add Email Account</a></li>
         <li><a href="/settings/remove_email">Remove Email Account</a></li>
         <li><a href="/settings/change_password_on_email">Change password on Email Account</a></li>
+    </ul>
+    <h3>OpenPGP Settings</h3>
+    <ul>
+        <li><a href="/settings/show_openpgp_key">Show OpenPGP key</a></li>
+        <li><a href="/settings/add_openpgp_key">Add OpenPGP key</a></li>
+        <li><a href="/settings/remove_openpgp_key">Remove OpenPGP key</a></li>
+        <li><a href="/settings/activate_openpgp_enc">Activate OpenPGP Encryption on Email</a></li>
+        <li><a href="/settings/deactivate_openpgp_enc">Deactivate OpenPGP Encryption on Email</a></li>
+    </ul>
+    <h3>Email Alias Settings</h3>
+    <ul>
         <li><a href="/settings/show_alias">Show Aliases</a></li>
         <li><a href="/settings/add_alias">Add Alias</a></li>
         <li><a href="/settings/remove_alias">Remove Alias</a></li>
+    </ul>
+    <h3>Own Domain Settings</h3>
+    <ul>
         <li><a href="/settings/show_domains">Show Domains</a></li>
         <li><a href="/settings/add_domain">Add Domain</a></li>
         <li><a href="/settings/remove_domain">Remove Domain</a></li>
     </ul>
 {% endif %}
+
