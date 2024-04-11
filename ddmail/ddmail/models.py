@@ -53,6 +53,15 @@ class Email(db.Model):
     global_domain = relationship("Global_domain", back_populates="emails")
     aliases = relationship("Alias", back_populates="email")
 
+# DB modul for openpgp_public_keys.
+class Openpgp_public_key(db.Model):
+    __tablename__ = 'openpgp_public_keys'
+    id = db.Column(db.Integer, primary_key=True,nullable=False)
+    account_id = db.mapped_column(db.Integer, ForeignKey('accounts.id'),nullable=False)
+    fingerprint = db.Column(db.String(200), unique=True, nullable=False)
+
+    account = relationship("Account", back_populates="openpgp_public_keys")
+
 # DB modul for account domains.
 class Account_domain(db.Model):
     __tablename__ = 'account_domains'
