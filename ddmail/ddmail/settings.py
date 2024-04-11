@@ -1,7 +1,7 @@
 from flask import Blueprint, session, render_template, request, current_app, redirect, url_for
 from argon2 import PasswordHasher
 from ddmail.auth import is_athenticated, generate_password, generate_token
-from ddmail.models import db, Email, Account_domain, Alias, Global_domain, User
+from ddmail.models import db, Email, Openpgp_public_key, Account_domain, Alias, Global_domain, User
 from ddmail.forms import EmailForm, AliasForm, DomainForm, EmailPasswordForm
 from ddmail.validators import is_email_allowed, is_domain_allowed, is_username_allowed, is_password_allowed, is_mx_valid, is_spf_valid, is_dkim_valid, is_dmarc_valid
 import requests
@@ -463,6 +463,29 @@ def settings_change_password_on_email():
         db.session.commit()
 
         return render_template('message.html',headline="Change password on Email Account",message="Successfully changed password on email account: " + change_password_on_email_from_form + " to new password: " + cleartext_password ,current_user=current_user)
+
+@bp.route("/settings/show_openpgp_public_keys")
+def settings_show_openpgp_public_keys():
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        return redirect(url_for('auth.login'))
+
+    # Check if user is athenticated.
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        return redirect(url_for('auth.login'))
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        return render_template('message.html',headline="Show openpgp public keys error",message="Failed to show openpgp public keys beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+
+    keys = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id)
+
+    return render_template('settings_show_openpgp_public_keys.html',keys=keys, current_user = current_user)
+
+@bp.route("/settings/remove_email", methods=['POST', 'GET'])
 
 @bp.route("/settings/show_alias")
 def setings_show_alias():
