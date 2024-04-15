@@ -509,6 +509,22 @@ def settings_upload_openpgp_public_key():
         file = request.files['openpgp_public_key']
         openpgp_public_key = file.read().strip().decode("utf-8")
 
+        # Check if public key file is empty.
+        if openpgp_public_key == None
+            return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key beacuse uploaded public key i empty",current_user=current_user)
+
+        # Validate openpgp public key data.
+        if is_public_key_allowed(openpgp_public_key) != True:
+            return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key beacuse validation failed",current_user=current_user)
+
+        # Send openpgp public key to ddmail openpgp keyhandler service.
+        openpgp_keyhandler_url = current_app.config["OPENPGP_KEYHANDLER_URL"] + "/upload_public_key"
+        openpgp_keyhandler_password = current_app.config["OPENPGP_KEYHANDLER_PASSWORD"]
+        r_respone = requests.post(openpgp_keyhandler_url, {"public_key":openpgp_public_key,"keyring":current_user.account,"password":openpgp_keyhandler_password}, timeout=5)
+            
+        # Check if upload was successfull.
+        if r_respone.status_code != 200 or "done" not in str(r_respone.content):
+            return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key.",current_user=current_user)
 
 @bp.route("/settings/show_alias")
 def setings_show_alias():
