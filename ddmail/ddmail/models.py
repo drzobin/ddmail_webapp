@@ -21,6 +21,7 @@ class Account(db.Model):
     emails = relationship("Email", back_populates="account")
     account_domains = relationship("Account_domain", back_populates="account")
     users = relationship("User", back_populates="account")
+    openpgp_public_keys = relationship("Openpgp_public_key", back_populates="account")
 
 # DB modul for aliases.
 class Alias(db.Model):
@@ -44,6 +45,7 @@ class Email(db.Model):
     account_id = db.mapped_column(db.Integer, ForeignKey('accounts.id'),nullable=False)
     account_domain_id = db.mapped_column(db.Integer, ForeignKey('account_domains.id'),nullable=True)
     global_domain_id = db.mapped_column(db.Integer, ForeignKey('global_domains.id'),nullable=True)
+    openpgp_public_key_id = db.mapped_column(db.Integer, ForeignKey('openpgp_public_keys.id'),nullable=True)
     email = db.Column(db.String(200), unique=True, nullable=False)
     password_hash = db.Column(db.String(2096), nullable=False)
     storage_space_mb = db.Column(db.Integer, nullable=False)
@@ -52,6 +54,7 @@ class Email(db.Model):
     account_domain = relationship("Account_domain", back_populates="emails")
     global_domain = relationship("Global_domain", back_populates="emails")
     aliases = relationship("Alias", back_populates="email")
+    openpgp_public_key = relationship("Openpgp_public_key", back_populates="emails")
 
 # DB modul for openpgp_public_keys.
 class Openpgp_public_key(db.Model):
@@ -61,6 +64,7 @@ class Openpgp_public_key(db.Model):
     fingerprint = db.Column(db.String(200), unique=True, nullable=False)
 
     account = relationship("Account", back_populates="openpgp_public_keys")
+    emails = relationship("Email", back_populates="openpgp_public_key")
 
 # DB modul for account domains.
 class Account_domain(db.Model):
