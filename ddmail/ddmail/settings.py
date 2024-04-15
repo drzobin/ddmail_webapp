@@ -485,7 +485,30 @@ def settings_show_openpgp_public_keys():
 
     return render_template('settings_show_openpgp_public_keys.html',keys=keys, current_user = current_user)
 
-@bp.route("/settings/remove_email", methods=['POST', 'GET'])
+@bp.route("/settings/upload_openpgp_public_key")
+def settings_upload_openpgp_public_key():
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        return redirect(url_for('auth.login'))
+
+    # Check if user is athenticated.
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        return redirect(url_for('auth.login'))
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+
+    if request.method == 'GET':
+        return render_template('settings_upload_openpgp_public_key.html', current_user = current_user)
+
+    if request.method == 'POST':
+        file = request.files['openpgp_public_key']
+        openpgp_public_key = file.read().strip().decode("utf-8")
+
 
 @bp.route("/settings/show_alias")
 def setings_show_alias():
