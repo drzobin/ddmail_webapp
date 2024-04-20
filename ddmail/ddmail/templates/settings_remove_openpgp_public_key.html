@@ -1,0 +1,16 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h3>Remove Openpgp public key</h3>
+Remove Openpgp public key with fingerprint:
+<form action="" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <select name="fingerprint">
+  {% for fingerprint in fingerprints %}
+    <option value="{{ fingerprint.fingerprint }}">{{ fingerprint.fingerprint}}</option>
+  {% endfor %}
+  </select>
+  <br><br>
+  <input type="submit">
+</form>
+{% endblock%}
