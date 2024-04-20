@@ -3,7 +3,7 @@ from argon2 import PasswordHasher
 from ddmail.auth import is_athenticated, generate_password, generate_token
 from ddmail.models import db, Email, Openpgp_public_key, Account_domain, Alias, Global_domain, User
 from ddmail.forms import EmailForm, AliasForm, DomainForm, EmailPasswordForm
-from ddmail.validators import is_email_allowed, is_domain_allowed, is_username_allowed, is_password_allowed, is_mx_valid, is_spf_valid, is_dkim_valid, is_dmarc_valid
+from ddmail.validators import is_email_allowed, is_domain_allowed, is_username_allowed, is_password_allowed, is_mx_valid, is_spf_valid, is_dkim_valid, is_dmarc_valid, is_openpgp_public_key_allowed, is_openpgp_key_fingerprint_allowed
 import requests
 import base64
 
@@ -485,7 +485,7 @@ def settings_show_openpgp_public_keys():
 
     return render_template('settings_show_openpgp_public_keys.html',keys=keys, current_user = current_user)
 
-@bp.route("/settings/upload_openpgp_public_key")
+@bp.route("/settings/upload_openpgp_public_key", methods=['POST', 'GET'])
 def settings_upload_openpgp_public_key():
     # Check if cookie secret is set.
     if not "secret" in session:
@@ -510,21 +510,36 @@ def settings_upload_openpgp_public_key():
         openpgp_public_key = file.read().strip().decode("utf-8")
 
         # Check if public key file is empty.
-        if openpgp_public_key == None
+        if openpgp_public_key == None:
             return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key beacuse uploaded public key i empty",current_user=current_user)
 
         # Validate openpgp public key data.
-        if is_public_key_allowed(openpgp_public_key) != True:
+        if is_openpgp_public_key_allowed(openpgp_public_key) != True:
             return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key beacuse validation failed",current_user=current_user)
 
         # Send openpgp public key to ddmail openpgp keyhandler service.
         openpgp_keyhandler_url = current_app.config["OPENPGP_KEYHANDLER_URL"] + "/upload_public_key"
         openpgp_keyhandler_password = current_app.config["OPENPGP_KEYHANDLER_PASSWORD"]
-        r_respone = requests.post(openpgp_keyhandler_url, {"public_key":openpgp_public_key,"keyring":current_user.account,"password":openpgp_keyhandler_password}, timeout=5)
+        r_respone = requests.post(openpgp_keyhandler_url, {"public_key":openpgp_public_key,"keyring":current_user.account.account,"password":openpgp_keyhandler_password}, timeout=5)
             
         # Check if upload was successfull.
-        if r_respone.status_code != 200 or "done" not in str(r_respone.content):
+        if r_respone.status_code != 200 or "fingerprint" not in str(r_respone.content):
             return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key.",current_user=current_user)
+
+        # Get fingerprint of uploaded openpgp public key.
+        fingerprint = str(r_respone.content, encoding="utf-8").replace("fingerprint: ","")
+        fingerprint = fingerprint.strip()
+
+        # Validate fingerprint.
+        if is_openpgp_key_fingerprint_allowed(fingerprint) != True:
+            return render_template('message.html',headline="Upload openpgp public key error",message="Openpgp public key fingerprint validation failed..",current_user=current_user)
+
+        # Insert fingerprint to db.
+        new_openpgp_public_key = Openpgp_public_key(account_id=current_user.account_id, fingerprint=fingerprint)
+        db.session.add(new_openpgp_public_key)
+        db.session.commit()
+
+        return render_template('message.html',headline="Upload openpgp public key",message="Succesfully upload openpgp public key.",current_user=current_user)
 
 @bp.route("/settings/show_alias")
 def setings_show_alias():
