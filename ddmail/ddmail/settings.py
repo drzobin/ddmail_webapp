@@ -532,7 +532,12 @@ def settings_upload_openpgp_public_key():
 
         # Validate fingerprint.
         if is_openpgp_key_fingerprint_allowed(fingerprint) != True:
-            return render_template('message.html',headline="Upload openpgp public key error",message="Openpgp public key fingerprint validation failed..",current_user=current_user)
+            return render_template('message.html',headline="Upload openpgp public key error",message="Openpgp public key fingerprint validation failed.",current_user=current_user)
+
+        # Check that openpgp public key fingerprint do not exist in db
+        is_fingerprint_uniq = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id, Openpgp_public_key.fingerprint == fingerprint).count()
+        if is_fingerprint_uniq != 0:
+            return render_template('message.html',headline="Upload openpgp public key error",message="Openpgp public key fingerprint already exist in db",current_user=current_user)
 
         # Insert fingerprint to db.
         new_openpgp_public_key = Openpgp_public_key(account_id=current_user.account_id, fingerprint=fingerprint)
