@@ -546,6 +546,64 @@ def settings_upload_openpgp_public_key():
 
         return render_template('message.html',headline="Upload openpgp public key",message="Succesfully upload openpgp public key.",current_user=current_user)
 
+@bp.route("/settings/remove_openpgp_public_key", methods=['POST', 'GET'])
+def settings_remove_openpgp_public_key():
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        return redirect(url_for('auth.login'))
+
+    # Check if user is athenticated.
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        return redirect(url_for('auth.login'))
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+
+    if request.method == 'GET':
+        fingerprints = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id)
+        
+        return render_template('settings_remove_openpgp_public_key.html',fingerprints = fingerprints, current_user = current_user)
+
+    if request.method == 'POST':
+        fingerprint = request.form["fingerprint"].strip()
+
+        # Check if fingeprint from form is empty.
+        if fingerprint == None or fingerprint == "":
+            return render_template('message.html',headline="Remove openpgp public key error",message="Failed to remove openpgp public key beacuse form is empty",current_user=current_user)
+
+        # Validate fingerprint.
+        if is_openpgp_key_fingerprint_allowed(fingerprint) != True:
+            return render_template('message.html',headline="Remove openpgp public key error",message="Openpgp public key fingerprint validation failed.",current_user=current_user)
+
+        # Check that openpgp public key fingerprint exist in db and is owned by current account
+        is_fingerprint_mine = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id, Openpgp_public_key.fingerprint == fingerprint).count()
+        if is_fingerprint_mine != 1:
+            return render_template('message.html',headline="Remove openpgp public key error",message="Openpgp public key fingerprint do not exist in database or is not owned by your account",current_user=current_user)
+
+        # Send openpgp public key fingerprint to ddmail openpgp keyhandler service to remove openpgp public key from account keyring.
+        openpgp_keyhandler_url = current_app.config["OPENPGP_KEYHANDLER_URL"] + "/remove_public_key"
+        openpgp_keyhandler_password = current_app.config["OPENPGP_KEYHANDLER_PASSWORD"]
+        r_respone = requests.post(openpgp_keyhandler_url, {"fingerprint":fingerprint,"keyring":current_user.account.account,"password":openpgp_keyhandler_password}, timeout=5)
+            
+        # Check if remove was succesfull.
+        if r_respone.status_code != 200 or str(r_respone.content) == "done":
+            return render_template('message.html',headline="Remove openpgp public key error",message="Failed to remove openpgp public key.",current_user=current_user)
+
+        # Remove openpgp public key from database.
+        db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id, Openpgp_public_key.fingerprint == fingerprint).delete()
+        db.session.commit()
+
+        # Check that openpgp public key fingerprint do not exist in database anymore.
+        is_fingerprint = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id, Openpgp_public_key.fingerprint == fingerprint).count()
+        if is_fingerprint != 0:
+            return render_template('message.html',headline="Remove openpgp public key error",message="Openpgp public key fingerprint still exist in database.",current_user=current_user)
+
+        return render_template('message.html',headline="Remove openpgp public key",message="Succesfully removed openpgp public key.",current_user=current_user)
+
 @bp.route("/settings/show_alias")
 def setings_show_alias():
     # Check if cookie secret is set.
