@@ -2,7 +2,7 @@
 {% block content %}
 {% include 'settings_menu.html' %}
 <h3>Show OpenPGP public keys</h3>
-<p></p>Current openpgp public keys in this acounts keyring:
+<p></p>Current openpgp public keys in current accounts keyring:
 {% for key in keys %}
 <br>
 {{ key.fingerprint}}
