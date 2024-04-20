@@ -523,11 +523,11 @@ def settings_upload_openpgp_public_key():
         r_respone = requests.post(openpgp_keyhandler_url, {"public_key":openpgp_public_key,"keyring":current_user.account.account,"password":openpgp_keyhandler_password}, timeout=5)
             
         # Check if upload was successfull.
-        if r_respone.status_code != 200 or "fingerprint" not in str(r_respone.content):
+        if r_respone.status_code != 200 or "done fingerprint: " not in str(r_respone.content):
             return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key.",current_user=current_user)
 
         # Get fingerprint of uploaded openpgp public key.
-        fingerprint = str(r_respone.content, encoding="utf-8").replace("fingerprint: ","")
+        fingerprint = str(r_respone.content, encoding="utf-8").replace("done fingerprint: ","")
         fingerprint = fingerprint.strip()
 
         # Validate fingerprint.
