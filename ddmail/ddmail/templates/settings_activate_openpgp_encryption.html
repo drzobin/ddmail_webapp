@@ -1,0 +1,23 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h3>Activate OpenPGP encryption</h3>
+This will activate OpenPGP encryption for the specific email account. Before you use this feature you need to upload you OpenPGP public key that you want to use for encryption. All incoming emails to this email account will be encrypted with the slected OpenPGP public key. Old emails that is stored on this email account will not be encrypted by this feature.<p>
+<form action="" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  Fingerprint of OpenPGP public key to use for encryption:<br>
+  <select name="fingerprint">
+  {% for fingerprint in fingerprints %}
+    <option value="{{ fingerprint.fingerprint }}">{{ fingerprint.fingerprint }}</option>
+  {% endfor %}
+  </select>
+  <br>Email account to activate OpenPGP encryption on:<br>
+  <select name="email">
+  {% for email in emails %}
+    <option value="{{ email.email }}">{{ email.email }}</option>
+  {% endfor %}
+  </select>
+  <br><br>
+  <input type="submit">
+</form>
+{% endblock%}
