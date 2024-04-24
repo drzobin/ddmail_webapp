@@ -671,6 +671,58 @@ def settings_activate_openpgp_encryption():
             
         return render_template('message.html',headline="Activate Openpgp Encryption",message="Successfully activated OpenPGP encryption",current_user=current_user)
 
+@bp.route("/settings/deactivate_openpgp_encryption", methods=['POST', 'GET'])
+def settings_deactivate_openpgp_encryption():
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        return redirect(url_for('auth.login'))
+
+    # Check if user is athenticated.
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        return redirect(url_for('auth.login'))
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        return render_template('message.html',headline="Deactivate OpenPGP Encryption Error",message="Failed to deactivate OpenPGP encryption beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+
+    if request.method == 'GET':
+        emails = db.session.query(Email).filter(Email.account_id == current_user.account_id, Email.openpgp_public_key_id != None)
+
+        return render_template('settings_deactivate_openpgp_encryption.html',emails = emails, current_user = current_user)
+    if request.method == 'POST':
+        email = request.form.get("email")
+
+        # Check if email from form is empty.
+        if email == None or email == "":
+            return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse email form is empty.",current_user=current_user)
+
+        # Strip email string of spaces or newline.
+        email = email.strip()
+        
+        # Validate email.
+        if is_email_allowed(email) == False:
+            return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse email validation failed.",current_user=current_user)
+       
+       # Check that email already exist in db and is owned by current account.
+        is_email_mine = db.session.query(Email).filter(Email.email == email, Email.account_id == current_user.account_id).count()
+        if is_email_mine != 1:
+            return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse email can not be found in database",current_user=current_user)
+
+        # Activate openpgp encryption on email account in db.
+        email_from_db = db.session.query(Email).filter(Email.account_id == current_user.account_id, Email.email == email).first()
+        email_from_db.openpgp_public_key_id  = None
+        db.session.commit()
+
+        # Check that openpgp encryption is deactived on the specified email account.
+        email_from_db = db.session.query(Email).filter(Email.account_id == current_user.account_id, Email.email == email).first()
+        if email_from_db.openpgp_public_key_id != None:
+            return render_template('message.html',headline="Deactivate OpenPGP Encryption Error",message="Failed to deactivate OpenPGP encryption on this email account",current_user=current_user)
+            
+        return render_template('message.html',headline="Deactivate Openpgp Encryption",message="Successfully deactivated OpenPGP encryption on this email account",current_user=current_user)
+    
 @bp.route("/settings/show_alias")
 def setings_show_alias():
     # Check if cookie secret is set.
