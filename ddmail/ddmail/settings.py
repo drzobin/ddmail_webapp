@@ -587,8 +587,11 @@ def settings_remove_openpgp_public_key():
         # Send openpgp public key fingerprint to ddmail openpgp keyhandler service to remove openpgp public key from account keyring.
         openpgp_keyhandler_url = current_app.config["OPENPGP_KEYHANDLER_URL"] + "/remove_public_key"
         openpgp_keyhandler_password = current_app.config["OPENPGP_KEYHANDLER_PASSWORD"]
-        r_respone = requests.post(openpgp_keyhandler_url, {"fingerprint":fingerprint,"keyring":current_user.account.account,"password":openpgp_keyhandler_password}, timeout=5)
-            
+        try:
+            r_respone = requests.post(openpgp_keyhandler_url, {"fingerprint":fingerprint,"keyring":current_user.account.account,"password":openpgp_keyhandler_password}, timeout=5)
+        except requests.exceptions.ConnectionError:
+            return render_template('message.html',headline="Remove OpenPGP Public Key Error",message="Failed to remove openpgp public key beacuse openpgp keyhandler service do not answer.",current_user=current_user)
+        
         # Check if remove was succesfull.
         if r_respone.status_code != 200 or str(r_respone.content) == "done":
             return render_template('message.html',headline="Remove openpgp public key error",message="Failed to remove openpgp public key.",current_user=current_user)
