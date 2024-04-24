@@ -520,7 +520,10 @@ def settings_upload_openpgp_public_key():
         # Send openpgp public key to ddmail openpgp keyhandler service.
         openpgp_keyhandler_url = current_app.config["OPENPGP_KEYHANDLER_URL"] + "/upload_public_key"
         openpgp_keyhandler_password = current_app.config["OPENPGP_KEYHANDLER_PASSWORD"]
-        r_respone = requests.post(openpgp_keyhandler_url, {"public_key":openpgp_public_key,"keyring":current_user.account.account,"password":openpgp_keyhandler_password}, timeout=5)
+        try:
+            r_respone = requests.post(openpgp_keyhandler_url, {"public_key":openpgp_public_key,"keyring":current_user.account.account,"password":openpgp_keyhandler_password}, timeout=5)
+        except requests.exceptions.ConnectionError:
+            return render_template('message.html',headline="Upload OpenPGP Public Key Error",message="Failed to upload openpgp public key beacuse openpgp keyhandler service do not answer.",current_user=current_user)
             
         # Check if upload was successfull.
         if r_respone.status_code != 200 or "done fingerprint: " not in str(r_respone.content):
