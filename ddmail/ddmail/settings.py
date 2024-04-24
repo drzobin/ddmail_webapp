@@ -602,7 +602,74 @@ def settings_remove_openpgp_public_key():
         if is_fingerprint != 0:
             return render_template('message.html',headline="Remove openpgp public key error",message="Openpgp public key fingerprint still exist in database.",current_user=current_user)
 
-        return render_template('message.html',headline="Remove openpgp public key",message="Succesfully removed openpgp public key.",current_user=current_user)
+        return render_template('message.html',headline="Remove OpenPGP Public Key",message="Succesfully removed OpenPGP public key.",current_user=current_user)
+
+@bp.route("/settings/activate_openpgp_encryption", methods=['POST', 'GET'])
+def settings_activate_openpgp_encryption():
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        return redirect(url_for('auth.login'))
+
+    # Check if user is athenticated.
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        return redirect(url_for('auth.login'))
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+
+    if request.method == 'GET':
+        fingerprints = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id)
+        emails = db.session.query(Email).filter(Email.account_id == current_user.account_id)
+
+        return render_template('settings_activate_openpgp_encryption.html',fingerprints = fingerprints, emails = emails, current_user = current_user)
+    if request.method == 'POST':
+        fingerprint = request.form["fingerprint"].strip()
+        email = request.form["email"].strip()
+
+        # Check if fingeprint from form is empty.
+        if fingerprint == None or fingerprint == "":
+            return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse fingerprint form is empty.",current_user=current_user)
+
+        # Check if email from form is empty.
+        if email == None or email == "":
+            return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse email form is empty.",current_user=current_user)
+        
+        # Validate fingerprint.
+        if is_openpgp_key_fingerprint_allowed(fingerprint) != True:
+            return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse fingerprint validation failed",current_user=current_user)
+
+        # Validate email.
+        if is_email_allowed(email) == False:
+            return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse email validation failed.",current_user=current_user)
+
+        # Check that openpgp public key fingerprint exist in db and is owned by current account.
+        is_fingerprint_mine = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id, Openpgp_public_key.fingerprint == fingerprint).count()
+        if is_fingerprint_mine != 1:
+            return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse openpgp public key fingerprint can not be found in database",current_user=current_user)
+       
+       # Check that email already exist in db and is owned by current account.
+        is_email_mine = db.session.query(Email).filter(Email.email == email, Email.account_id == current_user.account_id).count()
+        if is_email_mine != 1:
+            return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse email can not be found in database",current_user=current_user)
+
+        # Get the id of the openpgp public key record in db.
+        openpgp_public_key = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id, Openpgp_public_key.fingerprint == fingerprint).first()
+
+        # Activate openpgp encryption on email account in db.
+        email_from_db = db.session.query(Email).filter(Email.account_id == current_user.account_id, Email.email == email).first()
+        email_from_db.openpgp_public_key_id  = openpgp_public_key.id
+        db.session.commit()
+
+        # Check that openpgp encryption is actived on the specified email account.
+        email_from_db = db.session.query(Email).filter(Email.account_id == current_user.account_id, Email.email == email).first()
+        if email_from_db.openpgp_public_key_id != openpgp_public_key.id or openpgp_public_key.fingerprint != fingerprint:
+            return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption",current_user=current_user)
+            
+        return render_template('message.html',headline="Activate Openpgp Encryption",message="Successfully activated OpenPGP encryption",current_user=current_user)
 
 @bp.route("/settings/show_alias")
 def setings_show_alias():
