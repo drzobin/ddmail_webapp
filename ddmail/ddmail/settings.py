@@ -610,6 +610,27 @@ def settings_remove_openpgp_public_key():
 
         return render_template('message.html',headline="Remove OpenPGP Public Key",message="Succesfully removed OpenPGP public key.",current_user=current_user)
 
+@bp.route("/settings/show_emails_with_activated_openpgp")
+def settings_show_emails_with_activated_openpgp():
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        return redirect(url_for('auth.login'))
+
+    # Check if user is athenticated.
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        return redirect(url_for('auth.login'))
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        return render_template('message.html',headline="Show Emails With Activated Openpgp",message="Failed to show emails with activated OpenPGP encryption beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
+
+    emails = db.session.query(Email).filter(Email.account_id == current_user.account_id,Email.openpgp_public_key_id != None)
+
+    return render_template('settings_show_emails_with_activated_openpgp.html',emails = emails, current_user = current_user)
+
 @bp.route("/settings/activate_openpgp_encryption", methods=['POST', 'GET'])
 def settings_activate_openpgp_encryption():
     # Check if cookie secret is set.
