@@ -1,0 +1,17 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h3>Deactivate OpenPGP encryption</h3>
+This will deactivate OpenPGP encryption for the selected email account. All incoming emails to this email account will no longer be encrypted with OpenPGP. Old emails that is stored on this email account will not be changed, this change only applies to new incoming emails to this email account.<p>
+<form action="" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <br>Deactivate OpenPGP encryption on this email account:<br>
+  <select name="email">
+  {% for email in emails %}
+    <option value="{{ email.email }}">{{ email.email }}</option>
+  {% endfor %}
+  </select>
+  <br><br>
+  <input type="submit">
+</form>
+{% endblock%}
