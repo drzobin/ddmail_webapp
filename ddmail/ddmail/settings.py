@@ -285,7 +285,7 @@ def settings_add_email():
             ph = PasswordHasher(time_cost=3,memory_cost=65536,parallelism=1)
             password_hash = ph.hash(cleartext_password)
 
-            # Get the domain id and aff the new email account to db.
+            # Get the domain id and add the new email account to db.
             if is_domain_mine == 1:
                 account_domain = db.session.query(Account_domain).filter(Account_domain.domain == validate_email_domain[1]).first()
                 new_email = Email(account_id=int(current_user.account_id), email=add_email_from_form,password_hash=password_hash,storage_space_mb=0,account_domain_id=account_domain.id)
@@ -300,9 +300,19 @@ def settings_add_email():
             # Create encryptions keys and set password for key.
             dmcp_keyhandler_url = current_app.config["DMCP_KEYHANDLER_URL"] + "/create_key"
             dmcp_keyhandler_password = current_app.config["DMCP_KEYHANDLER_PASSWORD"]
-            r_respone = requests.post(dmcp_keyhandler_url, {"email":add_email_from_form,"key_password":base64.b64encode(bytes(cleartext_password, 'utf-8')),"password":dmcp_keyhandler_password}, timeout=5)
+            try:
+                r_respone = requests.post(dmcp_keyhandler_url, {"email":add_email_from_form,"key_password":base64.b64encode(bytes(cleartext_password, 'utf-8')),"password":dmcp_keyhandler_password}, timeout=5)
+            except requests.exceptions.ConnectionError:
+                db.session.query(Email).filter(Email.account_id == int(current_user.account_id), Email.email == add_email_from_form).delete()
+                db.session.commit()
+                
+                return render_template('message.html',headline="Add Email Account Error",message="Failed to add email account beacuse dmcp keyhandler service is unavalible.",current_user=current_user)
+        
             # Check if password protected encryption key creation was successfull.
             if r_respone.status_code != 200 or r_respone.content != b'done':
+                db.session.query(Email).filter(Email.account_id == int(current_user.account_id), Email.email == add_email_from_form).delete()
+                db.session.commit()
+                
                 return render_template('message.html',headline="Add email error",message="Failed trying to create password protected encryptions keys.",current_user=current_user)
 
             return render_template('message.html',headline="Add Email Account",message="Successfully added email: " + add_email_from_form + " with password: " + cleartext_password ,current_user=current_user)
