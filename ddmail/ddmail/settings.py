@@ -461,8 +461,11 @@ def settings_change_password_on_email():
         # Change password on encryption key.
         dmcp_keyhandler_url = current_app.config["DMCP_KEYHANDLER_URL"] + "/change_password_on_key"
         dmcp_keyhandler_password = current_app.config["DMCP_KEYHANDLER_PASSWORD"]
-        r_respone = requests.post(dmcp_keyhandler_url, {"email":change_password_on_email_from_form,"current_key_password":base64.b64encode(bytes(current_cleartext_password_from_form, 'utf-8')),"new_key_password":base64.b64encode(bytes(cleartext_password, 'utf-8')),"password":dmcp_keyhandler_password}, timeout=5)
-            
+        try:
+            r_respone = requests.post(dmcp_keyhandler_url, {"email":change_password_on_email_from_form,"current_key_password":base64.b64encode(bytes(current_cleartext_password_from_form, 'utf-8')),"new_key_password":base64.b64encode(bytes(cleartext_password, 'utf-8')),"password":dmcp_keyhandler_password}, timeout=5)
+        except requests.exceptions.ConnectionError:
+            return render_template('message.html',headline="Change Password On Email Account Error",message="Failed to change password on email account becuse dmcp keyhandler is unavalible",current_user=current_user)
+
         # Check if password on encryption key change was successfull.
         if r_respone.status_code != 200 or r_respone.content != b'done':
             return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, failed to change password on encryption key.",current_user=current_user)
