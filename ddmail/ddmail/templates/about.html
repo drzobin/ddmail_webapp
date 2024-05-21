@@ -29,10 +29,10 @@ HTTPS www.ddmail.se port 443 (HTTP wrapped in TLS)<br>
 We use clamav, oletools with olefy and rspamd to fight malware, phishing and spam.
 
 <h3>Encryption "at rest"</h3>
-E-mail is encrypted "at rest" using elliptic curve secp521r1 key pair. The private key is password protected. The password is the email account password base64 encoded. This encryption/decryption is done seamlessly to the user on the server. Every e-mail account(Maildir) has different key pairs. The password protected private key is tored on ddmail servers.
+E-mail is always encrypted "at rest" using elliptic curve secp521r1 private and public key pair. The private key is password protected. The password is the email account password base64 encoded. This encryption/decryption is done seamlessly to the user on the server. Every e-mail account(Maildir) has different key pairs. The password protected private key is stored on ddmail servers.
 
 <h3>Encryption "at rest" using OpenPGP</h3>
-Incoming emails can also be encrypted using OpenPGP public keys. This is a opt-in feature where the user needs to upload the OpenPGP public key to ddmail servers and activate OpenPGP encryption on specific email account. Using this feature the users private key is not stored on ddmail servers.
+Incoming emails can also be encrypted using OpenPGP public keys. This means that incoming emails will be encrypted twice "at rest". This is a opt-in feature where the user needs to upload the OpenPGP public key to ddmail servers and activate OpenPGP encryption on specific email account with a specific public key. Using this feature the users OpenPGP private key is not stored on ddmail servers.
 
 <h3>Encryption "in transit"</h3>
 E-mail is encrypted "in transit" as offen as possible using TLS encryption. IMAP and HTTP is always encryptet using TLS 1.2 or TLS 1.3 with strong cipher suites, A+ rating on ssllab. SMTP traffic is encrypted using TLS 1.2 or TLS 1.3 with strong cipher suites when the counter part SMTP server supports it.
