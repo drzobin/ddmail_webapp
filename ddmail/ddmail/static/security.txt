@@ -1,0 +1,15 @@
+Contact: mailto:security@crew.ddmail.se
+Expires: 2025-04-30T22:00:00.000Z
+Encryption: https://www.ddmail.se/static/contact_security_pubkey.asc
+Encryption: https://ddmail.se/static/contact_security_pubkey.asc
+Encryption: http://ty6nw3vuckv4cwjwwljr32v2vv4btawi7oemx3ayivdknhcziaspwtad.onion/static/contact_security_pubkey.asc
+Encryption: https://lqvvhl4e5rtz75khof6iku5vbf7cgaghfoi36dbcyc2nlvdqm6ca.b32.i2p/static/contact_security_pubkey.asc
+Preferred-Languages: en,sv
+Canonical: https://www.ddmail.se/.well-known/security.txt
+Canonical: https://www.ddmail.se/security.txt
+Canonical: https://ddmail.se/.well-known/security.txt
+Canonical: https://ddmail.se/security.txt
+Canonical: http://ty6nw3vuckv4cwjwwljr32v2vv4btawi7oemx3ayivdknhcziaspwtad.onion/.well-known/security.txt
+Canonical: http://ty6nw3vuckv4cwjwwljr32v2vv4btawi7oemx3ayivdknhcziaspwtad.onion/security.txt
+Canonical: https://lqvvhl4e5rtz75khof6iku5vbf7cgaghfoi36dbcyc2nlvdqm6ca.b32.i2p/.well-known/security.txt
+Canonical: https://lqvvhl4e5rtz75khof6iku5vbf7cgaghfoi36dbcyc2nlvdqm6ca.b32.i2p/security.txt
