@@ -39,11 +39,11 @@ def create_app(test_config=None):
     # Import forms
 
     # Apply the blueprints to the app
-    from ddmail import auth, settings, unauthenticated, mtasts
+    from ddmail import auth, settings, unauthenticated, well_known
 
     app.register_blueprint(auth.bp)
     app.register_blueprint(settings.bp)
     app.register_blueprint(unauthenticated.bp)
-    app.register_blueprint(mtasts.bp)
+    app.register_blueprint(well_known.bp)
 
     return app 
