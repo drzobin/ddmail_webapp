@@ -68,3 +68,11 @@ def contact():
         current_user = None
 
     return render_template('contact.html',current_user=current_user)
+
+@bp.route("/robots.txt")
+def robots():
+    return current_app.send_static_file('robots.txt')
+
+@bp.route("/sitemap.xml")
+def sitemap():
+    return current_app.send_static_file('sitemap.xml')
