@@ -10,7 +10,7 @@ DMARC as TXT record:<br>_dmarc.[your own domain]	3600	IN	TXT	{{ dmarc_record }}<
 <p>
 <form method="POST">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    {{ form.domain.label }} {{ form.domain(size=20) }}
+    {{ form.domain.label }}:<br> {{ form.domain(size=20) }}
     <input type="submit" value="Add domain">
 </form>
 {% endblock%}
