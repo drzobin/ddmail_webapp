@@ -2,7 +2,7 @@
 {% block content %}
 {% include 'settings_menu.html' %}
 <h3>Activate OpenPGP encryption</h3>
-This will activate OpenPGP encryption for the selected email account using the selected OpenPGP public key. Before you use this feature you need to upload your OpenPGP public key that you want to use for encryption. All incoming emails to this email account will be encrypted with the slected OpenPGP public key. Old emails that is stored on this email account will not be encrypted by this feature.<p>
+This will activate OpenPGP encryption for the selected email account using the selected OpenPGP public key. Before you use this feature you need to upload your OpenPGP public key that you want to use for encryption. All incoming emails to this email account will be encrypted with the slected OpenPGP public key. Old emails that is stored on this email account will not be encrypted by this feature. This feature will not OpenPGP encrypt emails synced using imaps to the Send folder, we recommend disabeling imap sync to Send folder in your email client. This feature will not OpenPGP encrypt the email subject line.<p>
 <form action="" method="post">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
   Fingerprint of OpenPGP public key to use for encryption:<br>
