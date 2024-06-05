@@ -2,9 +2,16 @@
 {% block content %}
 {% include 'settings_menu.html' %}
 <h3>Show Domains</h3>
-<p></p>Current active domains for this account:
-{% for domain in domains %}
+Global domains can be used by everyone at ddmail. Account domains is custom domains owned by this account and can only be used by this account.
+<p></p>Current active global domains:
+{% for global_domain in global_domains %}
 <br>
-{{ domain.domain }}
+{{ global_domain.domain }}
+{% endfor %}
+
+<p></p>Current active account domains for this account:
+{% for account_domain in account_domains %}
+<br>
+{{ account_domain.domain }}
 {% endfor %}
 {% endblock%}
