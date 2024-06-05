@@ -936,9 +936,7 @@ def settings_show_domains():
     account_domains = db.session.query(Account_domain.domain).filter(Account_domain.account_id == current_user.account_id)
     global_domains = db.session.query(Global_domain.domain).filter(Global_domain.is_enabled == True)
 
-    domains = account_domains.union(global_domains)
-
-    return render_template('settings_show_domains.html',domains=domains,current_user=current_user)
+    return render_template('settings_show_domains.html',account_domains=account_domains,global_domains=global_domains,current_user=current_user)
 
 @bp.route("/settings/add_domain", methods=['POST', 'GET'])
 def settings_add_domain():
