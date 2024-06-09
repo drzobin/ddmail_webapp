@@ -1,0 +1,16 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h3>Usage and Funds</h3>
+This information will be updated once every 24 hour.
+<p></p>
+Funds in Swedish kronor SEK:
+{{ account.funds_in_sek }}
+<p></p>
+Funds in Euro EUR:
+{{ account.funds_in_sek }}
+<p></p>
+Total storage space used in gigabyte:
+{{ account.total_storage_space_g }}
+{% endblock%}
+
