@@ -2,7 +2,7 @@
 {% block content %}
 {% include 'settings_menu.html' %}
 <h3>Usage and Funds</h3>
-This information will be updated once every 24 hour.
+This information will be updated once every 24 hour. Funds is showed in both SEK and EUR, this is the same money represented in two currencies.
 <p></p>
 Funds in Swedish kronor SEK:
 {{ account.funds_in_sek }}
@@ -10,7 +10,7 @@ Funds in Swedish kronor SEK:
 Funds in Euro EUR:
 {{ account.funds_in_sek }}
 <p></p>
-Total storage space used in gigabyte:
+Most amount of total storage space used in gigabyte this month:
 {{ account.total_storage_space_g }}
 {% endblock%}
 
