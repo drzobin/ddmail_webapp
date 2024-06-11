@@ -10,10 +10,10 @@ class Account(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     account = db.Column(db.String(100), unique=True, nullable=False)
     payment_token = db.Column(db.String(12), unique=True, nullable=False)
-    assets_in_sek = db.Column(db.Integer, nullable=False)
+    funds_in_sek = db.Column(db.Integer, nullable=False)
     is_enabled = db.Column(db.Boolean, unique=False, nullable=False)
     is_gratis = db.Column(db.Boolean, unique=False, nullable=False)
-    total_storage_space_mb = db.Column(db.Integer, nullable=False)
+    total_storage_space_g = db.Column(db.Integer, nullable=False)
     created = db.Column(db.DateTime, nullable=False)
     last_time_disabled = db.Column(db.DateTime, nullable=True)
 
