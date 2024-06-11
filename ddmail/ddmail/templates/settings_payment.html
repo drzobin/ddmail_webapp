@@ -1,0 +1,18 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h3>Payment</h3>
+Here you can find information regarding payment.
+<h4>Physical cash</h4>
+Payment is physical cash. Payment is done by writing down your payment token on a piece of paper then you put that paper and the money(SEK or EUR) in an envelope end sending it to the following address: <p></p>
+{{ payment_mail['name'] }}
+<br>
+{{ payment_mail['address'] }}
+<br>
+{{ payment_mail['postcode'] }}
+<br>
+{{ payment_mail['country'] }}
+<p></p>
+When we recive the money we will add them to your accounts funds and generate a new payment token for your account. 
+{% endblock%}
+
