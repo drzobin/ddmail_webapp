@@ -33,12 +33,33 @@ def usage_and_funds():
     # Check if user is athenticated
     current_user = is_athenticated(session["secret"])
 
-    # If user is not athenticated send them to the login page.
+    # If user is not authenticated send them to the login page.
     if current_user == None:
         return redirect(url_for('auth.login'))
 
     return render_template('settings_usage_and_funds.html',account = current_user.account, current_user = current_user)
 
+@bp.route("/settings/payment", methods=['GET'])
+def payment():
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        return redirect(url_for('auth.login'))
+
+    # Check if user is athenticated
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not authenticated send them to the login page.
+    if current_user == None:
+        return redirect(url_for('auth.login'))
+
+    payment_mail = { 
+                       "name": current_app.config["PAYMENT_MAIL_NAME"], 
+                       "address": current_app.config["PAYMENT_MAIL_ADDRESS"], 
+                       "postcode": current_app.config["PAYMENT_MAIL_POSTCODE"], 
+                       "country": current_app.config["PAYMENT_MAIL_COUNTRY"]
+                       }
+
+    return render_template('settings_payment.html', payment_mail = payment_mail, current_user = current_user)
 
 @bp.route("/settings/payment_token", methods=['GET'])
 def payment_token():
