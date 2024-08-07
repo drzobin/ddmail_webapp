@@ -12,7 +12,6 @@ from ddmail.validators import is_password_allowed
 def test_generate_password():
     # Test to see that length is 21.
     password = generate_password(21)
-    print("password:" + password)
     assert len(password) == 21
 
     # Test to see that all chars in string is uppercase A-Z or digits 0-9 or lowercase a-z.
