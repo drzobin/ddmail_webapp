@@ -485,8 +485,6 @@ def settings_change_password_on_email():
 
         # Check current password is correct.
         try:
-            print(current_cleartext_password_from_form)
-            print(email_from_db.password_hash)
             if ph.verify(email_from_db.password_hash, current_cleartext_password_from_form) != True:
                 return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, current email account password is wrong.",current_user=current_user)
         except:
