@@ -1432,7 +1432,7 @@ def test_settings_enabled_account_show_domains(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_show_domains_get.data
     assert b"Is account enabled: Yes" in response_settings_show_domains_get.data
     assert b"<h3>Show Domains</h3>" in response_settings_show_domains_get.data
-    assert b"Current active domains for this account:" in response_settings_show_domains_get.data
+    assert b"Current active account domains for this account:" in response_settings_show_domains_get.data
     assert b"test.ddmail.se" in response_settings_show_domains_get.data
 
 def test_settings_disabled_account_add_domain(client,app):
