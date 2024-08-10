@@ -1173,7 +1173,7 @@ def test_settings_enabled_account_add_alias(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_email_get.data
     assert b"Is account enabled: Yes" in response_settings_add_email_get.data
 
-    # Get csrf_token from /settings/change_key_on_user
+    # Get csrf_token from /settings/add_email
     csrf_token_settings_add_email = get_csrf_token(response_settings_add_email_get.data)
 
     # Test to add email account with a global domain.
