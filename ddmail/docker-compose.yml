@@ -1,0 +1,86 @@
+---
+version: "3.8"
+
+services:
+  ddmail-webapp:
+    build:
+      context: .
+    ports:
+      - "8000:8000"
+    environment:
+      - SQLALCHEMY_DATABASE_URI=mysql://mail_dev_rw:password@ddmail-db/mail_dev
+      - EMAIL_REMOVER_URL=ddmail-email-remover:8001
+      - DMCP_KEYHANDLER_URL=ddmail-dmcp-keyhandler:8002
+      - OPENPGP_KEYHANDLER_URL=ddmail-openpgp-keyhandler:8003
+    volumes:
+      - .:/app
+    networks:
+      - ddmail_net
+    depends_on:
+      - ddmail-db
+      - ddmail-email-remover
+      - ddmail-dmcp-keyhandler
+      - ddmail-openpgp-keyhandler
+      - ddmail-backup-receiver
+
+  ddmail-email-remover:
+    build:
+      context: ../../ddmail_email_remover/email_remover
+    ports:
+      - "8001:8001"
+    volumes:
+      - ../../ddmail_email_remover/email_remover:/app
+    networks:
+      - ddmail_net
+
+  ddmail-dmcp-keyhandler:
+    build:
+      context: ../../ddmail_dmcp_keyhandler/dmcp_keyhandler
+    ports:
+      - "8002:8002"
+    volumes:
+      - ../../ddmail_dmcp_keyhandler/dmcp_keyhandler:/app
+    networks:
+      - ddmail_net
+
+  ddmail-openpgp-keyhandler:
+    build:
+      context: ../../ddmail_openpgp_keyhandler/openpgp_keyhandler
+    ports:
+      - "8003:8003"
+    volumes:
+      - ../../ddmail_openpgp_keyhandler/openpgp_keyhandler:/app
+    networks:
+      - ddmail_net
+
+  ddmail-backup-receiver:
+    build:
+      context: ../../ddmail_backup_receiver/backup_receiver
+    ports:
+      - "8004:8004"
+    volumes:
+      - ../../ddmail_backup_receiver/backup_receiver:/app
+    networks:
+      - ddmail_net
+
+  ddmail-db:
+    image: docker.io/library/mariadb:10.11
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: mail_dev
+      MYSQL_USER: mail_dev_rw
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./db-init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - ddmail_net
+
+volumes:
+  mariadb_data: {}
+
+networks:
+  ddmail_net:
+    driver: bridge
