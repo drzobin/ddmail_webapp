@@ -10,16 +10,16 @@ Developt for and tested on debian 12.
 # Installation
 `git clone https://github.com/drzobin/ddmail_webapp.git`<br>
 
-## INstall deps.
+## Install deps
 `cd ddmail_webapp/ddmail`<br>
 `pip install -r requirements.txt`
 
-## Run in development mode.
+## Run in development mode
 `cd ddmail_webapp/ddmail`<br>
 `export MODE=DEVELOPMENT`<br>
 `flask --app ddmail:create_app run --host=0.0.0.0 --debug`
 
-## Run tests in testing mode.
+## Run tests in testing mode
 `cd ddmail_webapp/ddmail`<br>
 `export MODE=TESTING`<br>
 `pytest`
