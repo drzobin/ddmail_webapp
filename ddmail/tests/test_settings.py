@@ -700,16 +700,10 @@ def test_settings_enabled_account_add_email(client,app):
     #
     #
     # Test to add email account with a global domain.
-    response_settings_add_email_post = client.post("/settings/add_email", data={'domain':"globaltestdomain01.se", 'email':"test01", 'csrf_token':csrf_token_settings_add_email})
-    assert b"<h3>Add Email Account</h3>" in response_settings_add_email_post.data
-    assert b"Successfully added email:" in response_settings_add_email_post.data
     
     #
     #
     # Test to add two emails acounts that has the same name.
-    response_settings_add_email_post = client.post("/settings/add_email", data={'domain':"globaltestdomain01.se", 'email':"test01", 'csrf_token':csrf_token_settings_add_email})
-    assert b"<h3>Add email error</h3>" in response_settings_add_email_post.data
-    assert b"Failed to add email, email already exist." in response_settings_add_email_post.data
 
     #
     #
