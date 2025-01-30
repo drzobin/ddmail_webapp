@@ -2,7 +2,7 @@
 Main web application for the ddmail project.
 
 # What is ddmail
-ddmail is a e-mail system/service that prioritize privacy and security. A current production example can be found at www.ddmail.se
+DDMail is a e-mail system/service that prioritize privacy and security. A current production example can be found at www.ddmail.se
 
 # Operating system
 Developt for and tested on debian 12.
@@ -10,7 +10,7 @@ Developt for and tested on debian 12.
 # Installation
 `git clone https://github.com/drzobin/ddmail_webapp.git`<br>
 
-## Install deps
+## Install dependencies
 `cd ddmail_webapp/ddmail`<br>
 `pip install -r requirements.txt`
 
