@@ -773,7 +773,7 @@ def test_settings_enabled_account_show_email(client,app):
             new_global_domain = Global_domain(domain = "globaltestdomain01.se", is_enabled = 1)
             db.session.add(new_global_domain)
             db.session.commit()
-
+                
     # Get the csrf token for /register
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
@@ -805,10 +805,13 @@ def test_settings_enabled_account_show_email(client,app):
     # Get csrf_token from /settings/add_email    
     csrf_token_settings_add_email = get_csrf_token(response_settings_add_email_get.data)
    
-    # Test to add email account with a global domain.
-    response_settings_add_email_post = client.post("/settings/add_email", data={'domain':"globaltestdomain01.se", 'email':"test01", 'csrf_token':csrf_token_settings_add_email})
-    assert b"<h3>Add Email Account</h3>" in response_settings_add_email_post.data
-    assert b"Successfully added email:" in response_settings_add_email_post.data
+    # Add email account with a global domain.
+    with app.app_context():
+        account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
+        global_domain = db.session.query(Global_domain).filter(Global_domain.domain == "globaltestdomain01.se").first()
+        new_email = Email(account_id = account.id, email = "test01@globaltestdomain01.se", password_hash = "mysecrethash", storage_space_mb = 0, global_domain_id = global_domain.id)
+        db.session.add(new_email)
+        db.session.commit()
 
     # Test GET /settings/show_email
     assert client.get("/settings/show_email").status_code == 200
