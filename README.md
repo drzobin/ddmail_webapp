@@ -10,7 +10,7 @@ Developt for and tested on debian 12.
 # Installation
 `git clone https://github.com/drzobin/ddmail_webapp.git`<br>
 
-##Setup python virtual environments
+## Setup python virtual environments
 `python -m venv [venv path]`<br>
 `source [venv path]/bin/activate`
 
