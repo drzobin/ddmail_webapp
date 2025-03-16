@@ -3,10 +3,10 @@
 {% include 'settings_menu.html' %}
 <h3>Add Domain</h3>
 The following dns records is needed before you can add custom domain.<br>
-MX record:<br>[your own domain]		3600	IN	MX	{{ mx_record_priority }} {{ mx_record_host }}<p>
-SPF as TXT record:<br>[your own domain]	3600	IN	TXT	{{ spf_record }}<p>
-DKIM as TXT record:<br>mail._domainkey.[your own domain] 3600	IN	TXT	{{ dkim_record }}<p>
-DMARC as TXT record:<br>_dmarc.[your own domain]	3600	IN	TXT	{{ dmarc_record }}<p>
+MX record:<pre>[your own domain]		3600	IN	MX	{{ mx_record_priority }} {{ mx_record_host }}</pre><p>
+SPF as TXT record:<pre>[your own domain]	3600	IN	TXT	{{ spf_record }}</pre><p>
+DKIM as TXT record:<pre>mail._domainkey.[your own domain] 3600	IN	TXT	{{ dkim_record }}</pre><p>
+DMARC as TXT record:<pre>_dmarc.[your own domain]	3600	IN	TXT	{{ dmarc_record }}</pre><p>
 <p>
 <form method="POST">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
