@@ -1,7 +1,7 @@
 from flask import Blueprint, request, render_template, session, redirect, url_for
 from argon2 import PasswordHasher
-from ddmail.models import db, Account, User, Authenticated
-from ddmail.validators import is_username_allowed, is_password_allowed
+from ddmail_webapp.models import db, Account, User, Authenticated
+from ddmail_webapp.validators import is_username_allowed, is_password_allowed
 import random
 import string
 import datetime

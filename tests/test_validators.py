@@ -1,5 +1,5 @@
 from flask import current_app
-from ddmail.validators import is_email_allowed, is_domain_allowed, is_password_allowed
+from ddmail_webapp.validators import is_email_allowed, is_domain_allowed, is_password_allowed
 import pytest
 import os
 

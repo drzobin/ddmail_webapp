@@ -1,5 +1,5 @@
 from flask import Blueprint, session, render_template, current_app
-from ddmail.auth import is_athenticated
+from ddmail_webapp.auth import is_athenticated
 
 bp = Blueprint("unauthenticated", __name__, url_prefix="/")
 

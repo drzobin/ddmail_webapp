@@ -1,5 +1,3 @@
 .coverage
 .idea/
-ddmail/__pycache__/
-ddmail/ddmail/__pycache__/
-ddmail/tests/__pycache__/
+__pycache__/
