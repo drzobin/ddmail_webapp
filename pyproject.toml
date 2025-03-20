@@ -1,0 +1,70 @@
+[project]
+name = "ddmail_webapp"
+version = "0.0.1"
+authors = [
+  { name="Robin Larsson", email="me@drz.se" },
+]
+description = "Main web application for the DDMail project."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
+]
+dependencies = [
+  "flask",
+  "Flask-SQLAlchemy",
+  "Flask-Session",
+  "Flask-WTF",
+  "argon2_cffi",
+  "mysqlclient",
+  "requests",
+  "dnspython",
+  "ddmail-validators",
+  "toml",
+  "gunicorn",
+]
+license = "AGPL-3.0"
+license-files = ["LICEN[CS]E*"]
+
+[project.optional-dependencies]
+dev = [
+  "flask",
+  "Flask-SQLAlchemy",
+  "Flask-Session",
+  "Flask-WTF",
+  "argon2_cffi",
+  "mysqlclient",
+  "requests",
+  "dnspython",
+  "ddmail-validators",
+  "toml",
+  "gunicorn",
+  "pytest-cov",
+  "flake8",
+  "hatchling",
+  "twine",
+]
+test = [
+  "flask",
+  "Flask-SQLAlchemy",
+  "Flask-Session",
+  "Flask-WTF",
+  "argon2_cffi",
+  "mysqlclient",
+  "requests",
+  "dnspython",
+  "ddmail-validators",
+  "toml",
+  "gunicorn",
+  "pytest-cov",
+  "flake8",
+]
+
+[project.urls]
+Homepage = "https://github.com/drzobin/ddmail_webapp"
+Issues = "https://github.com/drzobin/ddmail_webapp/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
