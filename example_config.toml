@@ -16,6 +16,7 @@
     SPF_RECORD = '"v=spf1 mx -all"'
     DKIM_RECORD = '"v=DKIM1; k=rsa;  \\\\009p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoxbFCUM83lUvHKku3mE/IOb2LArgPsjzhijO4pZfVLrLp7dv8RKDs4MmtFHrdWf4UibDFZtPm4IKcagDD3LlqgPSeewnfesI/kGCdz2SqPA/R5Cip5I1swtQ1lKa41eu6Rxym32fzCrRAhBfOZqM05BKPQQpxcSuyNmKOz+HGlGtkUMk5ebhWDtTsoc7ntw\" \"nhnAxaF+T61YQdYyCL \\\\009P7l6KRULaDJ3U7AkNAYrXpv0AdfjDVZp+GXu5fqTFTMi5pYGv1pj4621OSysDmjFlPksCgDouE11N+sJVCVPj//8gJCpzDv7y2kET9MIPmIlKGBTC1AQg5KWrbkeQPcEnzhRwIDAQAB"'
     DMARC_RECORD = '"v=DMARC1; p=none"'
+    LOGFILE = '/var/log/ddmail_webapp.log'
 
 [TESTING]
     DMCP_KEYHANDLER_URL = 'http://127.0.0.1:8002'
@@ -35,6 +36,7 @@
     SPF_RECORD = '"v=spf1 mx -all"'
     DKIM_RECORD = '"v=DKIM1; k=rsa;  \\\\009p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoxbFCUM83lUvHKku3mE/IOb2LArgPsjzhijO4pZfVLrLp7dv8RKDs4MmtFHrdWf4UibDFZtPm4IKcagDD3LlqgPSeewnfesI/kGCdz2SqPA/R5Cip5I1swtQ1lKa41eu6Rxym32fzCrRAhBfOZqM05BKPQQpxcSuyNmKOz+HGlGtkUMk5ebhWDtTsoc7ntw\" \"nhnAxaF+T61YQdYyCL \\\\009P7l6KRULaDJ3U7AkNAYrXpv0AdfjDVZp+GXu5fqTFTMi5pYGv1pj4621OSysDmjFlPksCgDouE11N+sJVCVPj//8gJCpzDv7y2kET9MIPmIlKGBTC1AQg5KWrbkeQPcEnzhRwIDAQAB"'
     DMARC_RECORD = '"v=DMARC1; p=none"'
+    LOGFILE = '/var/log/ddmail_webapp.log'
 
 [DEVELOPMENT]
     DMCP_KEYHANDLER_URL = 'http://127.0.0.1:8002'
@@ -54,4 +56,5 @@
     SPF_RECORD = '"v=spf1 mx -all"'
     DKIM_RECORD = '"v=DKIM1; k=rsa;  \\\\009p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoxbFCUM83lUvHKku3mE/IOb2LArgPsjzhijO4pZfVLrLp7dv8RKDs4MmtFHrdWf4UibDFZtPm4IKcagDD3LlqgPSeewnfesI/kGCdz2SqPA/R5Cip5I1swtQ1lKa41eu6Rxym32fzCrRAhBfOZqM05BKPQQpxcSuyNmKOz+HGlGtkUMk5ebhWDtTsoc7ntw\" \"nhnAxaF+T61YQdYyCL \\\\009P7l6KRULaDJ3U7AkNAYrXpv0AdfjDVZp+GXu5fqTFTMi5pYGv1pj4621OSysDmjFlPksCgDouE11N+sJVCVPj//8gJCpzDv7y2kET9MIPmIlKGBTC1AQg5KWrbkeQPcEnzhRwIDAQAB"'
     DMARC_RECORD = '"v=DMARC1; p=none"'
+    LOGFILE = '/var/log/ddmail_webapp.log'
 
