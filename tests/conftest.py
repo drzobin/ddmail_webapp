@@ -1,16 +1,39 @@
 import os
 import tempfile
-
 import pytest
-
 from ddmail_webapp import create_app
 from ddmail_webapp.models import db, Account, Email, Account_domain, Alias, Global_domain, User, Authenticated
 
+# Set mode to TESTING so we are sure not to run with production configuration running tests.
+os.environ["MODE"] = "TESTING"
+config_file = None
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--config",
+        action="store",
+        default=None,
+        help="Authentication password to use during test.",
+    )
+
+
+@pytest.fixture(scope="session")
+def config_file(request):
+    """Fixture to retrieve config file"""
+    return request.config.getoption("--config")
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_sessionstart(session):
+    config_file = session.config.getoption("--config")
+
+
 @pytest.fixture
-def app():
+def app(config_file):
     """Create and configure a new app instance for each test."""
-    # Create the app with common test config
-    app = create_app({"TESTING": True})
+    # Create the app with test config
+    app = create_app(config_file = config_file)
+    app.config.update({"TESTING": True,})
 
     # Empty db
     with app.app_context():
