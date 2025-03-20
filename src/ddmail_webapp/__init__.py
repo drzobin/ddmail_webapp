@@ -33,13 +33,13 @@ def create_app(test_config=None):
         pass
 
     # Import the database models.
-    from ddmail.models import db
+    from ddmail_webapp.models import db
     db.init_app(app)
 
     # Import forms
 
     # Apply the blueprints to the app
-    from ddmail import auth, settings, unauthenticated, well_known
+    from ddmail_webapp import auth, settings, unauthenticated, well_known
 
     app.register_blueprint(auth.bp)
     app.register_blueprint(settings.bp)
