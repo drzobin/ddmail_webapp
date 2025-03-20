@@ -1,9 +1,9 @@
 from flask import Blueprint, session, render_template, request, current_app, redirect, url_for
 from argon2 import PasswordHasher
-from ddmail.auth import is_athenticated, generate_password, generate_token
-from ddmail.models import db, Email, Openpgp_public_key, Account_domain, Alias, Global_domain, User
-from ddmail.forms import EmailForm, AliasForm, DomainForm, EmailPasswordForm
-from ddmail.validators import is_email_allowed, is_domain_allowed, is_username_allowed, is_password_allowed, is_mx_valid, is_spf_valid, is_dkim_valid, is_dmarc_valid, is_openpgp_public_key_allowed, is_openpgp_key_fingerprint_allowed
+from ddmail_webapp.auth import is_athenticated, generate_password, generate_token
+from ddmail_webapp.models import db, Email, Openpgp_public_key, Account_domain, Alias, Global_domain, User
+from ddmail_webapp.forms import EmailForm, AliasForm, DomainForm, EmailPasswordForm
+from ddmail_webapp.validators import is_email_allowed, is_domain_allowed, is_username_allowed, is_password_allowed, is_mx_valid, is_spf_valid, is_dkim_valid, is_dmarc_valid, is_openpgp_public_key_allowed, is_openpgp_key_fingerprint_allowed
 import requests
 import base64
 
