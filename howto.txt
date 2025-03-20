@@ -1,4 +1,0 @@
-# Run in development mode.
-cd ddmail_webapp/ddmail
-export MODE=DEVELOPMENT
-flask --app ddmail:create_app run --host=0.0.0.0 --debug
