@@ -1,7 +1,10 @@
 import os
+import logging
+import toml
 from flask import Flask
 from flask_wtf.csrf import CSRFProtect
-
+from logging.config import dictConfig
+from logging import FileHandler
 
 def create_app(config_file=None, test_config=None):
     """Create and configure an instance of the Flask application ddmail."""
