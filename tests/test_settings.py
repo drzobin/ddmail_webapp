@@ -4,7 +4,6 @@ import datetime
 from io import BytesIO
 from tests.helpers import get_csrf_token
 from tests.helpers import get_register_data
-
 from ddmail_webapp.models import db, Account, Email, Account_domain, Alias, Global_domain, User, Authenticated
 
 def test_settings_disabled_account(client,app):
