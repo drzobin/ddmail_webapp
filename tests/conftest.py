@@ -3,8 +3,8 @@ import tempfile
 
 import pytest
 
-from ddmail import create_app
-from ddmail.models import db, Account, Email, Account_domain, Alias, Global_domain, User, Authenticated
+from ddmail_webapp import create_app
+from ddmail_webapp.models import db, Account, Email, Account_domain, Alias, Global_domain, User, Authenticated
 
 @pytest.fixture
 def app():
