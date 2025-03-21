@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, session, redirect, url_for
+from flask import Blueprint, request, render_template, session, redirect, url_for, current_app
 from argon2 import PasswordHasher
 from ddmail_webapp.models import db, Account, User, Authenticated
 from ddmail_webapp.validators import is_username_allowed, is_password_allowed
@@ -11,6 +11,7 @@ bp = Blueprint("auth", __name__, url_prefix="/")
 
 # Generate a token that is easy to write down on paper frpm screen.
 def generate_token(length):
+    current_app.logger.debug("generating token")
     alphabet = string.ascii_uppercase + string.digits
     while True:
         token = ''.join(secrets.choice(alphabet) for i in range(length))
@@ -20,6 +21,7 @@ def generate_token(length):
 
 # Generate a password with digit, upparcase letters and lowercase letters.
 def generate_password(length):
+    current_app.logger.debug("generating password")
     alphabet = string.ascii_letters + string.digits
     while True:
         password = ''.join(secrets.choice(alphabet) for i in range(length))
@@ -31,6 +33,7 @@ def generate_password(length):
 def is_athenticated(cookie):
     # Validate the cookie
     if is_password_allowed(cookie) != True:
+        current_app.logger.warning("validation for cookie failed")
         return None
 
     # Try to find the cookie in the db.
@@ -38,6 +41,7 @@ def is_athenticated(cookie):
 
     # Check if the cookie was in the authenticated table.
     if authenticated == None:
+        current_app.logger.warning("can not find cookie in db")
         return None
 
     # Get the cookie valid_to time in datetime object.
@@ -48,12 +52,14 @@ def is_athenticated(cookie):
 
     # Check if cookie is still valid.
     if now_time > valid_to:
+        current_app.logger.warning("cookie has expired")
         return None
 
     # Get the user object from db.
     user_from_db = db.session.query(User).filter(User.id == authenticated.user_id).first()
 
     # User is authenticated, return user object.
+    current_app.logger.debug("user: " + user_from_db.user + " belonging to account: " + user_from_db.account.account + " is authenticated")
     return user_from_db
 
 @bp.route("/register", methods=['POST', 'GET'])
@@ -87,6 +93,7 @@ def register():
         db.session.commit()
 
         # Give the data to the user.
+        current_app.logger.info("created new account: " + account  + " with new user: " + user)
         return render_template('user_created.html',account=new_account.account,user=user,cleartext_password=cleartext_password,cleartext_password_key=cleartext_password_key)
 
 @bp.route("/login", methods=['POST', 'GET'])
@@ -108,11 +115,13 @@ def login():
         # Check that form has data.
         if not user_from_form or not cleartext_password_from_form or not cleartext_password_key_from_form:
             # Login failed
+            current_app.logger.warning("failed login, data is missing")
             return render_template('message.html',headline="Login error",message="Failed to login, wrong username and/or password and/or key.",current_user=current_user)
 
         # Validate the form data.
         if is_username_allowed(user_from_form) != True or is_password_allowed(cleartext_password_from_form) != True or is_password_allowed(cleartext_password_key_from_form) != True:
             # Login failed.
+            current_app.logger.warning("failed login, validation failed")
             return render_template('message.html',headline="Login error",message="Failed to login, wrong username and/or password and/or key.",current_user=current_user)
 
         # Get the user data from db.
@@ -120,6 +129,7 @@ def login():
 
         if not user_from_db:
             # Login failed.
+            current_app.logger.warning("failed login for user: " + user_from_form + " do not exsist in db")
             return render_template('message.html',headline="Login error",message="Failed to login, wrong username and/or password and/or key.",current_user=current_user)
 
         # Check password hash and password key hash.
@@ -136,13 +146,16 @@ def login():
                 db.session.add(authenticated)
                 db.session.commit()
 
+                current_app.logger.info("successful login for user: " + user_from_db.user + " belonging to account: " + user_from_db.account.account)
                 return redirect('/settings')
                 #return render_template('settings.html',current_user=current_user)
             else:
                 # Login failed.
+                current_app.logger.warning("failed login for user: " + user_from_db.user + " belonging to account: " + user_from_db.account.account)
                 return render_template('message.html',headline="Login error",message="Failed to login, wrong username and/or password and/or key.",current_user=current_user)
         except:
             # Login failed.
+            current_app.logger.warning("failed login for user: " + user_from_db.user + " belonging to account: " + user_from_db.account.account)
             return render_template('message.html',headline="Login error",message="Failed to login, wrong username and/or password and/or key.",current_user=current_user)
 
 
@@ -151,12 +164,15 @@ def logout():
     # Check if user is athenticated.
     if "secret" in session:
         current_user = is_athenticated(session["secret"])
+        current_app.logger.debug("secret is in session")
 
         if current_user != None:
             # Delete the cookie from db.
+            current_app.logger.debug("deleting: " + current_user.id + " from Authenticated in db")
             db.session.query(Authenticated).filter(Authenticated.user_id == current_user.id).delete()
             db.session.commit()
     else:
+        current_app.logger.debug("secret is not in session")
         current_user = None
 
     session.clear()
