@@ -17,6 +17,7 @@
     PAYMENT_MAIL_ADDRESS = 'change_me'
     PAYMENT_MAIL_POSTCODE = 'change_me'
     PAYMENT_MAIL_COUNTRY= 'change_me'
+    LOGLEVEL = 'INFO'
     LOGFILE = '/var/log/ddmail_webapp.log'
 
 [TESTING]
@@ -38,6 +39,7 @@
     PAYMENT_MAIL_ADDRESS = 'change_me'
     PAYMENT_MAIL_POSTCODE = 'change_me'
     PAYMENT_MAIL_COUNTRY= 'change_me'
+    LOGLEVEL = 'DEBUG'
     LOGFILE = '/var/log/ddmail_webapp.log'
 
 [DEVELOPMENT]
@@ -59,5 +61,6 @@
     PAYMENT_MAIL_ADDRESS = 'change_me'
     PAYMENT_MAIL_POSTCODE = 'change_me'
     PAYMENT_MAIL_COUNTRY= 'change_me'
+    LOGLEVEL = 'DEBUG'
     LOGFILE = '/var/log/ddmail_webapp.log'
 
