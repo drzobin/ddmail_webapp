@@ -73,6 +73,10 @@ def create_app(config_file=None, test_config=None):
         app.config["DKIM_RECORD"] = toml_config["PRODUCTION"]["DKIM_RECORD"]
         app.config["DMARC_RECORD"] = toml_config["PRODUCTION"]["DMARC_RECORD"]
 
+        # Configure tor and i2p addres.
+        app.config["TOR_ADDRESS"] = toml_config["PRODUCTION"]["TOR_ADDRESS"]
+        app.config["I2P_ADDRESS"] = toml_config["PRODUCTION"]["I2P_ADDRESS"]
+
         # Configure logfile.
         file_handler = FileHandler(filename=toml_config["PRODUCTION"]["LOGFILE"])
         file_handler.setFormatter(logging.Formatter(log_format))
@@ -116,6 +120,10 @@ def create_app(config_file=None, test_config=None):
         app.config["DKIM_RECORD"] = toml_config["TESTING"]["DKIM_RECORD"]
         app.config["DMARC_RECORD"] = toml_config["TESTING"]["DMARC_RECORD"]
 
+        # Configure tor and i2p addres.
+        app.config["TOR_ADDRESS"] = toml_config["TESTING"]["TOR_ADDRESS"]
+        app.config["I2P_ADDRESS"] = toml_config["TESTING"]["I2P_ADDRESS"]
+
         # Configure logfile.
         file_handler = FileHandler(filename=toml_config["TESTING"]["LOGFILE"])
         file_handler.setFormatter(logging.Formatter(log_format))
@@ -158,6 +166,10 @@ def create_app(config_file=None, test_config=None):
         app.config["SPF_RECORD"] = toml_config["DEVELOPMENT"]["SPF_RECORD"]
         app.config["DKIM_RECORD"] = toml_config["DEVELOPMENT"]["DKIM_RECORD"]
         app.config["DMARC_RECORD"] = toml_config["DEVELOPMENT"]["DMARC_RECORD"]
+        
+        # Configure tor and i2p addres.
+        app.config["TOR_ADDRESS"] = toml_config["DEVELOPMENT"]["TOR_ADDRESS"]
+        app.config["I2P_ADDRESS"] = toml_config["DEVELOPMENT"]["I2P_ADDRESS"]
 
         # Configure logfile.
         file_handler = FileHandler(filename=toml_config["DEVELOPMENT"]["LOGFILE"])
