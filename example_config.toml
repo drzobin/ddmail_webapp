@@ -16,7 +16,9 @@
     PAYMENT_MAIL_NAME = 'change_me'
     PAYMENT_MAIL_ADDRESS = 'change_me'
     PAYMENT_MAIL_POSTCODE = 'change_me'
-    PAYMENT_MAIL_COUNTRY= 'change_me'
+    PAYMENT_MAIL_COUNTRY = 'change_me'
+    TOR_ADDRESS = 'change_me'
+    I2P_ADDRESS = 'change_me'
     LOGLEVEL = 'INFO'
     LOGFILE = '/var/log/ddmail_webapp.log'
 
@@ -39,6 +41,8 @@
     PAYMENT_MAIL_ADDRESS = 'change_me'
     PAYMENT_MAIL_POSTCODE = 'change_me'
     PAYMENT_MAIL_COUNTRY= 'change_me'
+    TOR_ADDRESS = 'change_me'
+    I2P_ADDRESS = 'change_me'
     LOGLEVEL = 'DEBUG'
     LOGFILE = '/var/log/ddmail_webapp.log'
 
@@ -61,6 +65,8 @@
     PAYMENT_MAIL_ADDRESS = 'change_me'
     PAYMENT_MAIL_POSTCODE = 'change_me'
     PAYMENT_MAIL_COUNTRY= 'change_me'
+    TOR_ADDRESS = 'change_me'
+    I2P_ADDRESS = 'change_me'
     LOGLEVEL = 'DEBUG'
     LOGFILE = '/var/log/ddmail_webapp.log'
 
