@@ -11,7 +11,6 @@ bp = Blueprint("auth", __name__, url_prefix="/")
 
 # Generate a token that is easy to write down on paper frpm screen.
 def generate_token(length):
-    current_app.logger.debug("generating token")
     alphabet = string.ascii_uppercase + string.digits
     while True:
         token = ''.join(secrets.choice(alphabet) for i in range(length))
@@ -21,7 +20,6 @@ def generate_token(length):
 
 # Generate a password with digit, upparcase letters and lowercase letters.
 def generate_password(length):
-    current_app.logger.debug("generating password")
     alphabet = string.ascii_letters + string.digits
     while True:
         password = ''.join(secrets.choice(alphabet) for i in range(length))
@@ -33,7 +31,6 @@ def generate_password(length):
 def is_athenticated(cookie):
     # Validate the cookie
     if is_password_allowed(cookie) != True:
-        current_app.logger.warning("validation for cookie failed")
         return None
 
     # Try to find the cookie in the db.
@@ -41,7 +38,6 @@ def is_athenticated(cookie):
 
     # Check if the cookie was in the authenticated table.
     if authenticated == None:
-        current_app.logger.warning("can not find cookie in db")
         return None
 
     # Get the cookie valid_to time in datetime object.
@@ -52,14 +48,12 @@ def is_athenticated(cookie):
 
     # Check if cookie is still valid.
     if now_time > valid_to:
-        current_app.logger.warning("cookie has expired")
         return None
 
     # Get the user object from db.
     user_from_db = db.session.query(User).filter(User.id == authenticated.user_id).first()
 
     # User is authenticated, return user object.
-    current_app.logger.debug("user: " + user_from_db.user + " belonging to account: " + user_from_db.account.account + " is authenticated")
     return user_from_db
 
 @bp.route("/register", methods=['POST', 'GET'])
