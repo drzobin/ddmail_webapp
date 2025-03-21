@@ -13,6 +13,7 @@ bp = Blueprint("settings", __name__, url_prefix="/")
 def settings():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
@@ -20,6 +21,7 @@ def settings():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     return render_template('settings.html', current_user = current_user)
@@ -28,6 +30,7 @@ def settings():
 def usage_and_funds():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
@@ -35,6 +38,7 @@ def usage_and_funds():
 
     # If user is not authenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     return render_template('settings_usage_and_funds.html',account = current_user.account, current_user = current_user)
@@ -43,6 +47,7 @@ def usage_and_funds():
 def payment():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
@@ -50,6 +55,7 @@ def payment():
 
     # If user is not authenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     payment_mail = { 
@@ -65,6 +71,7 @@ def payment():
 def payment_token():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
@@ -72,6 +79,7 @@ def payment_token():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     return render_template('settings_payment_token.html',payment_token = current_user.account.payment_token, current_user = current_user)
@@ -80,6 +88,7 @@ def payment_token():
 def settings_change_password_on_user():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
@@ -87,10 +96,12 @@ def settings_change_password_on_user():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Change user password error",message="Failed to change users password beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
@@ -108,6 +119,7 @@ def settings_change_password_on_user():
         user.password_hash = password_hash
         db.session.commit()
 
+        current_app.logger.debug("user " + user.user + " belonging to account " + current_user.account.account +  " changed password")
         return render_template('message.html',headline="Change password on user",message="Successfully changed password on user: " + current_user.user + " to new password: " + cleartext_password ,current_user=current_user)
 
 @bp.route("/settings/change_key_on_user", methods=['POST', 'GET'])
