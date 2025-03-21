@@ -123,7 +123,7 @@ def login():
 
         if not user_from_db:
             # Login failed.
-            current_app.logger.warning("failed login for user: " + user_from_form + " do not exsist in db")
+            current_app.logger.warning("failed login for user " + user_from_form + " do not exsist in db")
             return render_template('message.html',headline="Login error",message="Failed to login, wrong username and/or password and/or key.",current_user=current_user)
 
         # Check password hash and password key hash.
@@ -140,16 +140,16 @@ def login():
                 db.session.add(authenticated)
                 db.session.commit()
 
-                current_app.logger.info("successful login for user: " + user_from_db.user + " belonging to account: " + user_from_db.account.account)
+                current_app.logger.info("successful login for user " + user_from_db.user + " belonging to account " + user_from_db.account.account)
                 return redirect('/settings')
                 #return render_template('settings.html',current_user=current_user)
             else:
                 # Login failed.
-                current_app.logger.warning("failed login for user: " + user_from_db.user + " belonging to account: " + user_from_db.account.account)
+                current_app.logger.warning("failed login for user " + user_from_db.user + " belonging to account " + user_from_db.account.account + " wrong password and/or key")
                 return render_template('message.html',headline="Login error",message="Failed to login, wrong username and/or password and/or key.",current_user=current_user)
         except:
             # Login failed.
-            current_app.logger.warning("failed login for user: " + user_from_db.user + " belonging to account: " + user_from_db.account.account)
+            current_app.logger.warning("failed login for user " + user_from_db.user + " belonging to account " + user_from_db.account.account + " wrong password and/or key")
             return render_template('message.html',headline="Login error",message="Failed to login, wrong username and/or password and/or key.",current_user=current_user)
 
 
@@ -162,7 +162,7 @@ def logout():
 
         if current_user != None:
             # Delete the cookie from db.
-            current_app.logger.debug("deleting: " + str(current_user.id) + " from Authenticated in db")
+            current_app.logger.debug("deleting user with id " + str(current_user.id) + " from authenticated in db")
             db.session.query(Authenticated).filter(Authenticated.user_id == current_user.id).delete()
             db.session.commit()
     else:
