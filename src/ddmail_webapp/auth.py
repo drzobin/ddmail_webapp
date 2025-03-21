@@ -168,7 +168,7 @@ def logout():
 
         if current_user != None:
             # Delete the cookie from db.
-            current_app.logger.debug("deleting: " + current_user.id + " from Authenticated in db")
+            current_app.logger.debug("deleting: " + str(current_user.id) + " from Authenticated in db")
             db.session.query(Authenticated).filter(Authenticated.user_id == current_user.id).delete()
             db.session.commit()
     else:
