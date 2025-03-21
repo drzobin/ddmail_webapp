@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 import toml
 from flask import Flask
@@ -72,10 +73,23 @@ def create_app(config_file=None, test_config=None):
         app.config["DKIM_RECORD"] = toml_config["PRODUCTION"]["DKIM_RECORD"]
         app.config["DMARC_RECORD"] = toml_config["PRODUCTION"]["DMARC_RECORD"]
 
-        # Configure logging.
+        # Configure logfile.
         file_handler = FileHandler(filename=toml_config["PRODUCTION"]["LOGFILE"])
         file_handler.setFormatter(logging.Formatter(log_format))
         app.logger.addHandler(file_handler)
+        
+        # Configure loglevel.
+        if toml_config["PRODUCTION"]["LOGLEVEL"] == "ERROR"):
+            app.logger.setLevel(logging.ERROR)
+        elif toml_config["PRODUCTION"]["LOGLEVEL"] == "WARNING"):
+            app.logger.setLevel(logging.WARNING)
+        elif toml_config["PRODUCTION"]["LOGLEVEL"] == "INFO"):
+            app.logger.setLevel(logging.INFO)
+        elif toml_config["PRODUCTION"]["LOGLEVEL"] == "DEBUG"):
+            app.logger.setLevel(logging.DEBUG)
+        else:
+            print("Error: you need to set LOGLEVEL to ERROR/WARNING/INFO/DEBUG")
+            sys.exit(1)
     elif mode == "TESTING":
         app.config["SECRET_KEY"] = toml_config["TESTING"]["SECRET_KEY"]
         app.config['SQLALCHEMY_DATABASE_URI'] = toml_config["TESTING"]['SQLALCHEMY_DATABASE_URI']
@@ -102,10 +116,23 @@ def create_app(config_file=None, test_config=None):
         app.config["DKIM_RECORD"] = toml_config["TESTING"]["DKIM_RECORD"]
         app.config["DMARC_RECORD"] = toml_config["TESTING"]["DMARC_RECORD"]
 
-        # Configure logging.
+        # Configure logfile.
         file_handler = FileHandler(filename=toml_config["TESTING"]["LOGFILE"])
         file_handler.setFormatter(logging.Formatter(log_format))
         app.logger.addHandler(file_handler)
+
+        # Configure loglevel.
+        if toml_config["TESTING"]["LOGLEVEL"] == "ERROR"):
+            app.logger.setLevel(logging.ERROR)
+        elif toml_config["TESTING"]["LOGLEVEL"] == "WARNING"):
+            app.logger.setLevel(logging.WARNING)
+        elif toml_config["TESTING"]["LOGLEVEL"] == "INFO"):
+            app.logger.setLevel(logging.INFO)
+        elif toml_config["TESTING"]["LOGLEVEL"] == "DEBUG"):
+            app.logger.setLevel(logging.DEBUG)
+        else:
+            print("Error: you need to set LOGLEVEL to ERROR/WARNING/INFO/DEBUG")
+            sys.exit(1)
     elif mode == "DEVELOPMENT":
         app.config["SECRET_KEY"] = toml_config["DEVELOPMENT"]["SECRET_KEY"]
         app.config['SQLALCHEMY_DATABASE_URI'] = toml_config["DEVELOPMENT"]['SQLALCHEMY_DATABASE_URI']
@@ -132,13 +159,26 @@ def create_app(config_file=None, test_config=None):
         app.config["DKIM_RECORD"] = toml_config["DEVELOPMENT"]["DKIM_RECORD"]
         app.config["DMARC_RECORD"] = toml_config["DEVELOPMENT"]["DMARC_RECORD"]
 
-        # Configure logging.
+        # Configure logfile.
         file_handler = FileHandler(filename=toml_config["DEVELOPMENT"]["LOGFILE"])
         file_handler.setFormatter(logging.Formatter(log_format))
         app.logger.addHandler(file_handler)
+
+        # Configure loglevel.
+        if toml_config["DEVELOPMENT"]["LOGLEVEL"] == "ERROR"):
+            app.logger.setLevel(logging.ERROR)
+        elif toml_config["DEVELOPMENT"]["LOGLEVEL"] == "WARNING"):
+            app.logger.setLevel(logging.WARNING)
+        elif toml_config["DEVELOPMENT"]["LOGLEVEL"] == "INFO"):
+            app.logger.setLevel(logging.INFO)
+        elif toml_config["DEVELOPMENT"]["LOGLEVEL"] == "DEBUG"):
+            app.logger.setLevel(logging.DEBUG)
+        else:
+            print("Error: you need to set LOGLEVEL to ERROR/WARNING/INFO/DEBUG")
+            sys.exit(1)
     else:
         print("Error: you need to set env variabel MODE to PRODUCTION/TESTING/DEVELOPMENT")
-        exit(1)
+        sys.exit(1)
     
     app.secret_key = app.config["SECRET_KEY"]
     app.WTF_CSRF_SECRET_KEY = app.config["WTF_CSRF_SECRET_KEY"]
