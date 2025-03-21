@@ -79,13 +79,13 @@ def create_app(config_file=None, test_config=None):
         app.logger.addHandler(file_handler)
         
         # Configure loglevel.
-        if toml_config["PRODUCTION"]["LOGLEVEL"] == "ERROR"):
+        if toml_config["PRODUCTION"]["LOGLEVEL"] == "ERROR":
             app.logger.setLevel(logging.ERROR)
-        elif toml_config["PRODUCTION"]["LOGLEVEL"] == "WARNING"):
+        elif toml_config["PRODUCTION"]["LOGLEVEL"] == "WARNING":
             app.logger.setLevel(logging.WARNING)
-        elif toml_config["PRODUCTION"]["LOGLEVEL"] == "INFO"):
+        elif toml_config["PRODUCTION"]["LOGLEVEL"] == "INFO":
             app.logger.setLevel(logging.INFO)
-        elif toml_config["PRODUCTION"]["LOGLEVEL"] == "DEBUG"):
+        elif toml_config["PRODUCTION"]["LOGLEVEL"] == "DEBUG":
             app.logger.setLevel(logging.DEBUG)
         else:
             print("Error: you need to set LOGLEVEL to ERROR/WARNING/INFO/DEBUG")
@@ -122,13 +122,13 @@ def create_app(config_file=None, test_config=None):
         app.logger.addHandler(file_handler)
 
         # Configure loglevel.
-        if toml_config["TESTING"]["LOGLEVEL"] == "ERROR"):
+        if toml_config["TESTING"]["LOGLEVEL"] == "ERROR":
             app.logger.setLevel(logging.ERROR)
-        elif toml_config["TESTING"]["LOGLEVEL"] == "WARNING"):
+        elif toml_config["TESTING"]["LOGLEVEL"] == "WARNING":
             app.logger.setLevel(logging.WARNING)
-        elif toml_config["TESTING"]["LOGLEVEL"] == "INFO"):
+        elif toml_config["TESTING"]["LOGLEVEL"] == "INFO":
             app.logger.setLevel(logging.INFO)
-        elif toml_config["TESTING"]["LOGLEVEL"] == "DEBUG"):
+        elif toml_config["TESTING"]["LOGLEVEL"] == "DEBUG":
             app.logger.setLevel(logging.DEBUG)
         else:
             print("Error: you need to set LOGLEVEL to ERROR/WARNING/INFO/DEBUG")
@@ -165,13 +165,13 @@ def create_app(config_file=None, test_config=None):
         app.logger.addHandler(file_handler)
 
         # Configure loglevel.
-        if toml_config["DEVELOPMENT"]["LOGLEVEL"] == "ERROR"):
+        if toml_config["DEVELOPMENT"]["LOGLEVEL"] == "ERROR":
             app.logger.setLevel(logging.ERROR)
-        elif toml_config["DEVELOPMENT"]["LOGLEVEL"] == "WARNING"):
+        elif toml_config["DEVELOPMENT"]["LOGLEVEL"] == "WARNING":
             app.logger.setLevel(logging.WARNING)
-        elif toml_config["DEVELOPMENT"]["LOGLEVEL"] == "INFO"):
+        elif toml_config["DEVELOPMENT"]["LOGLEVEL"] == "INFO":
             app.logger.setLevel(logging.INFO)
-        elif toml_config["DEVELOPMENT"]["LOGLEVEL"] == "DEBUG"):
+        elif toml_config["DEVELOPMENT"]["LOGLEVEL"] == "DEBUG":
             app.logger.setLevel(logging.DEBUG)
         else:
             print("Error: you need to set LOGLEVEL to ERROR/WARNING/INFO/DEBUG")
