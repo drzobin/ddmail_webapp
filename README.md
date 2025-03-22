@@ -1,31 +1,40 @@
 # What is ddmail_webapp
 Main web application for the DDMail project.
 
-# What is DDMail
+## What is DDMail
 DDMail is a e-mail system/service that prioritize privacy and security. A current production example can be found at www.ddmail.se
 
-# Operating system
+## Operating system
 Developt for and tested on debian 12.
 
-# Installation
-`git clone https://github.com/drzobin/ddmail_webapp.git`<br>
+## Installing using pip
+`pip install ddmail-webapp`
+
+## Building and installing from source using hatchling.
+
+Step 1: clone github repo<br>
+`git clone https://github.com/drzobin/ddmail_webapp [code path]`<br>
+`cd [code path]`<br>
+<br>
+Step 2: Setup python virtual environments<br>
+`python -m venv [venv path]`<br>
+`source [venv path]/bin/activate`<br>
+<br>
+Step 3: Install package and required dependencies<br>
+`pip install -e .[dev]`<br>
+<br>
+Step 4: Build package<br>
+`python -m pip install --upgrade build`<br>
+`python -m build`<br> 
+<br>
+Packages is now located under dist folder<br>
+<br>
+Step 5: Install package<br>
+`pip install dist/[package name].whl`<br>
 
 ## Setup python virtual environments
 `python -m venv [venv path]`<br>
 `source [venv path]/bin/activate`
-
-`cd ddmail_webapp/ddmail`<br>
-`pip install -r requirements.txt`
-
-## Run in development mode
-`cd ddmail_webapp/ddmail`<br>
-`export MODE=DEVELOPMENT`<br>
-`flask --app ddmail:create_app run --host=0.0.0.0 --debug`
-
-## Run tests in testing mode
-`cd ddmail_webapp/ddmail`<br>
-`export MODE=TESTING`<br>
-`pytest`
 
 ## Installation using podmon for development
 Here is instruction how to install ddmail_webapp locally for development using podman.<br> 
