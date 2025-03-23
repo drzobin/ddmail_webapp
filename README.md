@@ -32,10 +32,6 @@ Packages is now located under dist folder<br>
 Step 5: Install package<br>
 `pip install dist/[package name].whl`<br>
 
-## Setup python virtual environments
-`python -m venv [venv path]`<br>
-`source [venv path]/bin/activate`
-
 ## Installation using podmon for development
 Here is instruction how to install ddmail_webapp locally for development using podman.<br> 
 
