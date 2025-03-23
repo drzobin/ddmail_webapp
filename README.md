@@ -32,6 +32,10 @@ Packages is now located under dist folder<br>
 Step 5: Install package<br>
 `pip install dist/[package name].whl`<br>
 
+## Testing
+`cd [code path]`<br>
+`pytest --cov=ddmail_webapp tests/ --config=[config file path]`
+
 ## Installation using podmon for development
 Here is instruction how to install ddmail_webapp locally for development using podman.<br> 
 
