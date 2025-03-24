@@ -126,6 +126,7 @@ def settings_change_password_on_user():
 def settings_change_key_on_user():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
@@ -133,10 +134,12 @@ def settings_change_key_on_user():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Change user key error",message="Failed to change users key beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
@@ -154,6 +157,7 @@ def settings_change_key_on_user():
         user.password_key_hash = password_key_hash
         db.session.commit()
 
+        current_app.logger.debug("changed key on " + user.user + " belonging to account " + current_user.account.account)
         return render_template('message.html',headline="Change key on user",message="Successfully changed key on user: " + current_user.user + " to new key: " + cleartext_password_key ,current_user=current_user)
 
 
