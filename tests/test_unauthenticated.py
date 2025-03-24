@@ -20,3 +20,15 @@ def test_about(client):
     assert b"Login" in response.data
     assert b"Register" in response.data
     assert b"About" in response.data
+
+def test_help(client):
+    response = client.get("/help")
+    assert client.get("/help").status_code == 200
+    assert b"Logged in on account: Not logged in" in response.data
+    assert b"Logged in as user: Not logged in" in response.data
+    assert b"Main" in response.data
+    assert b"Login" in response.data
+    assert b"Register" in response.data
+    assert b"Help" in response.data
+    assert b"About" in response.data
+    assert b"<h2>Help</h2>" in response.data
