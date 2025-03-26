@@ -1,11 +1,12 @@
-from flask import Blueprint, request, render_template, session, redirect, url_for, current_app
-from argon2 import PasswordHasher
-from ddmail_webapp.models import db, Account, User, Authenticated
-from ddmail_webapp.validators import is_username_allowed, is_password_allowed
 import random
 import string
 import datetime
 import secrets
+from flask import Blueprint, request, render_template, session, redirect, url_for, current_app
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+from ddmail_webapp.models import db, Account, User, Authenticated
+from ddmail_webapp.validators import is_username_allowed, is_password_allowed
 
 bp = Blueprint("auth", __name__, url_prefix="/")
 
@@ -147,7 +148,7 @@ def login():
                 # Login failed.
                 current_app.logger.warning("failed login for user " + user_from_db.user + " belonging to account " + user_from_db.account.account + " wrong password and/or key")
                 return render_template('message.html',headline="Login error",message="Failed to login, wrong username and/or password and/or key.",current_user=current_user)
-        except:
+        except VerifyMismatchError:
             # Login failed.
             current_app.logger.warning("failed login for user " + user_from_db.user + " belonging to account " + user_from_db.account.account + " wrong password and/or key")
             return render_template('message.html',headline="Login error",message="Failed to login, wrong username and/or password and/or key.",current_user=current_user)
