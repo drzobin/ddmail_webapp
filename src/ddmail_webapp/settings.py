@@ -1,11 +1,11 @@
+import requests
+import base64
 from flask import Blueprint, session, render_template, request, current_app, redirect, url_for
 from argon2 import PasswordHasher
 from ddmail_webapp.auth import is_athenticated, generate_password, generate_token
 from ddmail_webapp.models import db, Email, Openpgp_public_key, Account_domain, Alias, Global_domain, User
 from ddmail_webapp.forms import EmailForm, AliasForm, DomainForm, EmailPasswordForm
 from ddmail_webapp.validators import is_email_allowed, is_domain_allowed, is_username_allowed, is_password_allowed, is_mx_valid, is_spf_valid, is_dkim_valid, is_dmarc_valid, is_openpgp_public_key_allowed, is_openpgp_key_fingerprint_allowed
-import requests
-import base64
 
 bp = Blueprint("settings", __name__, url_prefix="/")
 
@@ -165,6 +165,7 @@ def settings_change_key_on_user():
 def settings_add_user_to_account():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
@@ -172,10 +173,12 @@ def settings_add_user_to_account():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Add email error",message="Failed to add user beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
@@ -199,12 +202,14 @@ def settings_add_user_to_account():
         db.session.commit()
 
         # Give the data to the user.
+        current_app.logger.debug("user " + user.user + " was added to account " + current_user.account.account)
         return render_template('settings_added_user_to_account.html',current_user=current_user,account=current_user.account.account,user=user,cleartext_password=cleartext_password,cleartext_password_key=cleartext_password_key)
 
 @bp.route("/settings/show_account_users")
 def settings_show_account_users():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
@@ -212,20 +217,24 @@ def settings_show_account_users():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Show account users error",message="Failed to show account users beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     users = db.session.query(User).filter(User.account_id == current_user.account_id)
 
+    current_app.logger.debug("show users for account " + current_user.account.account)
     return render_template('settings_show_account_users.html',users=users, current_user = current_user)
 
 @bp.route("/settings/remove_account_user", methods=['POST', 'GET'])
 def settings_remove_account_user():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
@@ -233,10 +242,12 @@ def settings_remove_account_user():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Remove account user error",message="Failed to remove account user beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
@@ -249,27 +260,32 @@ def settings_remove_account_user():
 
         # Validate user data from form.
         if is_username_allowed(remove_user_from_form) == False:
+            current_app.logger.warning("user " + remove_user_from_form + " can not be removed beacuse string validation failed")
             return render_template('message.html',headline="Remove user error",message="Failed to removed account user, illigal character in string.",current_user=current_user)
 
         # Check that user already exist in db and is owned by current account.
         is_user_mine = db.session.query(User).filter(User.user == remove_user_from_form, User.account_id == current_user.account_id).count()
         if is_user_mine != 1:
+            current_app.logger.warning("user " + user.user + " can not be removed beacuse user is not in db or is not owned by this account")
             return render_template('message.html',headline="Remove user error",message="Failed to removed account user, validation failed.",current_user=current_user)
 
         # Do not allow to remove current loged in user.
         if remove_user_from_form == current_user.user:
+            current_app.logger.warning("user " + user.user + " can not be removed beacuse user are logged in as this user")
             return render_template('message.html',headline="Remove user error",message="Failed to remove account user, you can not remove the same user as you are logged in as.",current_user=current_user)
 
         # Remove email account from db.
         db.session.query(User).filter(User.account_id == current_user.account_id, User.user == remove_user_from_form).delete()
         db.session.commit()
 
+        current_app.logger.debug("user " + user.user + " was removed, belonged to account " + current_user.account.account)
         return render_template('message.html',headline="Remove user",message="Successfully removed user.",current_user=current_user)
 
 @bp.route("/settings/add_email", methods=['POST', 'GET'])
 def settings_add_email():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
@@ -277,10 +293,12 @@ def settings_add_email():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Add email error",message="Failed to add email beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     form = EmailForm()
@@ -296,6 +314,7 @@ def settings_add_email():
 
     if request.method == 'POST':
         if not form.validate_on_submit():
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to add email " + add_email_from_form + " beacuse csrf validation failed")
             return render_template('message.html',headline="Add email error",message="Failed to add email, csrf validation failed.",current_user=current_user)
         else:
             email_from_form = form.email.data.strip()
@@ -305,11 +324,13 @@ def settings_add_email():
 
             # Validate email from form.
             if is_email_allowed(add_email_from_form) == False:
+                current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to add email " + add_email_from_form + " beacuse validation failed")
                 return render_template('message.html',headline="Add email error",message="Failed to add email, email validation failed.",current_user=current_user)
 
             # Validate domain part of email from form.
             validate_email_domain = add_email_from_form.split('@')
             if is_domain_allowed(validate_email_domain[1]) == False:
+                current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to add email " + add_email_from_form + " beacuse domain is not in db")
                 return render_template('message.html',headline="Add email error",message="Failed to add email, domain validation failed.",current_user=current_user)
 
             # Check if domain is global.
@@ -319,16 +340,19 @@ def settings_add_email():
             is_domain_mine = db.session.query(Account_domain).filter(Account_domain.domain == validate_email_domain[1], Account_domain.account_id == current_user.account_id).count()
 
             if is_domain_mine != 1 and is_domain_global != 1:
+                current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to add email " + add_email_from_form + " beacuse domain is not in db")
                 return render_template('message.html',headline="Add email error",message="Failed to add email, domain is not active in our system.",current_user=current_user)
 
             # Check that email does not already exist in emails table in db.
             is_email_uniq = db.session.query(Email).filter(Email.email == add_email_from_form).count()
             if is_email_uniq != 0:
+                current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to add email " + add_email_from_form + " beacuse email aldready exist as email")
                 return render_template('message.html',headline="Add email error",message="Failed to add email, email already exist.",current_user=current_user)
 
             # Check that email does not already exist in alias table in db.
             is_email_uniq = db.session.query(Alias).filter(Alias.src_email == add_email_from_form).count()
             if is_email_uniq != 0:
+                current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to add email " + add_email_from_form + " beacuse email already exist as alias")
                 return render_template('message.html',headline="Add email error",message="Failed to add email, email already exist.",current_user=current_user)
 
             # Generate password.
@@ -359,6 +383,7 @@ def settings_add_email():
                 db.session.query(Email).filter(Email.account_id == int(current_user.account_id), Email.email == add_email_from_form).delete()
                 db.session.commit()
                 
+                current_app.logger.error("user " + user.user + " account " + current_user.account.account + " failed to add email " + add_email_from_form + " beacuse dmcp keyhandler service is unavalible")
                 return render_template('message.html',headline="Add Email Account Error",message="Failed to add email account beacuse dmcp keyhandler service is unavalible.",current_user=current_user)
         
             # Check if password protected encryption key creation was successfull.
@@ -366,14 +391,17 @@ def settings_add_email():
                 db.session.query(Email).filter(Email.account_id == int(current_user.account_id), Email.email == add_email_from_form).delete()
                 db.session.commit()
                 
+                current_app.logger.error("user " + user.user + " account " + current_user.account.account + " failed to add email " + add_email_from_form + " error when creating encryption key")
                 return render_template('message.html',headline="Add email error",message="Failed trying to create password protected encryptions keys.",current_user=current_user)
 
+            current_app.logger.debug("user " + user.user + " account " + current_user.account.account + " added email " + add_email_from_form)
             return render_template('message.html',headline="Add Email Account",message="Successfully added email: " + add_email_from_form + " with password: " + cleartext_password ,current_user=current_user)
 
 @bp.route("/settings/show_email")
 def settings_show_email():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
@@ -381,20 +409,24 @@ def settings_show_email():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Show email error",message="Failed to show email beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     emails = db.session.query(Email).filter(Email.account_id == current_user.account_id)
 
+    current_app.logger.debug("show emails for account " + current_user.account.account)
     return render_template('settings_show_email.html',emails=emails, current_user = current_user)
 
 @bp.route("/settings/remove_email", methods=['POST', 'GET'])
 def settings_remove_email():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
@@ -402,10 +434,12 @@ def settings_remove_email():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Remove email error",message="Failed to remove email beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
@@ -417,17 +451,20 @@ def settings_remove_email():
 
         # Validate email from form.
         if is_email_allowed(remove_email_from_form) == False:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to remove email " + remove_email_from_form + " beacuse validation failed")
             return render_template('message.html',headline="Remove email error",message="Failed to removed email, validation failed.",current_user=current_user)
 
         # Validate domain part of email from form.
         validate_email_domain = remove_email_from_form.split('@')
         domain = validate_email_domain[1]
         if is_domain_allowed(domain) == False:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to remove email " + remove_email_from_form + " beacuse domain validation failed")
             return render_template('message.html',headline="Remove email error",message="Failed to removed email, validation failed.",current_user=current_user)
 
         # Check that email already exist in db and is owned by current user.
         is_email_mine = db.session.query(Email).filter(Email.email == remove_email_from_form, Email.account_id == current_user.account_id).count()
         if is_email_mine != 1:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to remove email " + remove_email_from_form + " beacuse domain is not in db or is not owned by account")
             return render_template('message.html',headline="Remove email error",message="Failed to removed email, validation failed.",current_user=current_user)
 
         # Remove email account from db.
@@ -440,19 +477,23 @@ def settings_remove_email():
         try:
             r_respone = requests.post(email_remover_url, {"password":email_remover_password,"domain":domain,"email":remove_email_from_form}, timeout=5)
         except requests.exceptions.ConnectionError:
+            current_app.logger.error("user " + user.user + " account " + current_user.account.account + " failed to remove email " + remove_email_from_form + " beacuse ddmail email remover service is unavalible")
             return render_template('message.html',headline="Remove Email Error",message="Failed to removed email beacuse email remover service is unavalible.",current_user=current_user)
 
         
         # Check if removal was successfull.
         if r_respone.status_code != 200 or r_respone.content != b'done':
+            current_app.logger.error("user " + user.user + " account " + current_user.account.account + " failed to remove email " + remove_email_from_form + " beacuse ddmail email remover service returned error")
             return render_template('message.html',headline="Remove email error",message="Failed to remove data on disc for email account.",current_user=current_user)
-
+        
+        current_app.logger.debug("user " + user.user + " account " + current_user.account.account + " removed email " + remove_email_from_form)
         return render_template('message.html',headline="Remove Email Account",message="Successfully removed email.",current_user=current_user)
 
 @bp.route("/settings/change_password_on_email", methods=['POST', 'GET'])
 def settings_change_password_on_email():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
@@ -460,10 +501,12 @@ def settings_change_password_on_email():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     form = EmailPasswordForm()
@@ -480,20 +523,24 @@ def settings_change_password_on_email():
 
         # Validate email from form.
         if is_email_allowed(change_password_on_email_from_form) == False:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to change password on email " + change_password_on_email_from_form + " beacuse validation failed")
             return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, validation failed.",current_user=current_user)
 
         # Validate domain part of email from form.
         validate_email_domain = change_password_on_email_from_form.split('@')
         if is_domain_allowed(validate_email_domain[1]) == False:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to change password on email " + change_password_on_email_from_form + " beacuse domain validation failed")
             return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, validation failed.",current_user=current_user)
         
         # Validate current password from form.
         if is_password_allowed(current_cleartext_password_from_form) == False:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to change password on email " + change_password_on_email_from_form + " beacuse current password validation failed")
             return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, validation failed on current password.",current_user=current_user)
 
         # Check that email already exist in db and is owned by current user.
         is_email_mine = db.session.query(Email).filter(Email.email == change_password_on_email_from_form, Email.account_id == current_user.account_id).count()
         if is_email_mine != 1:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to change password on email " + change_password_on_email_from_form + " beacuse emails is not in db or is not owned by current user")
             return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, validation failed.",current_user=current_user)
 
         # Get current password hash for email account.
@@ -502,8 +549,10 @@ def settings_change_password_on_email():
         # Check current password is correct.
         try:
             if ph.verify(email_from_db.password_hash, current_cleartext_password_from_form) != True:
+                current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to change password on email " + change_password_on_email_from_form + " beacuse current password is wrong")
                 return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, current email account password is wrong.",current_user=current_user)
         except:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " failed to change password on email " + change_password_on_email_from_form + " beacuse current password is wrong")
             return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, current email account password is wrong.",current_user=current_user)
 
         # Generate password.
@@ -515,10 +564,12 @@ def settings_change_password_on_email():
         try:
             r_respone = requests.post(dmcp_keyhandler_url, {"email":change_password_on_email_from_form,"current_key_password":base64.b64encode(bytes(current_cleartext_password_from_form, 'utf-8')),"new_key_password":base64.b64encode(bytes(cleartext_password, 'utf-8')),"password":dmcp_keyhandler_password}, timeout=5)
         except requests.exceptions.ConnectionError:
+            current_app.logger.error("user " + user.user + " account " + current_user.account.account + " failed to change password on email " + change_password_on_email_from_form + " beacuse dmcp keyhandler service is unavalible")
             return render_template('message.html',headline="Change Password On Email Account Error",message="Failed to change password on email account becuse dmcp keyhandler is unavalible",current_user=current_user)
 
         # Check if password on encryption key change was successfull.
         if r_respone.status_code != 200 or r_respone.content != b'done':
+            current_app.logger.error("user " + user.user + " account " + current_user.account.account + " failed to change password on email " + change_password_on_email_from_form + " beacuse dmcp keyhandler service returned error")
             return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, failed to change password on encryption key.",current_user=current_user)
 
         # Hash the password argon2.
@@ -530,12 +581,14 @@ def settings_change_password_on_email():
         email.password_hash = password_hash
         db.session.commit()
 
+        current_app.logger.debug("user " + user.user + " account " + current_user.account.account + " change password on email " + change_password_on_email_from_form)
         return render_template('message.html',headline="Change password on Email Account",message="Successfully changed password on email account: " + change_password_on_email_from_form + " to new password: " + cleartext_password ,current_user=current_user)
 
 @bp.route("/settings/show_openpgp_public_keys")
 def settings_show_openpgp_public_keys():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
@@ -543,10 +596,12 @@ def settings_show_openpgp_public_keys():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Show openpgp public keys error",message="Failed to show openpgp public keys beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     keys = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id)
@@ -557,6 +612,7 @@ def settings_show_openpgp_public_keys():
 def settings_upload_openpgp_public_key():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
@@ -564,10 +620,12 @@ def settings_upload_openpgp_public_key():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
@@ -621,6 +679,7 @@ def settings_upload_openpgp_public_key():
 def settings_remove_openpgp_public_key():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
@@ -628,10 +687,12 @@ def settings_remove_openpgp_public_key():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
@@ -682,6 +743,7 @@ def settings_remove_openpgp_public_key():
 def settings_show_emails_with_activated_openpgp():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
@@ -689,10 +751,12 @@ def settings_show_emails_with_activated_openpgp():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Show Emails With Activated Openpgp",message="Failed to show emails with activated OpenPGP encryption beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     emails = db.session.query(Email).filter(Email.account_id == current_user.account_id,Email.openpgp_public_key_id != None)
@@ -703,6 +767,7 @@ def settings_show_emails_with_activated_openpgp():
 def settings_activate_openpgp_encryption():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
@@ -710,10 +775,12 @@ def settings_activate_openpgp_encryption():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
@@ -770,6 +837,7 @@ def settings_activate_openpgp_encryption():
 def settings_deactivate_openpgp_encryption():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
@@ -777,10 +845,12 @@ def settings_deactivate_openpgp_encryption():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Deactivate OpenPGP Encryption Error",message="Failed to deactivate OpenPGP encryption beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
@@ -822,6 +892,7 @@ def settings_deactivate_openpgp_encryption():
 def setings_show_alias():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
@@ -829,10 +900,12 @@ def setings_show_alias():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Show alias error",message="Failed to show alias beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     aliases = db.session.query(Alias).filter(Alias.account_id == current_user.account_id)
@@ -843,6 +916,7 @@ def setings_show_alias():
 def settings_add_alias():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
@@ -850,10 +924,12 @@ def settings_add_alias():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Add alias error",message="Failed to add alias beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     form = AliasForm()
@@ -933,6 +1009,7 @@ def settings_add_alias():
 def settings_remove_alias():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated
@@ -940,10 +1017,12 @@ def settings_remove_alias():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Remove Alias Error",message="Failed to remove alias beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
@@ -970,6 +1049,7 @@ def settings_remove_alias():
 def settings_show_domains():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
@@ -977,10 +1057,12 @@ def settings_show_domains():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Show domains error",message="Failed to show domains beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     # Get the account domains and global domains.
@@ -993,6 +1075,7 @@ def settings_show_domains():
 def settings_add_domain():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is authenticated.
@@ -1000,10 +1083,12 @@ def settings_add_domain():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Add domain error",message="Failed to add domain beacuse this account is disabled.",current_user=current_user)
 
     form = DomainForm()
@@ -1067,6 +1152,7 @@ def settings_add_domain():
 def settings_remove_domain():
     # Check if cookie secret is set.
     if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
         return redirect(url_for('auth.login'))
 
     # Check if user is athenticated.
@@ -1074,10 +1160,12 @@ def settings_remove_domain():
 
     # If user is not athenticated send them to the login page.
     if current_user == None:
+        current_app.logger.warning("user is not authenticated")
         return redirect(url_for('auth.login'))
 
     # Check if account is enabled.
     if current_user.account.is_enabled != True:
+        current_app.logger.debug("account " + current_user.account.account + " is not enabled")
         return render_template('message.html',headline="Remove domain error",message="Failed to remove domains beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",current_user=current_user)
 
     if request.method == 'GET':
