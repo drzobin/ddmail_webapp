@@ -606,6 +606,7 @@ def settings_show_openpgp_public_keys():
 
     keys = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id)
 
+    current_app.logger.debug("user " + user.user + " account " + current_user.account.account + " show openpgp public keys")
     return render_template('settings_show_openpgp_public_keys.html',keys=keys, current_user = current_user)
 
 @bp.route("/settings/upload_openpgp_public_key", methods=['POST', 'GET'])
