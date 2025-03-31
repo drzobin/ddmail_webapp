@@ -638,10 +638,12 @@ def settings_upload_openpgp_public_key():
 
         # Check if public key file is empty.
         if openpgp_public_key == None:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " openpgp public key i empty")
             return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key beacuse uploaded public key i empty",current_user=current_user)
 
         # Validate openpgp public key data.
         if is_openpgp_public_key_allowed(openpgp_public_key) != True:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " openpgp public key " + openpgp_public_key + " validation failed")
             return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key beacuse validation failed",current_user=current_user)
 
         # Send openpgp public key to ddmail openpgp keyhandler service.
@@ -650,10 +652,12 @@ def settings_upload_openpgp_public_key():
         try:
             r_respone = requests.post(openpgp_keyhandler_url, {"public_key":openpgp_public_key,"keyring":current_user.account.account,"password":openpgp_keyhandler_password}, timeout=5)
         except requests.exceptions.ConnectionError:
+            current_app.logger.error("user " + user.user + " account " + current_user.account.account + " faild to upload openpgp public key beacuse openpgp keyhandler service do not ansver")
             return render_template('message.html',headline="Upload OpenPGP Public Key Error",message="Failed to upload openpgp public key beacuse openpgp keyhandler service do not answer.",current_user=current_user)
             
         # Check if upload was successfull.
         if r_respone.status_code != 200 or "done fingerprint: " not in str(r_respone.content):
+            current_app.logger.error("user " + user.user + " account " + current_user.account.account + " faild to upload openpgp public key beacuse openpgp keyhandler service returned error")
             return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key.",current_user=current_user)
 
         # Get fingerprint of uploaded openpgp public key.
@@ -662,11 +666,13 @@ def settings_upload_openpgp_public_key():
 
         # Validate fingerprint.
         if is_openpgp_key_fingerprint_allowed(fingerprint) != True:
+            current_app.logger.error("user " + user.user + " account " + current_user.account.account + " faild to upload openpgp public key beacuse openpgp keyhandler service returned fingerprint " + fingerprint  + " that failed validation")
             return render_template('message.html',headline="Upload openpgp public key error",message="Openpgp public key fingerprint validation failed.",current_user=current_user)
 
         # Check that openpgp public key fingerprint do not exist in db
         is_fingerprint_uniq = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id, Openpgp_public_key.fingerprint == fingerprint).count()
         if is_fingerprint_uniq != 0:
+            current_app.logger.error("user " + user.user + " account " + current_user.account.account + " faild to upload openpgp public key beacuse openpgp keyhandler service returned fingerprint " + fingerprint  + " that already exist in db")
             return render_template('message.html',headline="Upload openpgp public key error",message="Openpgp public key fingerprint already exist in db",current_user=current_user)
 
         # Insert fingerprint to db.
@@ -674,6 +680,7 @@ def settings_upload_openpgp_public_key():
         db.session.add(new_openpgp_public_key)
         db.session.commit()
 
+        current_app.logger.debug("user " + user.user + " account " + current_user.account.account + " uploaded openpgp public key with fingerprint" + fingerprint)
         return render_template('message.html',headline="Upload openpgp public key",message="Succesfully upload openpgp public key.",current_user=current_user)
 
 @bp.route("/settings/remove_openpgp_public_key", methods=['POST', 'GET'])
@@ -706,15 +713,18 @@ def settings_remove_openpgp_public_key():
 
         # Check if fingeprint from form is empty.
         if fingerprint == None or fingerprint == "":
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " fingerprint is empty")
             return render_template('message.html',headline="Remove openpgp public key error",message="Failed to remove openpgp public key beacuse form is empty",current_user=current_user)
 
         # Validate fingerprint.
         if is_openpgp_key_fingerprint_allowed(fingerprint) != True:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " fingerprint " + fingerprint  + " validation failed")
             return render_template('message.html',headline="Remove openpgp public key error",message="Openpgp public key fingerprint validation failed.",current_user=current_user)
 
         # Check that openpgp public key fingerprint exist in db and is owned by current account
         is_fingerprint_mine = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id, Openpgp_public_key.fingerprint == fingerprint).count()
         if is_fingerprint_mine != 1:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " fingerprint " + fingerprint  + " is not in db or is not owned by current user")
             return render_template('message.html',headline="Remove openpgp public key error",message="Openpgp public key fingerprint do not exist in database or is not owned by your account",current_user=current_user)
 
         # Send openpgp public key fingerprint to ddmail openpgp keyhandler service to remove openpgp public key from account keyring.
@@ -723,10 +733,12 @@ def settings_remove_openpgp_public_key():
         try:
             r_respone = requests.post(openpgp_keyhandler_url, {"fingerprint":fingerprint,"keyring":current_user.account.account,"password":openpgp_keyhandler_password}, timeout=5)
         except requests.exceptions.ConnectionError:
+            current_app.logger.error("user " + user.user + " account " + current_user.account.account + " removing openpgp public key with fingerprint " + fingerprint  + " failed beacuse openpgp keyhandler service do not answer")
             return render_template('message.html',headline="Remove OpenPGP Public Key Error",message="Failed to remove openpgp public key beacuse openpgp keyhandler service do not answer.",current_user=current_user)
         
         # Check if remove was succesfull.
         if r_respone.status_code != 200 or str(r_respone.content) == "done":
+            current_app.logger.error("user " + user.user + " account " + current_user.account.account + " removing openpgp public key with fingerprint " + fingerprint  + " failed beacuse openpgp keyhandler service returned error")
             return render_template('message.html',headline="Remove openpgp public key error",message="Failed to remove openpgp public key.",current_user=current_user)
 
         # Remove openpgp public key from database.
@@ -736,8 +748,10 @@ def settings_remove_openpgp_public_key():
         # Check that openpgp public key fingerprint do not exist in database anymore.
         is_fingerprint = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id, Openpgp_public_key.fingerprint == fingerprint).count()
         if is_fingerprint != 0:
+            current_app.logger.error("user " + user.user + " account " + current_user.account.account + " fingerprint " + fingerprint  + " still exist in db")
             return render_template('message.html',headline="Remove openpgp public key error",message="Openpgp public key fingerprint still exist in database.",current_user=current_user)
 
+        current_app.logger.debug("user " + user.user + " account " + current_user.account.account + " openpgp public key with fingerprint " + fingerprint  + " was removed")
         return render_template('message.html',headline="Remove OpenPGP Public Key",message="Succesfully removed OpenPGP public key.",current_user=current_user)
 
 @bp.route("/settings/show_emails_with_activated_openpgp")
@@ -762,6 +776,7 @@ def settings_show_emails_with_activated_openpgp():
 
     emails = db.session.query(Email).filter(Email.account_id == current_user.account_id,Email.openpgp_public_key_id != None)
 
+    current_app.logger.debug("user " + user.user + " account " + current_user.account.account + " show emails with active openpgp encryption")
     return render_template('settings_show_emails_with_activated_openpgp.html',emails = emails, current_user = current_user)
 
 @bp.route("/settings/activate_openpgp_encryption", methods=['POST', 'GET'])
@@ -795,28 +810,34 @@ def settings_activate_openpgp_encryption():
 
         # Check if fingeprint from form is empty.
         if fingerprint == None or fingerprint == "":
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " fingerprint is empty")
             return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse fingerprint form is empty.",current_user=current_user)
 
         # Check if email from form is empty.
         if email == None or email == "":
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " email is empty")
             return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse email form is empty.",current_user=current_user)
         
         # Validate fingerprint.
         if is_openpgp_key_fingerprint_allowed(fingerprint) != True:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " fingerprint " + fingerprint  + " failed validation")
             return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse fingerprint validation failed",current_user=current_user)
 
         # Validate email.
         if is_email_allowed(email) == False:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " email " + email + " failed validation")
             return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse email validation failed.",current_user=current_user)
 
         # Check that openpgp public key fingerprint exist in db and is owned by current account.
         is_fingerprint_mine = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id, Openpgp_public_key.fingerprint == fingerprint).count()
         if is_fingerprint_mine != 1:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " fingerprint " + fingerprint  + " is not in db or is not owned by current user")
             return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse openpgp public key fingerprint can not be found in database",current_user=current_user)
        
        # Check that email already exist in db and is owned by current account.
         is_email_mine = db.session.query(Email).filter(Email.email == email, Email.account_id == current_user.account_id).count()
         if is_email_mine != 1:
+            current_app.logger.warning("user " + user.user + " account " + current_user.account.account + " email " + email + " is not in db or is not owned by current user")
             return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse email can not be found in database",current_user=current_user)
 
         # Get the id of the openpgp public key record in db.
@@ -830,8 +851,10 @@ def settings_activate_openpgp_encryption():
         # Check that openpgp encryption is actived on the specified email account.
         email_from_db = db.session.query(Email).filter(Email.account_id == current_user.account_id, Email.email == email).first()
         if email_from_db.openpgp_public_key_id != openpgp_public_key.id or openpgp_public_key.fingerprint != fingerprint:
+            current_app.logger.error("user " + user.user + " account " + current_user.account.account + " fingerprint " + fingerprint  + " email " + email + " activation failed ")
             return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption",current_user=current_user)
             
+        current_app.logger.debug("user " + user.user + " account " + current_user.account.account + " openpgp public key with fingerprint " + fingerprint  + " email " + email + " activated openpgp encryption")
         return render_template('message.html',headline="Activate Openpgp Encryption",message="Successfully activated OpenPGP encryption",current_user=current_user)
 
 @bp.route("/settings/deactivate_openpgp_encryption", methods=['POST', 'GET'])
