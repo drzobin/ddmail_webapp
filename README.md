@@ -2,7 +2,7 @@
 Main web application for the DDMail project.
 
 ## What is DDMail
-DDMail is a e-mail system/service that prioritize privacy and security. A current production example can be found at www.ddmail.se
+DDMail is a e-mail system/service that prioritizes security. A current production example can be found at www.ddmail.se
 
 ## Operating system
 Developt for and tested on debian 12.
@@ -11,7 +11,6 @@ Developt for and tested on debian 12.
 `pip install ddmail-webapp`
 
 ## Building and installing from source using hatchling.
-
 Step 1: clone github repo<br>
 `git clone https://github.com/drzobin/ddmail_webapp [code path]`<br>
 `cd [code path]`<br>
@@ -31,6 +30,11 @@ Packages is now located under dist folder<br>
 <br>
 Step 5: Install package<br>
 `pip install dist/[package name].whl`<br>
+
+## Running in development mode
+`source [ddmail_webapp venv]/bin/activate`
+`export MODE=DEVELOPMENT`
+`flask --app ddmail_webapp:create_app(config_file="[full path to config file]") run --host=127.0.0.1 --port 8000 --debug`
 
 ## Testing
 `cd [code path]`<br>
