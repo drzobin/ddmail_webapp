@@ -61,10 +61,7 @@ def create_app(config_file=None, test_config=None):
         app.config["OPENPGP_KEYHANDLER_PASSWORD"] = toml_config["PRODUCTION"]["OPENPGP_KEYHANDLER_PASSWORD"]
 
         # Configure payment information.
-        app.config["PAYMENT_MAIL_NAME"] = toml_config["PRODUCTION"]["PAYMENT_MAIL_NAME"]
-        app.config["PAYMENT_MAIL_ADDRESS"] = toml_config["PRODUCTION"]["PAYMENT_MAIL_ADDRESS"]
-        app.config["PAYMENT_MAIL_POSTCODE"] = toml_config["PRODUCTION"]["PAYMENT_MAIL_POSTCODE"]
-        app.config["PAYMENT_MAIL_COUNTRY"] = toml_config["PRODUCTION"]["PAYMENT_MAIL_COUNTRY"]
+        app.config["PAYMENT_BANKGIRO"] = toml_config["PRODUCTION"]["PAYMENT_BANKGIRO"]
         
         # Configure dns record checked when adding account/own domains.
         app.config["MX_RECORD_HOST"] = toml_config["PRODUCTION"]["MX_RECORD_HOST"]
@@ -108,10 +105,7 @@ def create_app(config_file=None, test_config=None):
         app.config["OPENPGP_KEYHANDLER_PASSWORD"] = toml_config["TESTING"]["OPENPGP_KEYHANDLER_PASSWORD"]
 
         # Configure payment information.
-        app.config["PAYMENT_MAIL_NAME"] = toml_config["TESTING"]["PAYMENT_MAIL_NAME"]
-        app.config["PAYMENT_MAIL_ADDRESS"] = toml_config["TESTING"]["PAYMENT_MAIL_ADDRESS"]
-        app.config["PAYMENT_MAIL_POSTCODE"] = toml_config["TESTING"]["PAYMENT_MAIL_POSTCODE"]
-        app.config["PAYMENT_MAIL_COUNTRY"] = toml_config["TESTING"]["PAYMENT_MAIL_COUNTRY"]
+        app.config["PAYMENT_BANKGIRO"] = toml_config["TESTING"]["PAYMENT_BANKGIRO"]
         
         # Configure dns record checked when adding account/own domains.
         app.config["MX_RECORD_HOST"] = toml_config["TESTING"]["MX_RECORD_HOST"]
@@ -155,10 +149,7 @@ def create_app(config_file=None, test_config=None):
         app.config["OPENPGP_KEYHANDLER_PASSWORD"] = toml_config["DEVELOPMENT"]["OPENPGP_KEYHANDLER_PASSWORD"]
 
         # Configure payment information.
-        app.config["PAYMENT_MAIL_NAME"] = toml_config["DEVELOPMENT"]["PAYMENT_MAIL_NAME"]
-        app.config["PAYMENT_MAIL_ADDRESS"] = toml_config["DEVELOPMENT"]["PAYMENT_MAIL_ADDRESS"]
-        app.config["PAYMENT_MAIL_POSTCODE"] = toml_config["DEVELOPMENT"]["PAYMENT_MAIL_POSTCODE"]
-        app.config["PAYMENT_MAIL_COUNTRY"] = toml_config["DEVELOPMENT"]["PAYMENT_MAIL_COUNTRY"]
+        app.config["PAYMENT_BANKGIRO"] = toml_config["DEVELOPMENT"]["PAYMENT_BANKGIRO"]
         
         # Configure dns record checked when adding account/own domains.
         app.config["MX_RECORD_HOST"] = toml_config["DEVELOPMENT"]["MX_RECORD_HOST"]
