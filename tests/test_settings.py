@@ -569,14 +569,14 @@ def test_settings_enabled_account_remove_account_user(client,app):
     # Test to remove a user that do not exist.
     response_settings_remove_account_user_post = client.post("/settings/remove_account_user", data={'remove_user':"USER01",'csrf_token':csrf_token_register})
     assert b"<h3>Remove user error</h3>" in response_settings_remove_account_user_post.data
-    assert b"Failed to removed account user, validation failed." in response_settings_remove_account_user_post.data
+    assert b"Failed to removed account user, illigal character in string." in response_settings_remove_account_user_post.data
 
     #
     #
     # Test to remove a user that is empty string.
     response_settings_remove_account_user_post = client.post("/settings/remove_account_user", data={'remove_user':"",'csrf_token':csrf_token_register})
     assert b"<h3>Remove user error</h3>" in response_settings_remove_account_user_post.data
-    assert b"Failed to removed account user, validation failed." in response_settings_remove_account_user_post.data
+    assert b"Failed to removed account user, illigal character in string." in response_settings_remove_account_user_post.data
 
     #
     #
