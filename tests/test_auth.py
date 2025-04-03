@@ -73,18 +73,138 @@ def test_login_post_CSRF(client):
     response = client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':'test', 'password':'test', 'key':(BytesIO(b'FILE CONTENT'), 'data.key')})
     assert b"The CSRF token is missing" in response.data
 
-def test_login_post(client):
-    # Get the csrf token
-    response_get = client.get("/login")
-    csrf_token = get_csrf_token(response_get.data)
+def test_login_post(client,app):
+    # Get the csrf token for /register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
 
-    # Test that we get status code 200
-    assert client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':'test', 'password':'test', 'key':(BytesIO(b'FILE CONTENT'), 'data.key') ,'csrf_token':csrf_token}).status_code == 200
-   
-    # Test that we get failed login.
-    response = client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':'test', 'password':'test', 'key':(BytesIO(b'FILE CONTENT'), 'data.key') ,'csrf_token':csrf_token})
+    # Register account and user
+    response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
+    register_data = get_register_data(response_register_post.data)
+
+    # Enable account.
+    with app.app_context():
+        account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
+        account.is_enabled = True        
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Login.
+    response = client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login})
+    assert response.status_code == 302
+    
+    # Check that we are logged in.
+    response = client.get("/settings")
+    assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response.data
+    assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response.data
+    assert b"Is account enabled: Yes" in response.data
+
+def test_login_post_no_data(client,app):
+    # Get the csrf token for /register
+    response_login = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login.data)
+    
+    response = client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':"", 'password':"", 'key':(BytesIO(bytes("", 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login})
+    assert response.status_code == 200
     assert b"Login error" in response.data
     assert b"Failed to login, wrong username and/or password and/or key." in response.data
+
+def test_login_post_wrong_password(client,app):
+    # Get the csrf token for /register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
+    register_data = get_register_data(response_register_post.data)
+
+    # Enable account.
+    with app.app_context():
+        account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
+        account.is_enabled = True        
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Test wrong password.
+    response = client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':"AAAAAAAAAAAAAAAAAAAAAAAA", 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login})
+    assert response.status_code == 200
+    assert b"Login error" in response.data
+    assert b"Failed to login, wrong username and/or password and/or key." in response.data
+    
+    # Test password that fails validation.
+    response = client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':"AAAAAAAAAAAAAAAAAAAAAAA-", 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login})
+    assert response.status_code == 200
+    assert b"Login error" in response.data
+    assert b"Failed to login, wrong username and/or password and/or key." in response.data
+
+def test_login_post_wrong_username(client,app):
+    # Get the csrf token for /register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
+    register_data = get_register_data(response_register_post.data)
+
+    # Enable account.
+    with app.app_context():
+        account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
+        account.is_enabled = True        
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Test username that is not in db.
+    response = client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':"AAAAAAAAAAAA", 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login})
+    assert response.status_code == 200
+    assert b"Login error" in response.data
+    assert b"Failed to login, wrong username and/or password and/or key." in response.data
+    
+    # Test username that fails validation.
+    response = client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':"AAAAAAAAAAAAa", 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login})
+    assert response.status_code == 200
+    assert b"Login error" in response.data
+    assert b"Failed to login, wrong username and/or password and/or key." in response.data
+
+def test_login_post_wrong_key(client,app):
+    # Get the csrf token for /register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
+    register_data = get_register_data(response_register_post.data)
+
+    # Enable account.
+    with app.app_context():
+        account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
+        account.is_enabled = True        
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Test key that fails validation.
+    response = client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"] + "A", 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login})
+    assert response.status_code == 200
+    assert b"Login error" in response.data
+    assert b"Failed to login, wrong username and/or password and/or key." in response.data
+
+    # Test wrong key.
+    response = client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes("A"*4096, 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login})
+    assert response.status_code == 200
+    assert b"Login error" in response.data
+    assert b"Failed to login, wrong username and/or password and/or key." in response.data
+
 
 def test_register_post_CSRF(client):
     # Test that we get 400 if the csrf_token is not correct.
