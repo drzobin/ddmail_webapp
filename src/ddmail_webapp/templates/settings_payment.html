@@ -3,15 +3,13 @@
 {% include 'settings_menu.html' %}
 <h3>Payment</h3>
 Here you can find information regarding payment.
-<h4>Physical cash</h4>
-Payment is physical cash. Payment is done by writing down your payment token on a piece of paper then you put that paper and the money(SEK or EUR) in an envelope end sending it to the following address: <p></p>
-{{ payment_mail['name'] }}
+<h4>Swedish Bankgiro</h4>
+Payment is done by transferring money to us using our bankgiro number marking the payment with your accounts payment token (randomly generated on our website).<p></p>
+Your accounts payment token currently is: {{ payment_token }}
 <br>
-{{ payment_mail['address'] }}
+Bankgiro number: {{ payment_bankgiro }}
 <br>
-{{ payment_mail['postcode'] }}
-<br>
-{{ payment_mail['country'] }}
+In the message box type: ddmail-{{ payment_token }}
 <p></p>
 When we recive the money we will add them to your accounts funds and generate a new payment token for your account. 
 {% endblock%}
