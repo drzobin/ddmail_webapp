@@ -32,9 +32,9 @@ Step 5: Install package<br>
 `pip install dist/[package name].whl`<br>
 
 ## Running in development mode
-`source [ddmail_webapp venv]/bin/activate`
-`export MODE=DEVELOPMENT`
-`flask --app ddmail_webapp:create_app(config_file="[full path to config file]") run --host=127.0.0.1 --port 8000 --debug`
+`source [ddmail_webapp venv]/bin/activate`<br>
+`export MODE=DEVELOPMENT`<br>
+`flask --app ddmail_webapp:create_app(config_file="[full path to config file]") run --host=127.0.0.1 --port 8000 --debug`<br>
 
 ## Testing
 `cd [code path]`<br>
