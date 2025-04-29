@@ -1,6 +1,6 @@
 [project]
 name = "ddmail_webapp"
-version = "0.0.4"
+version = "0.0.5"
 authors = [
   { name="Robin Larsson", email="me@drz.se" },
 ]
