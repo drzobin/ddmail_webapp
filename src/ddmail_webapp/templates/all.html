@@ -1,45 +1,60 @@
 <!doctype html>
 <html>
     <head>
-        <link rel="stylesheet" href="{{ url_for('static', filename= 'css/style.css') }}">
+        <link
+            rel="stylesheet"
+            href="{{ url_for('static', filename= 'css/style.css') }}"
+        />
         <title>DDMail email provider that prioritize security</title>
-	<meta name="description" content="DDMail is a email provider that prioritize security.">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta
+            name="description"
+            content="DDMail is a email provider that prioritize security."
+        />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
     </head>
     <body>
-        <h1>DDMail</h1>
-	Development state: open alpha<br>
-	Tor onion service address: {{ config["TOR_ADDRESS"] }}<br>
-	I2P eepsites address: {{ config["I2P_ADDRESS"] }}
-        <ul>
-            <li><a href="/">Main</a></li>
-            {% if current_user %}
-            <li><a href="/logout">Logout</a></li>
-            <li><a href="/settings">Settings</a></li>
-            {% else %}
-            <li><a href="/login">Login</a></li>
-            <li><a href="/register">Register</a></li>
-            {% endif %}
-            <li><a href="/pricing_and_payment">Pricing and payment</a></li>
-            <li><a href="/terms">Terms</a></li>
-            <li><a href="/help">Help</a></li>
-            <li><a href="/about">About</a></li>
-            <li><a href="/contact">Contact</a></li>
-        </ul>
-        <p>
-        {% if current_user %}
-	Logged in on account: {{ current_user.account.account }} <br>
-        Logged in as user: {{ current_user.user }} <br>
-        {% if  current_user.account.is_enabled == 1 %}
-	Is account enabled: Yes <br>
-        {% else %}
-	Is account enabled: No <br>
-        {% endif %}
-        {% else %}
-	Logged in on account: Not logged in <br>
-        Logged in as user: Not logged in
-        {% endif %}
-        {% block content %}{% endblock %}
-        </p>
+        <div class="body">
+            <header>
+                <h1>DDMail</h1>
+                Development state: open alpha<br />
+                Tor onion service address: {{ config["TOR_ADDRESS"] }}<br />
+                I2P eepsites address: {{ config["I2P_ADDRESS"] }}
+                <ul>
+                    <li><a href="/">Main</a></li>
+                    {% if current_user %}
+                    <li><a href="/logout">Logout</a></li>
+                    <li><a href="/settings">Settings</a></li>
+                    {% else %}
+                    <li><a href="/login">Login</a></li>
+                    <li><a href="/register">Register</a></li>
+                    {% endif %}
+                    <li>
+                        <a href="/pricing_and_payment">Pricing and payment</a>
+                    </li>
+                    <li><a href="/terms">Terms</a></li>
+                    <li><a href="/help">Help</a></li>
+                    <li><a href="/about">About</a></li>
+                    <li><a href="/contact">Contact</a></li>
+                </ul>
+                <p>
+                    {% if current_user %} Logged in on account: {{
+                    current_user.account.account }} <br />
+                    Logged in as user: {{ current_user.user }} <br />
+                    {% if current_user.account.is_enabled == 1 %} Is account enabled: Yes <br />
+                    {% else %} Is account enabled: No <br />
+                    {% endif %} {% else %} Logged in on account: Not logged in
+                    <br />
+                    Logged in as user: Not logged in {% endif %}
+                </p>
+            </header>
+            <section class="space"><p></p></section>
+            <section class="middle">{% block content%} {% endblock %}</section>
+            <section class="space"><p></p></section>
+            <footer>
+                <br>
+                    Provided by Kodord AB | Reasonable paranoid <br> <a href="https://www.kodord.se">www.kodord.se</a>
+                </p>
+            </footer>
+        </div>
     </body>
 </html>
