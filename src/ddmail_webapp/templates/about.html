@@ -1,6 +1,4 @@
-{% extends "all.html" %}
-
-{% block content %}
+{% extends "all.html" %} {% block content %}
 <h2>About</h2>
 <p>Here you can find information regarding ddmail e-mail system/service.</p>
 
@@ -8,61 +6,115 @@
 DDMail is a e-mail system/service that prioritizes security.
 
 <h3>Our definition of privacy</h3>
-Privacy is when someone knows who you are but doesn't know what you're doing. Privacy is about not disclosing your actions or data. For example your adversary knows that you are using ddmail to send and recive emails but they do not know the content of the emails.
+Privacy is when someone knows who you are but doesn't know what you're doing.
+Privacy is about not disclosing your actions or data. For example your adversary
+knows that you are using ddmail to send and recive emails but they do not know
+the content of the emails.
 
 <h3>Our definition of anonymity</h3>
-Anonymity is when someone knows what you're doing but doesn't know who you are. Anonymity is about not disclosing your identity. For example your adversary knows the content of your emails but they do not know that it is you who sends or recives them.
+Anonymity is when someone knows what you're doing but doesn't know who you are.
+Anonymity is about not disclosing your identity. For example your adversary
+knows the content of your emails but they do not know that it is you who sends
+or recives them.
 
 <h3>Our definition of security</h3>
-Security is design, implementation, measures and methods taken to protect you and your data regarding confidentiality, integrity, availability, privacy and anonymity from your adversary.
+Security is design, implementation, measures and methods taken to protect you
+and your data regarding confidentiality, integrity, availability, privacy and
+anonymity from your adversary.
 
 <h3>Privacy and anonymity</h3>
-We try to protect our users privacy and anonymity. No personal information is needed during registration or usage. We do not track or monitor users activety. We do not serve ads. We do not use javascript. We do not save/log the users ip when using HTTPS or IMAPS. We do not in any way distribute nor sell the small amount of user data we have unless obligated by a court in Sweden. The service is avalible as a tor onion service(before known as tor hidden service). The service is avalible as a i2p service. Using our service including registration, regardless of how you use or access it (clearnet, vpn, tor, i2p) will not require any verification like phone number etc.
+We try to protect our users privacy and anonymity. No personal information is
+needed during registration or usage. We do not track or monitor users activety.
+We do not serve ads. We do not use javascript. We do not save/log the users ip
+when using HTTPS or IMAPS. We do not in any way distribute nor sell the small
+amount of user data we have unless obligated by a court in Sweden. The service
+is avalible as a tor onion service(before known as tor hidden service). The
+service is avalible as a i2p service. Using our service including registration,
+regardless of how you use or access it (clearnet, vpn, tor, i2p) will not
+require any verification like phone number etc.
 
 <h3>Security</h3>
-We try to use the following design patterns/principle:<br>- less code, less attacksurface<br>- leased privileged<br>- default deny<br>- assume breach<br> The server configuration and application code is all open source and can be reviewed and used by anyone at https://github.com/drzobin. We see all input as evil. We use hard to crack password hashing with argon2. We autoupdate the server software every day. We use mod_security as web application firewall (WAF). We use apparmore as mandatory access control (MAC) in enforce mode. We use apparmore, namespaces and seccomp to sandbox processes. We do not provide any webmail interface nor do our website contains any javascript, images or videos.
+We try to use the following design patterns/principle:<br />- less code, less
+attacksurface<br />- leased privileged<br />- default deny<br />- assume
+breach<br />
+The server configuration and application code is all open source and can be
+reviewed and used by anyone at https://github.com/drzobin. We see all input as
+evil. We use hard to crack password hashing with argon2. We autoupdate the
+server software every day. We use mod_security as web application firewall
+(WAF). We use apparmore as mandatory access control (MAC) in enforce mode. We
+use apparmore, namespaces and seccomp to sandbox processes. We do not provide
+any webmail interface nor do our website contains any javascript, images or
+videos.
 
 <h3>Security regarding SMTP and DNS</h3>
-We are using DNSSEC, SPF, DKIM, DMARC, CAA, MTA-STS and DANE/TLSA(311) to make the service more resilient to threats.
+We are using DNSSEC, SPF, DKIM, DMARC, CAA, MTA-STS and DANE/TLSA(311) to make
+the service more resilient to threats.
 
 <h3>DANE/TLSA</h3>
-We have DANE/TLSA 311 DNS records for the following services and ports:<br>
-SMTP mail.ddmail.se port 25 (with support for STARTTLS)<br>
-SMTP mail.ddmail.se port 587 (with support for STARTTLS)<br>
-SMTPS mail.ddmail.se port 465 (SMTP wrapped in TLS)<br>
-IMAPS mail.ddmail.se port 993 (IMAP wrapped in TLS)<br>
-HTTPS ddmail.se port 443 (HTTP wrapped in TLS)<br>
-HTTPS www.ddmail.se port 443 (HTTP wrapped in TLS)<br>
+We have DANE/TLSA 311 DNS records for the following services and ports:<br />
+SMTP mail.ddmail.se port 25 (with support for STARTTLS)<br />
+SMTP mail.ddmail.se port 587 (with support for STARTTLS)<br />
+SMTPS mail.ddmail.se port 465 (SMTP wrapped in TLS)<br />
+IMAPS mail.ddmail.se port 993 (IMAP wrapped in TLS)<br />
+HTTPS ddmail.se port 443 (HTTP wrapped in TLS)<br />
+HTTPS www.ddmail.se port 443 (HTTP wrapped in TLS)<br />
 
 <h3>Security regarding mail content</h3>
-We use clamav, oletools with olefy and rspamd to fight malware, phishing and spam.
+We use clamav, oletools with olefy and rspamd to fight malware, phishing and
+spam.
 
 <h3>Default Encryption "at rest"</h3>
-E-mail is always encrypted "at rest" using elliptic curve secp521r1 private and public key pair. The private key is password protected. The password is the email account password base64 encoded. This encryption/decryption is done seamlessly to the user on ddmail servers. Every email account(maildir) has different key pairs. The password protected private key is stored on ddmail servers.
+E-mail is always encrypted "at rest" using elliptic curve secp521r1 private and
+public key pair. The private key is password protected. The password is the
+email account password base64 encoded. This encryption/decryption is done
+seamlessly to the user on ddmail servers. Every email account(maildir) has
+different key pairs. The password protected private key is stored on ddmail
+servers.
 
 <h3>Extanded Encryption "at rest" using OpenPGP</h3>
-Incoming emails can be automatic encrypted using OpenPGP public keys. This means that incoming emails will be double encrypted "at rest" where the email accounts (maildir) will be encrypted with "default Encryption at rest" (above-mentioned) and individual emails will also be encrypted with OpenPGP. This is a opt-in feature where the user needs to upload the OpenPGP public key to ddmail servers and activate OpenPGP encryption on specific email account with a specific public key. Using this feature the users OpenPGP private key is not stored on ddmail servers. Encryption is done on ddmail servers but decryption is done on a user controlled device.
+Incoming emails can be automatic encrypted using OpenPGP public keys. This means
+that incoming emails will be double encrypted "at rest" where the email accounts
+(maildir) will be encrypted with "default Encryption at rest" (above-mentioned)
+and individual emails will also be encrypted with OpenPGP. This is a opt-in
+feature where the user needs to upload the OpenPGP public key to ddmail servers
+and activate OpenPGP encryption on specific email account with a specific public
+key. Using this feature the users OpenPGP private key is not stored on ddmail
+servers. Encryption is done on ddmail servers but decryption is done on a user
+controlled device.
 
 <h3>Encryption "in transit"</h3>
-E-mail is encrypted "in transit" as offen as possible using TLS encryption. IMAP and HTTP is always encryptet using TLS 1.2 or TLS 1.3 with strong cipher suites, A+ rating on ssllab. SMTP traffic is encrypted using TLS 1.2 or TLS 1.3 with strong cipher suites when the counter part SMTP server supports it.
+E-mail is encrypted "in transit" as offen as possible using TLS encryption. IMAP
+and HTTP is always encryptet using TLS 1.2 or TLS 1.3 with strong cipher suites,
+A+ rating on ssllab. SMTP traffic is encrypted using TLS 1.2 or TLS 1.3 with
+strong cipher suites when the counter part SMTP server supports it.
 
 <h3>Features</h3>
-Unlimited number of e-mails accounts. Unlimited number of aliases. Unlimited number of own domains. Avalible as Tor Onion Service. Avalible as i2p service. Protocol supported for getting emails is IMAPS(IMAP wrapped in TLS) and protocol supported for sendning email is SMTPS(SMTP wrapped in TLS) or SMTP with STARTTLS.
+Unlimited number of e-mails accounts. Unlimited number of aliases. Unlimited
+number of own domains. Avalible as Tor Onion Service. Avalible as i2p service.
+Protocol supported for getting emails is IMAPS(IMAP wrapped in TLS) and protocol
+supported for sendning email is SMTPS(SMTP wrapped in TLS) or SMTP with
+STARTTLS.
 
 <h3>License</h3>
-All code and server configuration is open source and licensed under GNU Affero General Public License (AGPL).
+All code and server configuration is open source and licensed under GNU Affero
+General Public License (AGPL).
 
 <h3>Where can i find the code</h3>
-All development is done in the open using github. The code is located at https://github.com/drzobin.
+All development is done in the open using github. The code is located at
+https://github.com/drzobin.
 
 <h3>For how long is backup saved</h3>
-Backups are saved for 7 days. This means that if you remove you account, account user, email account or alias it takes 7 days before all the data is gone. This also means that when you change any password you need to save the old password for 7 days.
+Backups are saved for 7 days. This means that if you remove you account, account
+user, email account or alias it takes 7 days before all the data is gone. This
+also means that when you change any password you need to save the old password
+for 7 days.
 
 <h3>Where is it hosted</h3>
 The system/service and all its data is hosted in Sweden.
 
 <h3>Who is behind this</h3>
-Run and created by Robin "drz/drzobin" Larsson from Sweden.
+Code by Robin "drz/drzobin" Larsson from Sweden. The service is provided through
+my (Robin "drz/drzobin" Larsson) own company Kodord AB.
 
 <p>Happy mailing :)</p>
 {% endblock%}
