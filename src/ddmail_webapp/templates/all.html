@@ -17,8 +17,15 @@
             <header>
                 <h1>DDMail</h1>
                 Development state: open alpha<br />
-                Tor onion service address: {{ config["TOR_ADDRESS"] }}<br />
-                I2P eepsites address: {{ config["I2P_ADDRESS"] }}
+                Tor onion service address:<br>
+                <sektion class="scaletext">
+                {{ config["TOR_ADDRESS"] }}
+                </sektion>
+                <br>
+                I2P eepsites address:<br>
+               <sektion class="scaletext">
+                {{ config["I2P_ADDRESS"] }}
+               </sektion>
                 <ul>
                     <li><a href="/">Main</a></li>
                     {% if current_user %}
