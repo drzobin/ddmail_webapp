@@ -47,6 +47,12 @@ ul {
     padding: 1px;
 }
 
+.scaletext {
+    background-color: #3b224c;
+    color: #dbbfef;
+    font-size: clamp(11px, 1vw, 20px);
+}
+
 @media (min-width: 1024px) {
     body {
         display: flex;
