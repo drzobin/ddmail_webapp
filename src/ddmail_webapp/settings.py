@@ -377,15 +377,15 @@ def settings_add_email():
             except requests.exceptions.ConnectionError:
                 db.session.query(Email).filter(Email.account_id == int(current_user.account_id), Email.email == add_email_from_form).delete()
                 db.session.commit()
-                
+
                 current_app.logger.error("user " + current_user.user + " account " + current_user.account.account + " failed to add email " + add_email_from_form + " beacuse dmcp keyhandler service is unavalible")
                 return render_template('message.html',headline="Add Email Account Error",message="Failed to add email account beacuse dmcp keyhandler service is unavalible.",current_user=current_user)
-        
+
             # Check if password protected encryption key creation was successfull.
             if r_respone.status_code != 200 or r_respone.content != b'done':
                 db.session.query(Email).filter(Email.account_id == int(current_user.account_id), Email.email == add_email_from_form).delete()
                 db.session.commit()
-                
+
                 current_app.logger.error("user " + current_user.user + " account " + current_user.account.account + " failed to add email " + add_email_from_form + " error when creating encryption key")
                 return render_template('message.html',headline="Add email error",message="Failed trying to create password protected encryptions keys.",current_user=current_user)
 
@@ -475,12 +475,12 @@ def settings_remove_email():
             current_app.logger.error("user " + current_user.user + " account " + current_user.account.account + " failed to remove email " + remove_email_from_form + " beacuse ddmail email remover service is unavalible")
             return render_template('message.html',headline="Remove Email Error",message="Failed to removed email beacuse email remover service is unavalible.",current_user=current_user)
 
-        
+
         # Check if removal was successfull.
         if r_respone.status_code != 200 or r_respone.content != b'done':
             current_app.logger.error("user " + current_user.user + " account " + current_user.account.account + " failed to remove email " + remove_email_from_form + " beacuse ddmail email remover service returned error")
             return render_template('message.html',headline="Remove email error",message="Failed to remove data on disc for email account.",current_user=current_user)
-        
+
         current_app.logger.debug("user " + current_user.user + " account " + current_user.account.account + " removed email " + remove_email_from_form)
         return render_template('message.html',headline="Remove Email Account",message="Successfully removed email.",current_user=current_user)
 
@@ -526,7 +526,7 @@ def settings_change_password_on_email():
         if validators.is_domain_allowed(validate_email_domain[1]) == False:
             current_app.logger.warning("user " + current_user.user + " account " + current_user.account.account + " failed to change password on email " + change_password_on_email_from_form + " beacuse domain validation failed")
             return render_template('message.html',headline="Change password on email account error",message="Failed to change password on email account, validation failed.",current_user=current_user)
-        
+
         # Validate current password from form.
         if validators.is_password_allowed(current_cleartext_password_from_form) == False:
             current_app.logger.warning("user " + current_user.user + " account " + current_user.account.account + " failed to change password on email " + change_password_on_email_from_form + " beacuse current password validation failed")
@@ -641,15 +641,15 @@ def settings_upload_openpgp_public_key():
             current_app.logger.warning("user " + current_user.user + " account " + current_user.account.account + " openpgp public key " + openpgp_public_key + " validation failed")
             return render_template('message.html',headline="Upload openpgp public key error",message="Failed to upload openpgp public key beacuse validation failed",current_user=current_user)
 
-        # Send openpgp public key to ddmail openpgp keyhandler service.
-        openpgp_keyhandler_url = current_app.config["OPENPGP_KEYHANDLER_URL"] + "/upload_public_key"
+        # Get fingerprint by send openpgp public key to ddmail openpgp keyhandler service.
+        openpgp_keyhandler_url = current_app.config["OPENPGP_KEYHANDLER_URL"] + "/get_fingerprint"
         openpgp_keyhandler_password = current_app.config["OPENPGP_KEYHANDLER_PASSWORD"]
         try:
             r_respone = requests.post(openpgp_keyhandler_url, {"public_key":openpgp_public_key,"keyring":current_user.account.account,"password":openpgp_keyhandler_password}, timeout=5)
         except requests.exceptions.ConnectionError:
-            current_app.logger.error("user " + current_user.user + " account " + current_user.account.account + " faild to upload openpgp public key beacuse openpgp keyhandler service do not ansver")
+            current_app.logger.error("user " + current_user.user + " account " + current_user.account.account + " faild to upload openpgp public key beacuse openpgp keyhandler service do not answer")
             return render_template('message.html',headline="Upload OpenPGP Public Key Error",message="Failed to upload openpgp public key beacuse openpgp keyhandler service do not answer.",current_user=current_user)
-            
+
         # Check if upload was successfull.
         if r_respone.status_code != 200 or "done fingerprint: " not in str(r_respone.content):
             current_app.logger.error("user " + current_user.user + " account " + current_user.account.account + " faild to upload openpgp public key beacuse openpgp keyhandler service returned error")
@@ -670,8 +670,8 @@ def settings_upload_openpgp_public_key():
             current_app.logger.error("user " + current_user.user + " account " + current_user.account.account + " faild to upload openpgp public key beacuse openpgp keyhandler service returned fingerprint " + fingerprint  + " that already exist in db")
             return render_template('message.html',headline="Upload openpgp public key error",message="Openpgp public key fingerprint already exist in db",current_user=current_user)
 
-        # Insert fingerprint to db.
-        new_openpgp_public_key = Openpgp_public_key(account_id=current_user.account_id, fingerprint=fingerprint)
+        # Insert openpgp public key and fingerprint to db.
+        new_openpgp_public_key = Openpgp_public_key(account_id=current_user.account_id, fingerprint=fingerprint, public_key=openpgp_public_key)
         db.session.add(new_openpgp_public_key)
         db.session.commit()
 
@@ -700,7 +700,7 @@ def settings_remove_openpgp_public_key():
 
     if request.method == 'GET':
         fingerprints = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id)
-        
+
         return render_template('settings_remove_openpgp_public_key.html',fingerprints = fingerprints, current_user = current_user)
 
     if request.method == 'POST':
@@ -721,20 +721,6 @@ def settings_remove_openpgp_public_key():
         if is_fingerprint_mine != 1:
             current_app.logger.warning("user " + current_user.user + " account " + current_user.account.account + " fingerprint " + fingerprint  + " is not in db or is not owned by current user")
             return render_template('message.html',headline="Remove openpgp public key error",message="Openpgp public key fingerprint do not exist in database or is not owned by your account",current_user=current_user)
-
-        # Send openpgp public key fingerprint to ddmail openpgp keyhandler service to remove openpgp public key from account keyring.
-        openpgp_keyhandler_url = current_app.config["OPENPGP_KEYHANDLER_URL"] + "/remove_public_key"
-        openpgp_keyhandler_password = current_app.config["OPENPGP_KEYHANDLER_PASSWORD"]
-        try:
-            r_respone = requests.post(openpgp_keyhandler_url, {"fingerprint":fingerprint,"keyring":current_user.account.account,"password":openpgp_keyhandler_password}, timeout=5)
-        except requests.exceptions.ConnectionError:
-            current_app.logger.error("user " + current_user.user + " account " + current_user.account.account + " removing openpgp public key with fingerprint " + fingerprint  + " failed beacuse openpgp keyhandler service do not answer")
-            return render_template('message.html',headline="Remove OpenPGP Public Key Error",message="Failed to remove openpgp public key beacuse openpgp keyhandler service do not answer.",current_user=current_user)
-        
-        # Check if remove was succesfull.
-        if r_respone.status_code != 200 or str(r_respone.content) == "done":
-            current_app.logger.error("user " + current_user.user + " account " + current_user.account.account + " removing openpgp public key with fingerprint " + fingerprint  + " failed beacuse openpgp keyhandler service returned error")
-            return render_template('message.html',headline="Remove openpgp public key error",message="Failed to remove openpgp public key.",current_user=current_user)
 
         # Remove openpgp public key from database.
         db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == current_user.account_id, Openpgp_public_key.fingerprint == fingerprint).delete()
@@ -812,7 +798,7 @@ def settings_activate_openpgp_encryption():
         if email == None or email == "":
             current_app.logger.warning("user " + current_user.user + " account " + current_user.account.account + " email is empty")
             return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse email form is empty.",current_user=current_user)
-        
+
         # Validate fingerprint.
         if validators.is_openpgp_key_fingerprint_allowed(fingerprint) != True:
             current_app.logger.warning("user " + current_user.user + " account " + current_user.account.account + " fingerprint " + fingerprint  + " failed validation")
@@ -828,7 +814,7 @@ def settings_activate_openpgp_encryption():
         if is_fingerprint_mine != 1:
             current_app.logger.warning("user " + current_user.user + " account " + current_user.account.account + " fingerprint " + fingerprint  + " is not in db or is not owned by current user")
             return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse openpgp public key fingerprint can not be found in database",current_user=current_user)
-       
+
        # Check that email already exist in db and is owned by current account.
         is_email_mine = db.session.query(Email).filter(Email.email == email, Email.account_id == current_user.account_id).count()
         if is_email_mine != 1:
@@ -848,7 +834,7 @@ def settings_activate_openpgp_encryption():
         if email_from_db.openpgp_public_key_id != openpgp_public_key.id or openpgp_public_key.fingerprint != fingerprint:
             current_app.logger.error("user " + current_user.user + " account " + current_user.account.account + " fingerprint " + fingerprint  + " email " + email + " activation failed ")
             return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption",current_user=current_user)
-            
+
         current_app.logger.debug("user " + current_user.user + " account " + current_user.account.account + " openpgp public key with fingerprint " + fingerprint  + " email " + email + " activated openpgp encryption")
         return render_template('message.html',headline="Activate Openpgp Encryption",message="Successfully activated OpenPGP encryption",current_user=current_user)
 
@@ -886,12 +872,12 @@ def settings_deactivate_openpgp_encryption():
 
         # Strip email string of spaces or newline.
         email = email.strip()
-        
+
         # Validate email.
         if validators.is_email_allowed(email) == False:
             current_app.logger.warning("user " + current_user.user + " account " + current_user.account.account + " email " + email + " failed validation")
             return render_template('message.html',headline="Activate OpenPGP Encryption Error",message="Failed to activate OpenPGP encryption beacuse email validation failed.",current_user=current_user)
-       
+
        # Check that email already exist in db and is owned by current account.
         is_email_mine = db.session.query(Email).filter(Email.email == email, Email.account_id == current_user.account_id).count()
         if is_email_mine != 1:
@@ -908,10 +894,10 @@ def settings_deactivate_openpgp_encryption():
         if email_from_db.openpgp_public_key_id != None:
             current_app.logger.warning("user " + current_user.user + " account " + current_user.account.account + " email " + email + " openpgp encryption is already deactivated")
             return render_template('message.html',headline="Deactivate OpenPGP Encryption Error",message="Failed to deactivate OpenPGP encryption on this email account",current_user=current_user)
-            
+
         current_app.logger.debug("user " + current_user.user + " account " + current_user.account.account + " email " + email + " deactivated openpgp encryption")
         return render_template('message.html',headline="Deactivate Openpgp Encryption",message="Successfully deactivated OpenPGP encryption on this email account",current_user=current_user)
-    
+
 @bp.route("/settings/show_alias")
 def setings_show_alias():
     # Check if cookie secret is set.
@@ -1180,14 +1166,14 @@ def settings_add_domain():
             if is_dkim != True:
                 current_app.logger.warning("user " + current_user.user + " account " + current_user.account.account + " domain " + form.domain.data + " dkim is not valid")
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns dkim record is not correct.",current_user=current_user)
-            
+
             # Validate dns dmarc record.
             dmarc_record = current_app.config["DMARC_RECORD"]
             is_dmarc = validators.is_dmarc_valid(form.domain.data,dmarc_record)
             if is_dmarc != True:
                 current_app.logger.warning("user " + current_user.user + " account " + current_user.account.account + " domain " + form.domain.data + " dmarc is not valid")
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns dmarc record is not correct.",current_user=current_user)
-            
+
             # Add domain to db.
             account_domain = Account_domain(account_id=current_user.account_id, domain=form.domain.data)
             db.session.add(account_domain)
