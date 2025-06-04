@@ -62,6 +62,7 @@ class Openpgp_public_key(db.Model):
     id = db.Column(db.Integer, primary_key=True,nullable=False)
     account_id = db.mapped_column(db.Integer, ForeignKey('accounts.id'),nullable=False)
     fingerprint = db.Column(db.String(200), unique=True, nullable=False)
+    public_key = db.Column(db.Text, nullable=False)
 
     account = relationship("Account", back_populates="openpgp_public_keys")
     emails = relationship("Email", back_populates="openpgp_public_key")
@@ -114,4 +115,3 @@ class Authenticated(db.Model):
         self.cookie = cookie
         self.user_id = user_id
         self.valid_to = valid_to
-
