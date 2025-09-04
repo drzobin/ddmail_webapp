@@ -1122,10 +1122,12 @@ def settings_add_domain():
         mx_record_host = current_app.config["MX_RECORD_HOST"]
         mx_record_priority = current_app.config["MX_RECORD_PRIORITY"]
         spf_record = current_app.config["SPF_RECORD"]
-        dkim_record = current_app.config["DKIM_RECORD"]
+        dkim_cname_record1 = current_app.config["DKIM_CNAME_RECORD1"]
+        dkim_cname_record2 = current_app.config["DKIM_CNAME_RECORD2"]
+        dkim_cname_record3 = current_app.config["DKIM_CNAME_RECORD3"]
         dmarc_record = current_app.config["DMARC_RECORD"]
 
-        return render_template('settings_add_domain.html', form=form,current_user=current_user,mx_record_host=mx_record_host,mx_record_priority=mx_record_priority,spf_record=spf_record,dkim_record=dkim_record,dmarc_record=dmarc_record)
+        return render_template('settings_add_domain.html', form=form,current_user=current_user,mx_record_host=mx_record_host,mx_record_priority=mx_record_priority,spf_record=spf_record,dkim_cname_record1=dkim_cname_record1,dkim_cname_record2=dkim_cname_record2,dkim_cname_record3=dkim_cname_record3,dmarc_record=dmarc_record)
 
     if request.method == 'POST':
         if not form.validate_on_submit():
@@ -1160,12 +1162,18 @@ def settings_add_domain():
                 current_app.logger.warning("user " + current_user.user + " account " + current_user.account.account + " domain " + form.domain.data + " spf is not valid")
                 return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns spf record is not correct.",current_user=current_user)
 
-            # Validate dns dkim record.
-            dkim_record = current_app.config["DKIM_RECORD"]
-            is_dkim = validators.is_dkim_valid(form.domain.data,dkim_record)
-            if is_dkim != True:
-                current_app.logger.warning("user " + current_user.user + " account " + current_user.account.account + " domain " + form.domain.data + " dkim is not valid")
-                return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns dkim record is not correct.",current_user=current_user)
+            # Validate that dns dkim records is a cname to correct records.
+            correct_records = [current_app.config["DKIM_CNAME_RECORD1"], current_app.config["DKIM_CNAME_RECORD2"], current_app.config["DKIM_CNAME_RECORD3"]]
+            count = 1
+            for correct_record in correct_records:
+                # The user supplyed dkim record that should be a cname.
+                record = "dkim" + str(count) + "._domainkey." + str(form.domain.data)
+                # Check if the record is a valid cname to correct record.
+                is_correct = validators.is_cname_valid(record, correct_record)
+                if not is_correct:
+                    current_app.logger.warning("user " + current_user.user + " account " + current_user.account.account + " domain " + form.domain.data + " dkim " + record + " is not valid")
+                    return render_template('message.html',headline="Add Domain Error",message="Failed to add domain, the domain dns dkim record is not correct.",current_user=current_user)
+                count = count + 1
 
             # Validate dns dmarc record.
             dmarc_record = current_app.config["DMARC_RECORD"]
