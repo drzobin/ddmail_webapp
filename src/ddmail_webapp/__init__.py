@@ -68,7 +68,9 @@ def create_app(config_file=None, test_config=None):
         app.config["MX_RECORD_HOST"] = toml_config[mode]["MX_RECORD_HOST"]
         app.config["MX_RECORD_PRIORITY"] = toml_config[mode]["MX_RECORD_PRIORITY"]
         app.config["SPF_RECORD"] = toml_config[mode]["SPF_RECORD"]
-        app.config["DKIM_RECORD"] = toml_config[mode]["DKIM_RECORD"]
+        app.config["DKIM_CNAME_RECORD1"] = toml_config[mode]["DKIM_CNAME_RECORD1"]
+        app.config["DKIM_CNAME_RECORD2"] = toml_config[mode]["DKIM_CNAME_RECORD2"]
+        app.config["DKIM_CNAME_RECORD3"] = toml_config[mode]["DKIM_CNAME_RECORD3"]
         app.config["DMARC_RECORD"] = toml_config[mode]["DMARC_RECORD"]
 
         # Configure tor and i2p addres.
