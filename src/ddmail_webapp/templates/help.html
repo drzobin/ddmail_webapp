@@ -1,8 +1,9 @@
-{% extends "all.html" %}:wq
-
-{% block content %}
+{% extends "all.html" %}:wq {% block content %}
 <h2>Help</h2>
-<p>Here you can find help and instruction regarding ddmail e-mail system/service.</p>
+<p>
+    Here you can find help and instruction regarding ddmail e-mail
+    system/service.
+</p>
 
 <h3>Recommended mail clients</h3>
 Thunderbird and K-9 Mail
@@ -11,98 +12,119 @@ Thunderbird and K-9 Mail
 Here you can find thunderbird settings.
 
 <h4>IMAP mail server</h4>
-Server name: mail.ddmail.se<br> 
-Port: 993<br>
-Connection security: SSL/TLS<br>
-Authentication method: normal password<br>
-Username: [email account address]<br>
-Password: [email account password]<br>
+Server name: mail.ddmail.se<br />
+Port: 993<br />
+Connection security: SSL/TLS<br />
+Authentication method: normal password<br />
+Username: [email account address]<br />
+Password: [email account password]<br />
 
 <h4>Outgoing SMTP server</h4>
-Server name: mail.ddmail.se<br>
-Port: 465<br>
-Connection security: SSL/TLS<br>
-Authentication method: normal password<br>
-Username: [email account address]<br>
-Password: [email account password]<br>
+Server name: mail.ddmail.se<br />
+Port: 465<br />
+Connection security: SSL/TLS<br />
+Authentication method: normal password<br />
+Username: [email account address]<br />
+Password: [email account password]<br />
 
 <h3>Thunderbird settings using Tor onion service address</h3>
-Here you can find settings and instruction for using ddmail tor onion service address with thunderbird. By using this method all thunderbird traffic between you and ddmail will be sent over the Tor network.
+Here you can find settings and instruction for using ddmail tor onion service
+address with thunderbird. By using this method all thunderbird traffic between
+you and ddmail will be sent over the Tor network.
 
 <h4>Proxy Thunderbird traffic over Tor</h4>
-Step 1: Install Tor(not Tor Browser) on your computer.<br>
-Step 2: Start Thunderbird<br>
-Step 3: Go to Settings -> General -> Network & Disk Space -> Connection -> Settings<br>
-Step 4: Set Socks Host to 127.0.0.1 and port 9050<br>
-Step 5: Enable SOCKS 5<br>
-Step 5: Enable Proxy DNS when using SOCKS 5<br>
-Step 6: Restart Thunderbird<br>
+Step 1: Install Tor(not Tor Browser) on your computer.<br />
+Step 2: Start Thunderbird<br />
+Step 3: Go to Settings -> General -> Network & Disk Space -> Connection ->
+Settings<br />
+Step 4: Set Socks Host to 127.0.0.1 and port 9050<br />
+Step 5: Enable SOCKS 5<br />
+Step 5: Enable Proxy DNS when using SOCKS 5<br />
+Step 6: Restart Thunderbird<br />
 
 <h4>IMAP mail server</h4>
-Server name: {{ config["TOR_ADDRESS"] }}<br>
-Port: 143<br>
-Connection security: None<br>
-Authentication method: normal password<br>
-Username: [email account address]<br>
-Password: [email account password]<br>
+Server name: {{ config["TOR_ADDRESS"] }}<br />
+Port: 143<br />
+Connection security: None<br />
+Authentication method: normal password<br />
+Username: [email account address]<br />
+Password: [email account password]<br />
 
 <h4>Outgoing SMTP server</h4>
-Server name: {{ config["TOR_ADDRESS"] }}<br>
-Port: 25<br>
-Connection security: None<br>
-Authentication method: normal password<br>
-Username: [email account address]<br>
-Password: [email account password]<br>
+Server name: {{ config["TOR_ADDRESS"] }}<br />
+Port: 25<br />
+Connection security: None<br />
+Authentication method: normal password<br />
+Username: [email account address]<br />
+Password: [email account password]<br />
 
 <h3>Proxy Thunderbird traffic over i2p</h3>
-Here you can find settings and instruction for using ddmail i2p b32 service address with thunderbird. By using this method all thunderbird traffic between you and ddmail will be sent over the i2p network.
+Here you can find settings and instruction for using ddmail i2p b32 service
+address with thunderbird. By using this method all thunderbird traffic between
+you and ddmail will be sent over the i2p network.
 
 <h4>Thunderbird traffic over i2p using i2pd socks proxy</h4>
-Step 1: Install i2pd on your computer.<br>
-Step 2: Start Thunderbird<br>
-Step 3: Go to Settings -> General -> Network & Disk Space -> Connection -> Settings<br>
-Step 4: Set Socks Host to 127.0.0.1 and port 4447<br>
-Step 5: Enable SOCKS 5<br>
-Step 5: Enable Proxy DNS when using SOCKS 5<br>
-Step 6: Restart Thunderbird<br>
+Step 1: Install i2pd on your computer.<br />
+Step 2: Start Thunderbird<br />
+Step 3: Go to Settings -> General -> Network & Disk Space -> Connection ->
+Settings<br />
+Step 4: Set Socks Host to 127.0.0.1 and port 4447<br />
+Step 5: Enable SOCKS 5<br />
+Step 5: Enable Proxy DNS when using SOCKS 5<br />
+Step 6: Restart Thunderbird<br />
 
 <h4>IMAP mail server</h4>
-Server name: {{ config["I2P_ADDRESS"] }}<br>
-Port: 143<br>
-Connection security: None<br>
-Authentication method: normal password<br>
-Username: [email account address]<br>
-Password: [email account password]<br>
+Server name: {{ config["I2P_ADDRESS"] }}<br />
+Port: 143<br />
+Connection security: None<br />
+Authentication method: normal password<br />
+Username: [email account address]<br />
+Password: [email account password]<br />
 
 <h4>Outgoing SMTP server</h4>
-Server name: {{ config["I2P_ADDRESS"] }}<br>
-Port: 25<br>
-Connection security: None<br>
-Authentication method: normal password<br>
-Username: [email account address]<br>
-Password: [email account password]<br>
+Server name: {{ config["I2P_ADDRESS"] }}<br />
+Port: 25<br />
+Connection security: None<br />
+Authentication method: normal password<br />
+Username: [email account address]<br />
+Password: [email account password]<br />
 
 <h3>What is needed to add/use custom domain with ddmail</h3>
 The following dns records is needed before you can add custom domain.
-<pre>[your own domain]			3600	IN	MX	{{ mx_record_priority }} {{ mx_record_host }}
+<pre>
+[your own domain]			3600	IN	MX	{{ mx_record_priority }} {{ mx_record_host }}
 [your own domain]			3600	IN	TXT	{{ spf_record }}
-mail._domainkey.[your own domain] 	3600	IN	TXT	{{ dkim_record }}
-_dmarc.[your own domain]		3600	IN	TXT	{{ dmarc_record }}</pre>
+dkim1._domainkey.[your own domain]      3600	IN	CNAME	{{ dkim_cname_record1 }}
+dkim2._domainkey.[your own domain]      3600	IN	CNAME	{{ dkim_cname_record2 }}
+dkim3._domainkey.[your own domain]      3600	IN	CNAME	{{ dkim_cname_record3 }}
+_dmarc.[your own domain]		3600	IN	TXT	{{ dmarc_record }}
+</pre>
 
 <h3>Malware and phishing</h3>
-Mail content catigorized as malware will have the subject changed to: *** MALWARE *** [original subject]. Mail content with office file attachments catigorized as risky will have the subject changed to: *** RISKY OFFICE MACRO *** [original subject]. Mail content catigorized as phishing will have the subject changed to: *** PHISHING *** [original subject]<br>
+Mail content catigorized as malware will have the subject changed to: ***
+MALWARE *** [original subject]. Mail content with office file attachments
+catigorized as risky will have the subject changed to: *** RISKY OFFICE MACRO
+*** [original subject]. Mail content catigorized as phishing will have the
+subject changed to: *** PHISHING *** [original subject]<br />
 
 <h3>Spam</h3>
-Mail content catigorized as spam will have the subject changed to: *** SPAM *** [original subject]. It will also have the following mail headers set "X-Spamd-Bar: [spam score as bar]" and "X-Spam-Status: Yes, score=[spam score]".<br>
+Mail content catigorized as spam will have the subject changed to: *** SPAM ***
+[original subject]. It will also have the following mail headers set
+"X-Spamd-Bar: [spam score as bar]" and "X-Spam-Status: Yes, score=[spam
+score]".<br />
 
 <h3>What does it mean that my account is not enabled(disabled)</h3>
-You can not send nor recive any emails. You can not use any of the features. You can however login and see the usage and payment details for your account. An account that is not enabled(disabled) will be removed after 21 days.
+You can not send nor recive any emails. You can not use any of the features. You
+can however login and see the usage and payment details for your account. An
+account that is not enabled(disabled) will be removed after 21 days.
 
 <h3>Help and support</h3>
-support[at]crew.ddmail.se<br>
-Openpgp key fingerprint: 3DB6CB432FAFA87E4E8C315AA1784FCB6F76C514<br>
-Openpgp key server: keys.openpgp.org<br>
-<a href="{{ url_for('static',filename='contact_support_pubkey.asc') }}">Download pubkey</a>
+support[at]crew.ddmail.se<br />
+Openpgp key fingerprint: 3DB6CB432FAFA87E4E8C315AA1784FCB6F76C514<br />
+Openpgp key server: keys.openpgp.org<br />
+<a href="{{ url_for('static',filename='contact_support_pubkey.asc') }}"
+    >Download pubkey</a
+>
 
 <p>Happy mailing :)</p>
 {% endblock%}
