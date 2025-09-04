@@ -1,16 +1,19 @@
-{% extends "all.html" %}
-{% block content %}
-{% include 'settings_menu.html' %}
+{% extends "all.html" %} {% block content %} {% include 'settings_menu.html' %}
 <h3>Add Domain</h3>
 The following dns records is needed before you can add custom domain.
-<pre>[your own domain]			3600	IN	MX	{{ mx_record_priority }} {{ mx_record_host }}
+<pre>
+[your own domain]			3600	IN	MX	{{ mx_record_priority }} {{ mx_record_host }}
 [your own domain]			3600	IN	TXT	{{ spf_record }}
-mail._domainkey.[your own domain] 	3600	IN	TXT	{{ dkim_record }}
-_dmarc.[your own domain]		3600	IN	TXT	{{ dmarc_record }}</pre>
-<p>
+dkim1._domainkey.[your own domain]      3600	IN	CNAME	{{ dkim_cname_record1 }}
+dkim2._domainkey.[your own domain]      3600	IN	CNAME	{{ dkim_cname_record2 }}
+dkim3._domainkey.[your own domain]      3600	IN	CNAME	{{ dkim_cname_record3 }}
+_dmarc.[your own domain]		3600	IN	TXT	{{ dmarc_record }}
+</pre>
+<p></p>
 <form method="POST">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    {{ form.domain.label }}:<br> {{ form.domain(size=20) }}
-    <input type="submit" value="Add domain">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    {{ form.domain.label }}:<br />
+    {{ form.domain(size=20) }}
+    <input type="submit" value="Add domain" />
 </form>
 {% endblock%}
