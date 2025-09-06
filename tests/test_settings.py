@@ -45,7 +45,7 @@ def test_settings_enabled_account(client,app):
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -134,7 +134,7 @@ def test_settings_enabled_account_change_password_on_user(client, app):
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -235,7 +235,7 @@ def test_settings_enabled_account_change_key_on_user(client, app):
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -301,7 +301,7 @@ def test_settings_enabled_account_change_key_on_user(client, app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_get.data
     assert b"Is account enabled: Yes" in response_settings_get.data
     assert b"Change password" in response_settings_get.data
-        
+
 def test_settings_disabled_account_add_user_to_account(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -338,7 +338,7 @@ def test_settings_enabled_account_add_user_to_account(client,app):
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -372,7 +372,7 @@ def test_settings_enabled_account_add_user_to_account(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_user_to_account_post.data
     assert b"Is account enabled: Yes" in response_settings_add_user_to_account_post.data
     assert b"<h2>Added new user to account</h2>" in response_settings_add_user_to_account_post.data
-    
+
     # Get the new user information
     new_user_data = get_register_data(response_settings_add_user_to_account_post.data)
 
@@ -403,7 +403,7 @@ def test_settings_enabled_account_add_user_to_account(client,app):
     assert b"Logged in on account: " + bytes(new_user_data["account"], 'utf-8') in response_settings_get.data
     assert b"Logged in as user: " + bytes(new_user_data["username"], 'utf-8') in response_settings_get.data
     assert b"Is account enabled: Yes" in response_settings_get.data
-    
+
 def test_settings_disabled_account_show_account_users(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -433,7 +433,7 @@ def test_settings_disabled_account_show_account_users(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_show_account_users_get.data
     assert b"Is account enabled: No" in response_settings_show_account_users_get.data
     assert b"Failed to show account users beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu." in response_settings_show_account_users_get.data
-        
+
 def test_settings_enabled_account_show_account_users(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -446,7 +446,7 @@ def test_settings_enabled_account_show_account_users(client,app):
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -507,7 +507,7 @@ def test_settings_enabled_account_remove_account_user(client,app):
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -588,7 +588,7 @@ def test_settings_enabled_account_remove_account_user(client,app):
     #
     #
     # Test to remove a user from our account.
-     
+
     # Add a new user.
     assert client.get("/settings/add_user_to_account").status_code == 200
     response_settings_add_user_to_account_get = client.get("/settings/add_user_to_account")
@@ -606,7 +606,7 @@ def test_settings_enabled_account_remove_account_user(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_user_to_account_post.data
     assert b"Is account enabled: Yes" in response_settings_add_user_to_account_post.data
     assert b"<h2>Added new user to account</h2>" in response_settings_add_user_to_account_post.data
-    
+
     # Get the new user information
     new_user_data = get_register_data(response_settings_add_user_to_account_post.data)
 
@@ -614,7 +614,7 @@ def test_settings_enabled_account_remove_account_user(client,app):
     response_settings_remove_account_user_post = client.post("/settings/remove_account_user", data={'remove_user':new_user_data["username"],'csrf_token':csrf_token_register})
     assert b"<h3>Remove user</h3" in response_settings_remove_account_user_post.data
     assert b"Successfully removed user." in response_settings_remove_account_user_post.data
-      
+
 def test_settings_disabled_account_add_email(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -653,7 +653,7 @@ def test_settings_enabled_account_add_email(client,app):
             new_global_domain = Global_domain(domain = "globaltestdomain01.se", is_enabled = 1)
             db.session.add(new_global_domain)
             db.session.commit()
-        
+
     # Get the csrf token for /register
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
@@ -661,11 +661,11 @@ def test_settings_enabled_account_add_email(client,app):
     # Register account and user
     response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
     register_data = get_register_data(response_register_post.data)
-    
+
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -695,11 +695,11 @@ def test_settings_enabled_account_add_email(client,app):
     # Test empty csrf_token on /settings/add_email
     response_settings_add_email_empty_csrf_post = client.post("/settings/add_email", data={'domain':"globaltestdomain01", 'email':"test01" ,'csrf_token':""})
     assert b"The CSRF token is missing" in response_settings_add_email_empty_csrf_post.data
-    
+
     #
     #
     # Test to add email account with a global domain.
-    
+
     #
     #
     # Test to add two emails acounts that has the same name.
@@ -729,7 +729,7 @@ def test_settings_enabled_account_add_email(client,app):
 
     #
     #
-    # Test to add email account that has empty string. 
+    # Test to add email account that has empty string.
     response_settings_add_email_post = client.post("/settings/add_email", data={'domain':"globaltestdomain01.se", 'email':"", 'csrf_token':csrf_token_settings_add_email})
     assert b"<h3>Add email error</h3>" in response_settings_add_email_post.data
     assert b"Failed to add email, csrf validation failed." in response_settings_add_email_post.data
@@ -772,7 +772,7 @@ def test_settings_enabled_account_show_email(client,app):
             new_global_domain = Global_domain(domain = "globaltestdomain01.se", is_enabled = 1)
             db.session.add(new_global_domain)
             db.session.commit()
-                
+
     # Get the csrf token for /register
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
@@ -780,11 +780,11 @@ def test_settings_enabled_account_show_email(client,app):
     # Register account and user
     response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
     register_data = get_register_data(response_register_post.data)
-    
+
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -793,7 +793,7 @@ def test_settings_enabled_account_show_email(client,app):
 
     # Test POST /login with newly registred account and user.
     assert client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login}).status_code == 302
-    
+
     # Test GET /settings/add_email.
     assert client.get("/settings/add_email").status_code == 200
     response_settings_add_email_get = client.get("/settings/add_email")
@@ -801,9 +801,9 @@ def test_settings_enabled_account_show_email(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_email_get.data
     assert b"Is account enabled: Yes" in response_settings_add_email_get.data
 
-    # Get csrf_token from /settings/add_email    
+    # Get csrf_token from /settings/add_email
     csrf_token_settings_add_email = get_csrf_token(response_settings_add_email_get.data)
-   
+
     # Add email account with a global domain.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
@@ -843,7 +843,7 @@ def test_settings_disabled_account_remove_email(client,app):
     assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_login_post.data
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_login_post.data
     assert b"Is account enabled: No" in response_login_post.data
-    
+
     # Test GET /settings/remove_email
     assert client.get("/settings/remove_email").status_code == 200
     response_settings_remove_email_get = client.get("/settings/remove_email")
@@ -872,7 +872,7 @@ def test_settings_enabled_account_remove_email(client,app):
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -881,17 +881,17 @@ def test_settings_enabled_account_remove_email(client,app):
 
     # Test POST /login with newly registred account and user.
     assert client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login}).status_code == 302
-    
+
     # Test GET /settings/add_email.
     assert client.get("/settings/add_email").status_code == 200
     response_settings_add_email_get = client.get("/settings/add_email")
     assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_add_email_get.data
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_email_get.data
     assert b"Is account enabled: Yes" in response_settings_add_email_get.data
-    
-    # Get csrf_token from /settings/add_email    
+
+    # Get csrf_token from /settings/add_email
     csrf_token_settings_add_email = get_csrf_token(response_settings_add_email_get.data)
-   
+
     # Add email account with a global domain.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
@@ -899,7 +899,7 @@ def test_settings_enabled_account_remove_email(client,app):
         new_email = Email(account_id = account.id, email = "test01@globaltestdomain01.se", password_hash = "mysecrethash", storage_space_mb = 0, global_domain_id = global_domain.id)
         db.session.add(new_email)
         db.session.commit()
-    
+
     # Test GET /settings/show_email
     assert client.get("/settings/show_email").status_code == 200
     response_settings_show_email_get = client.get("/settings/show_email")
@@ -918,16 +918,17 @@ def test_settings_enabled_account_remove_email(client,app):
     assert b"Is account enabled: Yes" in response_settings_remove_email_get.data
     assert b"<h3>Remove Email Account</h3>" in response_settings_remove_email_get.data
     assert b"test01@globaltestdomain01.se" in response_settings_remove_email_get.data
-    
-    # Get csrf_token from /settings/remove_email    
+
+    # Get csrf_token from /settings/remove_email
     csrf_token_settings_remove_email = get_csrf_token(response_settings_remove_email_get.data)
 
     #
     #
     # Test to remove email account with a global domain.
     response_settings_remove_email_post = client.post("/settings/remove_email", data={'remove_email':"test01@globaltestdomain01.se", 'csrf_token':csrf_token_settings_remove_email})
-    assert b"<h3>Remove email error</h3>" in response_settings_remove_email_post.data
-    assert b"Failed to remove data on disc for email account" in response_settings_remove_email_post.data
+    print(response_settings_remove_email_post.data)
+    assert b"<h3>Remove Email Error</h3>" in response_settings_remove_email_post.data
+    assert b"Failed to removed email beacuse email remover service is unavalible." in response_settings_remove_email_post.data
 
     # Test GET /settings/show_email
     assert client.get("/settings/show_email").status_code == 200
@@ -954,7 +955,7 @@ def test_settings_enabled_account_remove_email(client,app):
     #
     #
     # Test to remove email that has a alias.
-  
+
 
 def test_settings_disabled_account_change_password_on_email(client,app):
     # Get the csrf token for /register
@@ -1002,11 +1003,11 @@ def test_settings_enabled_account_change_password_on_email(client,app):
     # Register account and user
     response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
     register_data = get_register_data(response_register_post.data)
-    
+
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -1015,17 +1016,17 @@ def test_settings_enabled_account_change_password_on_email(client,app):
 
     # Test POST /login with newly registred account and user.
     assert client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login}).status_code == 302
-    
+
     # Test GET /settings/add_email.
     assert client.get("/settings/add_email").status_code == 200
     response_settings_add_email_get = client.get("/settings/add_email")
     assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_add_email_get.data
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_email_get.data
     assert b"Is account enabled: Yes" in response_settings_add_email_get.data
-    
-    # Get csrf_token from /settings/add_email    
+
+    # Get csrf_token from /settings/add_email
     csrf_token_settings_add_email = get_csrf_token(response_settings_add_email_get.data)
-   
+
     # Add email account with a global domain.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
@@ -1033,7 +1034,7 @@ def test_settings_enabled_account_change_password_on_email(client,app):
         new_email = Email(account_id = account.id, email = "test01@globaltestdomain01.se", password_hash = "mysecrethash", storage_space_mb = 0, global_domain_id = global_domain.id)
         db.session.add(new_email)
         db.session.commit()
-    
+
     # Test GET /settings/change_password_on_email
     assert client.get("/settings/change_password_on_email").status_code == 200
     response_settings_change_password_on_email_get = client.get("/settings/change_password_on_email")
@@ -1079,11 +1080,11 @@ def test_settings_enabled_account_show_alias(client,app):
     # Register account and user
     response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
     register_data = get_register_data(response_register_post.data)
-    
+
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -1150,7 +1151,7 @@ def test_settings_enabled_account_add_alias(client,app):
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -1184,7 +1185,7 @@ def test_settings_enabled_account_add_alias(client,app):
     assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_add_alias_get.data
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_alias_get.data
     assert b"Is account enabled: Yes" in response_settings_add_alias_get.data
-    
+
     # Get csrf_token from /settings/add_alias
     csrf_token_settings_add_alias = get_csrf_token(response_settings_add_alias_get.data)
 
@@ -1198,7 +1199,7 @@ def test_settings_enabled_account_add_alias(client,app):
     # Test empty csrf_token on /settings/add_alias
     response_settings_add_alias_empty_csrf_post = client.post("/settings/add_alias", data={'domain':"globaltestdomain01.se", 'src':"testalias01" ,'dst':"test01@globaltestdomain01.se",'csrf_token':""})
     assert b"The CSRF token is missing" in response_settings_add_alias_empty_csrf_post.data
-    
+
 
     #
     #
@@ -1257,7 +1258,7 @@ def test_settings_enabled_account_remove_alias(client,app):
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -1284,14 +1285,14 @@ def test_settings_enabled_account_remove_alias(client,app):
         new_email = Email(account_id = account.id, email = "test01@globaltestdomain01.se", password_hash = "mysecrethash", storage_space_mb = 0, global_domain_id = global_domain.id)
         db.session.add(new_email)
         db.session.commit()
-    
+
     # Test GET /settings/add_alias
     assert client.get("/settings/add_alias").status_code == 200
     response_settings_add_alias_get = client.get("/settings/add_alias")
     assert b"Logged in on account: " + bytes(register_data["account"], 'utf-8') in response_settings_add_alias_get.data
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_alias_get.data
     assert b"Is account enabled: Yes" in response_settings_add_alias_get.data
-    
+
     # Get csrf_token from /settings/add_alias
     csrf_token_settings_add_alias = get_csrf_token(response_settings_add_alias_get.data)
 
@@ -1309,7 +1310,7 @@ def test_settings_enabled_account_remove_alias(client,app):
     assert b"<h3>Remove Alias</h3>" in response_settings_remove_alias_get.data
 
     # Get alias id from form option.
-    m = re.search(b'option value="(.*)"', response_settings_remove_alias_get.data) 
+    m = re.search(b'option value="(.*)"', response_settings_remove_alias_get.data)
     alias_id = m.group(1).decode("utf-8")
 
     # Get csrf_token from /settings_remove_alias
@@ -1355,7 +1356,7 @@ def test_settings_enabled_account_remove_alias(client,app):
     #
     #
     # Test to remove alias with account domain dst and src.
-       
+
 def test_settings_disabled_account_show_domains(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -1398,7 +1399,7 @@ def test_settings_enabled_account_show_domains(client,app):
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -1407,7 +1408,7 @@ def test_settings_enabled_account_show_domains(client,app):
 
     # Test POST /login with newly registred account and user.
     assert client.post("/login", buffered=True, content_type='multipart/form-data', data={'user':register_data["username"], 'password':register_data["password"], 'key':(BytesIO(bytes(register_data["key"], 'utf-8')), 'data.key') ,'csrf_token':csrf_token_login}).status_code == 302
-    
+
     # Test GET /settings/add_domain
     response_settings_add_domain_get = client.get("/settings/add_domain")
     assert response_settings_add_domain_get.status_code == 200
@@ -1415,7 +1416,7 @@ def test_settings_enabled_account_show_domains(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_domain_get.data
     assert b"Is account enabled: Yes" in response_settings_add_domain_get.data
     assert b"<h3>Add Domain</h3>" in response_settings_add_domain_get.data
-    
+
     # Get csrf_token from /settings/add_domain
     csrf_token_settings_add_domain = get_csrf_token(response_settings_add_domain_get.data)
 
@@ -1474,11 +1475,11 @@ def test_settings_enabled_account_add_domain(client,app):
     # Register account and user
     response_register_post = client.post("/register", data={'csrf_token':csrf_token_register})
     register_data = get_register_data(response_register_post.data)
-    
+
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -1495,7 +1496,7 @@ def test_settings_enabled_account_add_domain(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_domain_get.data
     assert b"Is account enabled: Yes" in response_settings_add_domain_get.data
     assert b"<h3>Add Domain</h3>" in response_settings_add_domain_get.data
-    
+
     # Get csrf_token from /settings/add_domain
     csrf_token_settings_add_domain = get_csrf_token(response_settings_add_domain_get.data)
 
@@ -1520,15 +1521,15 @@ def test_settings_enabled_account_add_domain(client,app):
 
     #
     #
-    # Test to add a domain that already exsist in current/same account 
+    # Test to add a domain that already exsist in current/same account
     response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"test.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert b"Failed to add domain, the current domain already exist." in response_settings_add_domain_post.data
-    
+
     #
     #
-    # Test to add a domain that failes backend validation. 
+    # Test to add a domain that failes backend validation.
     response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"tes<t.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
@@ -1536,23 +1537,23 @@ def test_settings_enabled_account_add_domain(client,app):
 
     #
     #
-    # Test to add a domain that failes backend validation. 
+    # Test to add a domain that failes backend validation.
     response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"tes\"t.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
-    
+
     #
     #
-    # Test to add a domain that failes backend validation. 
+    # Test to add a domain that failes backend validation.
     response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"t--iest.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
-    
+
     #
     #
-    # Test to add a domain that failes backend validation. 
+    # Test to add a domain that failes backend validation.
     response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"test..ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
@@ -1560,29 +1561,29 @@ def test_settings_enabled_account_add_domain(client,app):
 
     #
     #
-    # Test to add a domain that failes backend validation. 
+    # Test to add a domain that failes backend validation.
     response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"t;est.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
-    
+
     #
     #
-    # Test to add a domain that failes backend validation. 
+    # Test to add a domain that failes backend validation.
     response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"t\'est.ddmail.se", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert b"Failed to add domain, domain validation failed." in response_settings_add_domain_post.data
-    
+
     #
     #
-    # Test to add a domain that failes form validation. 
+    # Test to add a domain that failes form validation.
     response_settings_add_domain_post = client.post("/settings/add_domain", data={'domain':"a.s", 'csrf_token':csrf_token_settings_add_domain})
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert b"Failed to add domain, form validation failed." in response_settings_add_domain_post.data
 
-    
+
 def test_settings_disabled_account_remove_domain(client,app):
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -1625,7 +1626,7 @@ def test_settings_enabled_account_remove_domain(client,app):
     # Enable account.
     with app.app_context():
         account = db.session.query(Account).filter(Account.account == register_data["account"]).first()
-        account.is_enabled = True        
+        account.is_enabled = True
         db.session.commit()
 
     # Get csrf_token from /login
@@ -1642,7 +1643,7 @@ def test_settings_enabled_account_remove_domain(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_add_domain_get.data
     assert b"Is account enabled: Yes" in response_settings_add_domain_get.data
     assert b"<h3>Add Domain</h3>" in response_settings_add_domain_get.data
-    
+
     # Get csrf_token from /settings/add_domain
     csrf_token_settings_add_domain = get_csrf_token(response_settings_add_domain_get.data)
 
@@ -1651,7 +1652,7 @@ def test_settings_enabled_account_remove_domain(client,app):
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain</h3>" in response_settings_add_domain_post.data
     assert b"Successfully added domain." in response_settings_add_domain_post.data
-    
+
     # Test GET /settings/remove_domain
     response_settings_remove_domain_get = client.get("/settings/remove_domain")
     assert response_settings_remove_domain_get.status_code == 200
@@ -1659,7 +1660,7 @@ def test_settings_enabled_account_remove_domain(client,app):
     assert b"Logged in as user: " + bytes(register_data["username"], 'utf-8') in response_settings_remove_domain_get.data
     assert b"Is account enabled: Yes" in response_settings_remove_domain_get.data
     assert b"<h3>Remove Domain</h3>" in response_settings_remove_domain_get.data
-    
+
     # Get csrf_token from /settings/remove_domain
     csrf_token_settings_remove_domain = get_csrf_token(response_settings_remove_domain_get.data)
 
@@ -1673,49 +1674,49 @@ def test_settings_enabled_account_remove_domain(client,app):
     # Test empty csrf_token on /settings/remove_domain
     response_settings_remove_domain_empty_csrf_post = client.post("/settings/remove_domain", data={'remove_domain':"test.ddmail.se", 'csrf_token':""})
     assert b"The CSRF token is missing" in response_settings_remove_domain_empty_csrf_post.data
-    
+
     #
     #
     # Test to remove account domain.
     response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"test.ddmail.se", 'csrf_token':csrf_token_settings_remove_domain})
     assert b"<h3>Remove Domain</h3>" in response_settings_remove_domain_post.data
     assert b"Successfully removed domain" in response_settings_remove_domain_post.data
-    
+
     #
     #
     # Test to remove account domain with illigal char.
     response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"t..est.ddmail.se", 'csrf_token':csrf_token_settings_remove_domain})
     assert b"<h3>Remove Domain Error</h3>" in response_settings_remove_domain_post.data
     assert b"Failed to remove domain, domain backend validation failed." in response_settings_remove_domain_post.data
-    
+
     #
     #
     # Test to remove account domain with illigal char.
     response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"te--st.ddmail.se.se", 'csrf_token':csrf_token_settings_remove_domain})
     assert b"<h3>Remove Domain Error</h3>" in response_settings_remove_domain_post.data
     assert b"Failed to remove domain, domain backend validation failed." in response_settings_remove_domain_post.data
-    
+
     #
     #
     # Test to remove account domain with illigal char.
     response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"t\"est.ddmail.se", 'csrf_token':csrf_token_settings_remove_domain})
     assert b"<h3>Remove Domain Error</h3>" in response_settings_remove_domain_post.data
     assert b"Failed to remove domain, domain backend validation failed." in response_settings_remove_domain_post.data
-    
+
     #
     #
     # Test to remove account domain with illigal char.
     response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"test.ddm#ail.se", 'csrf_token':csrf_token_settings_remove_domain})
     assert b"<h3>Remove Domain Error</h3>" in response_settings_remove_domain_post.data
     assert b"Failed to remove domain, domain backend validation failed." in response_settings_remove_domain_post.data
-    
+
     #
     #
     # Test to remove account domain with illigal char.
     response_settings_remove_domain_post = client.post("/settings/remove_domain", data={'remove_domain':"test.ddm<ail.se", 'csrf_token':csrf_token_settings_remove_domain})
     assert b"<h3>Remove Domain Error</h3>" in response_settings_remove_domain_post.data
     assert b"Failed to remove domain, domain backend validation failed." in response_settings_remove_domain_post.data
-    
+
     #
     #
     # Test to remove account domain with domain that does not exist.
