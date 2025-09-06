@@ -41,7 +41,8 @@ dev = [
   "toml",
   "gunicorn",
   "pytest-cov",
-  "flake8",
+  "pyright",
+  "ruff",
   "hatchling",
   "twine",
 ]
@@ -58,7 +59,6 @@ test = [
   "toml",
   "gunicorn",
   "pytest-cov",
-  "flake8",
 ]
 
 [project.urls]
