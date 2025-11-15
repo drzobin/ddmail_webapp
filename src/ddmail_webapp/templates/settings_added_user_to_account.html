@@ -1,9 +1,15 @@
-{% extends "all.html" %}
-{% block content %}
-{% include 'settings_menu.html' %}
+{% extends "all.html" %} {% block content %} {% include 'settings_menu.html' %}
 <h2>Added new user to account</h2>
 <p>Account: {{ account }}</p>
 <p>Username: {{ user }}</p>
 <p>Password: {{ cleartext_password }}</p>
-<p>Key file content: {{ cleartext_password_key }}</p>
+<form action="{{ url_for('auth.download_keyfile') }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <input
+        type="hidden"
+        name="password_key"
+        value="{{ cleartext_password_key }}"
+    />
+    <button type="submit">Download Keyfile</button>
+</form>
 {% endblock%}
