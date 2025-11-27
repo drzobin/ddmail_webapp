@@ -3,30 +3,11 @@
 // For a full list of overridable settings, and general information on folder-specific settings,
 // see the documentation: https://zed.dev/docs/configuring-zed#settings-files
 {
-    "languages": {
-        "Python": {
-            "tab_size": 4,
-            "format_on_save": "on",
-            "language_servers": ["pyright", "ruff"]
-        }
-    },
-    "lsp": {
-        "ruff": {
-            "initialization_options": {
-                "settings": {
-                    "configuration": ".zed/ruff.toml"
-                }
-            }
-        },
-        "pyright": {
-            "settings": {
-                "python.analysis": {
-                    "diagnosticMode": "workspace",
-                    "typeCheckingMode": "strict"
-                },
-                "python": {
-                    "pythonPath": "../venv/bin/python"
-                }
+    "terminal": {
+        "detect_venv": {
+            "on": {
+                "directories": ["../venv", ".venv", "venv"],
+                "activate_script": "default"
             }
         }
     }
