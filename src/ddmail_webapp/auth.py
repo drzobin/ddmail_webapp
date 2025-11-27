@@ -26,10 +26,7 @@ def generate_token(length):
     alphabet = string.ascii_uppercase + string.digits
     while True:
         token = "".join(secrets.choice(alphabet) for i in range(length))
-        if (
-            any(c.isupper() for c in token)
-            and sum(c.isdigit() for c in token) >= 4
-        ):
+        if any(c.isupper() for c in token) and sum(c.isdigit() for c in token) >= 4:
             break
     return token
 
@@ -50,6 +47,10 @@ def generate_password(length):
 
 # Check if a user is authenticated, if the user is authenticated the user id will be returned else None.
 def is_athenticated(cookie):
+    # Check if cookie is None first
+    if cookie is None:
+        return None
+
     # Validate the cookie
     if validators.is_cookie_allowed(cookie) != True:
         return None
@@ -144,9 +145,7 @@ def download_keyfile():
 
     # Check if cleartext_password_key_from_form is empty.
     if not cleartext_password_key_from_form:
-        current_app.logger.warning(
-            "failed to download keyfile, data is missing"
-        )
+        current_app.logger.warning("failed to download keyfile, data is missing")
         return render_template(
             "message.html",
             headline="Download keyfile error",
@@ -154,14 +153,9 @@ def download_keyfile():
         )
 
     # Validate the form data password key.
-    if (
-        validators.is_password_key_allowed(cleartext_password_key_from_form)
-        != True
-    ):
+    if validators.is_password_key_allowed(cleartext_password_key_from_form) != True:
         # validation failed.
-        current_app.logger.warning(
-            "failed to download keyfile, validation failed"
-        )
+        current_app.logger.warning("failed to download keyfile, validation failed")
         return render_template(
             "message.html",
             headline="Download keyfile error",
@@ -213,9 +207,7 @@ def login():
         # Validate the form data username.
         if validators.is_username_allowed(user_from_form) != True:
             # Login failed.
-            current_app.logger.warning(
-                "failed login, username validation failed"
-            )
+            current_app.logger.warning("failed login, username validation failed")
             return render_template(
                 "message.html",
                 headline="Login error",
@@ -226,9 +218,7 @@ def login():
         # Validate the form data password.
         if validators.is_password_allowed(cleartext_password_from_form) != True:
             # Login failed.
-            current_app.logger.warning(
-                "failed login, password validation failed"
-            )
+            current_app.logger.warning("failed login, password validation failed")
             return render_template(
                 "message.html",
                 headline="Login error",
@@ -237,14 +227,9 @@ def login():
             )
 
         # Validate the form data password key.
-        if (
-            validators.is_password_key_allowed(cleartext_password_key_from_form)
-            != True
-        ):
+        if validators.is_password_key_allowed(cleartext_password_key_from_form) != True:
             # Login failed.
-            current_app.logger.warning(
-                "failed login, password key validation failed"
-            )
+            current_app.logger.warning("failed login, password key validation failed")
             return render_template(
                 "message.html",
                 headline="Login error",
@@ -271,9 +256,7 @@ def login():
         # Check password hash.
         try:
             if (
-                ph.verify(
-                    user_from_db.password_hash, cleartext_password_from_form
-                )
+                ph.verify(user_from_db.password_hash, cleartext_password_from_form)
                 != True
             ):
                 # Login failed.
