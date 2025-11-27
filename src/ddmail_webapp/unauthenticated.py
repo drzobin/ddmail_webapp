@@ -3,15 +3,27 @@ from ddmail_webapp.auth import is_athenticated
 
 bp = Blueprint("unauthenticated", __name__, url_prefix="/")
 
+
 @bp.route("/")
 def main():
-    """Render the main landing page of the application.
+    """
+    Render the main landing page of the application.
 
-    Checks if the user is authenticated and passes the user object to the template
-    if they are. Otherwise, passes None as the current user.
+    This function displays the homepage of the DDMail web application, showing
+    basic information about the service and navigation options for both
+    authenticated and unauthenticated users.
 
     Returns:
-        HTML rendered main page template
+        Response: Flask response with rendered main.html template
+
+    Request Form Parameters:
+        None: This endpoint does not require form parameters
+
+    Error Responses:
+        None: This endpoint does not return error responses
+
+    Success Response:
+        Renders main.html template with current user authentication status
     """
     # Check if user is athenticated.
     if "secret" in session:
@@ -19,17 +31,29 @@ def main():
     else:
         current_user = None
 
-    return render_template('main.html', current_user = current_user)
+    return render_template("main.html", current_user=current_user)
+
 
 @bp.route("/help")
 def help():
-    """Render the help page with DNS configuration information.
+    """
+    Render the help page with DNS configuration information.
 
-    Provides information about MX, SPF, DKIM, and DMARC records needed for
-    email setup. Checks user authentication status to customize the page display.
+    This function displays comprehensive help documentation including DNS record
+    configuration requirements for email setup (MX, SPF, DKIM, DMARC records).
+    It loads configuration values and passes them to the template.
 
     Returns:
-        HTML rendered help page template with DNS configuration details
+        Response: Flask response with rendered help.html template
+
+    Request Form Parameters:
+        None: This endpoint does not require form parameters
+
+    Error Responses:
+        None: This endpoint does not return error responses
+
+    Success Response:
+        Renders help.html template with DNS configuration details and user status
     """
     # Check if user is athenticated.
     if "secret" in session:
@@ -45,17 +69,39 @@ def help():
     dkim_cname_record3 = current_app.config["DKIM_CNAME_RECORD3"]
     dmarc_record = current_app.config["DMARC_RECORD"]
 
-    return render_template('help.html',current_user=current_user,mx_record_host=mx_record_host,mx_record_priority=mx_record_priority,spf_record=spf_record,dkim_cname_record1=dkim_cname_record1,dkim_cname_record2=dkim_cname_record2,dkim_cname_record3=dkim_cname_record3,dmarc_record=dmarc_record)
+    return render_template(
+        "help.html",
+        current_user=current_user,
+        mx_record_host=mx_record_host,
+        mx_record_priority=mx_record_priority,
+        spf_record=spf_record,
+        dkim_cname_record1=dkim_cname_record1,
+        dkim_cname_record2=dkim_cname_record2,
+        dkim_cname_record3=dkim_cname_record3,
+        dmarc_record=dmarc_record,
+    )
+
 
 @bp.route("/about")
 def about():
-    """Render the about page of the application.
+    """
+    Render the about page of the application.
 
-    Displays information about the service, company, or team behind DDMail.
-    Checks user authentication status to customize the page display.
+    This function displays information about the DDMail service, including
+    company background, mission statement, and service overview for
+    potential and current users.
 
     Returns:
-        HTML rendered about page template
+        Response: Flask response with rendered about.html template
+
+    Request Form Parameters:
+        None: This endpoint does not require form parameters
+
+    Error Responses:
+        None: This endpoint does not return error responses
+
+    Success Response:
+        Renders about.html template with company information and user status
     """
     # Check if user is athenticated.
     if "secret" in session:
@@ -63,17 +109,29 @@ def about():
     else:
         current_user = None
 
-    return render_template('about.html',current_user=current_user)
+    return render_template("about.html", current_user=current_user)
+
 
 @bp.route("/pricing_and_payment")
 def pricing_and_payment():
-    """Render the pricing and payment information page.
+    """
+    Render the pricing and payment information page.
 
-    Displays subscription plans, pricing tiers, and payment options
-    available to users. Checks authentication status to customize the page.
+    This function displays available subscription plans, pricing tiers,
+    and payment options. It shows cost structure and billing information
+    for potential customers to make informed decisions.
 
     Returns:
-        HTML rendered pricing and payment page template
+        Response: Flask response with rendered pricing_and_payment.html template
+
+    Request Form Parameters:
+        None: This endpoint does not require form parameters
+
+    Error Responses:
+        None: This endpoint does not return error responses
+
+    Success Response:
+        Renders pricing_and_payment.html template with pricing information and user status
     """
     # Check if user is athenticated.
     if "secret" in session:
@@ -81,17 +139,29 @@ def pricing_and_payment():
     else:
         current_user = None
 
-    return render_template('pricing_and_payment.html',current_user=current_user)
+    return render_template("pricing_and_payment.html", current_user=current_user)
+
 
 @bp.route("/terms")
 def terms():
-    """Render the terms of service page.
+    """
+    Render the terms of service page.
 
-    Displays the legal terms and conditions for using the DDMail service.
-    Checks user authentication status to customize the page display.
+    This function displays the legal terms and conditions for using the
+    DDMail service. It provides users with important legal information
+    regarding service usage, privacy, and user obligations.
 
     Returns:
-        HTML rendered terms page template
+        Response: Flask response with rendered terms.html template
+
+    Request Form Parameters:
+        None: This endpoint does not require form parameters
+
+    Error Responses:
+        None: This endpoint does not return error responses
+
+    Success Response:
+        Renders terms.html template with terms of service and user status
     """
     # Check if user is athenticated.
     if "secret" in session:
@@ -99,17 +169,29 @@ def terms():
     else:
         current_user = None
 
-    return render_template('terms.html',current_user=current_user)
+    return render_template("terms.html", current_user=current_user)
+
 
 @bp.route("/contact")
 def contact():
-    """Render the contact page.
+    """
+    Render the contact page.
 
-    Displays contact information and possibly a contact form for users
-    to get in touch with support. Checks authentication status to customize the page.
+    This function displays contact information and support options for users
+    to get assistance. It provides various ways to reach customer support
+    and technical help resources.
 
     Returns:
-        HTML rendered contact page template
+        Response: Flask response with rendered contact.html template
+
+    Request Form Parameters:
+        None: This endpoint does not require form parameters
+
+    Error Responses:
+        None: This endpoint does not return error responses
+
+    Success Response:
+        Renders contact.html template with contact information and user status
     """
     # Check if user is athenticated.
     if "secret" in session:
@@ -117,28 +199,52 @@ def contact():
     else:
         current_user = None
 
-    return render_template('contact.html',current_user=current_user)
+    return render_template("contact.html", current_user=current_user)
+
 
 @bp.route("/robots.txt")
 def robots():
-    """Serve the robots.txt file for search engine crawlers.
+    """
+    Serve the robots.txt file for search engine crawlers.
 
-    Provides search engines with instructions about which parts of the site
-    should or should not be crawled and indexed.
+    This function provides search engines with instructions about which
+    parts of the site should or should not be crawled and indexed.
+    Essential for SEO and controlling bot access.
 
     Returns:
-        The static robots.txt file
+        Response: Flask response with static robots.txt file
+
+    Request Form Parameters:
+        None: This endpoint does not require form parameters
+
+    Error Responses:
+        None: This endpoint does not return error responses
+
+    Success Response:
+        Returns static robots.txt file with web crawler instructions
     """
-    return current_app.send_static_file('robots.txt')
+    return current_app.send_static_file("robots.txt")
+
 
 @bp.route("/sitemap.xml")
 def sitemap():
-    """Serve the sitemap.xml file for search engine crawlers.
+    """
+    Serve the sitemap.xml file for search engine crawlers.
 
-    Provides search engines with a structured list of all pages on the site
-    that should be indexed, along with metadata about each page.
+    This function provides search engines with a structured list of all
+    pages on the site that should be indexed, along with metadata about
+    each page including last modification dates and priorities.
 
     Returns:
-        The static sitemap.xml file
+        Response: Flask response with static sitemap.xml file
+
+    Request Form Parameters:
+        None: This endpoint does not require form parameters
+
+    Error Responses:
+        None: This endpoint does not return error responses
+
+    Success Response:
+        Returns static sitemap.xml file with site structure information
     """
-    return current_app.send_static_file('sitemap.xml')
+    return current_app.send_static_file("sitemap.xml")
