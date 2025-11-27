@@ -2,11 +2,22 @@ import os
 import tempfile
 import pytest
 from ddmail_webapp import create_app
-from ddmail_webapp.models import db, Account, Email, Account_domain, Alias, Global_domain, User, Authenticated
+from ddmail_webapp.models import (
+    db,
+    Account,
+    Email,
+    Account_domain,
+    Alias,
+    Global_domain,
+    User,
+    Authenticated,
+    Openpgp_public_key,
+)
 
 # Set mode to TESTING so we are sure not to run with production configuration running tests.
 os.environ["MODE"] = "TESTING"
 config_file = None
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -32,8 +43,12 @@ def pytest_sessionstart(session):
 def app(config_file):
     """Create and configure a new app instance for each test."""
     # Create the app with test config
-    app = create_app(config_file = config_file)
-    app.config.update({"TESTING": True,})
+    app = create_app(config_file=config_file)
+    app.config.update(
+        {
+            "TESTING": True,
+        }
+    )
 
     # Empty db
     with app.app_context():
@@ -41,6 +56,7 @@ def app(config_file):
         db.session.query(User).delete()
         db.session.query(Alias).delete()
         db.session.query(Email).delete()
+        db.session.query(Openpgp_public_key).delete()
         db.session.query(Account_domain).delete()
         db.session.query(Global_domain).delete()
         db.session.query(Account).delete()
@@ -48,10 +64,12 @@ def app(config_file):
 
     yield app
 
+
 @pytest.fixture
 def client(app):
     """A test client for the app."""
     return app.test_client()
+
 
 @pytest.fixture
 def runner(app):
