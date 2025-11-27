@@ -21,8 +21,26 @@ import ddmail_validators.validators as validators
 bp = Blueprint("auth", __name__, url_prefix="/")
 
 
-# Generate a token that is easy to write down on paper frpm screen.
 def generate_token(length):
+    """
+    Generate a secure token for user accounts and authentication.
+
+    This function creates a cryptographically secure token using uppercase
+    letters and digits that is easy to write down and transcribe. The token
+    ensures minimum security requirements with at least 4 digits.
+
+    Returns:
+        str: A secure token containing uppercase letters and digits
+
+    Parameters:
+        length (int): The desired length of the generated token
+
+    Security Requirements:
+        Must contain at least one uppercase letter
+        Must contain at least 4 digits
+        Uses cryptographically secure random generation
+        Character set: A-Z, 0-9
+    """
     alphabet = string.ascii_uppercase + string.digits
     while True:
         token = "".join(secrets.choice(alphabet) for i in range(length))
@@ -33,6 +51,26 @@ def generate_token(length):
 
 # Generate a password with digit, upparcase letters and lowercase letters.
 def generate_password(length):
+    """
+    Generate a secure password with mixed character types.
+
+    This function creates a cryptographically secure password containing
+    uppercase letters, lowercase letters, and digits. The password meets
+    minimum complexity requirements for enhanced security.
+
+    Returns:
+        str: A secure password with mixed character types
+
+    Parameters:
+        length (int): The desired length of the generated password
+
+    Security Requirements:
+        Must contain at least one lowercase letter
+        Must contain at least one uppercase letter
+        Must contain at least 3 digits
+        Uses cryptographically secure random generation
+        Character set: a-z, A-Z, 0-9
+    """
     alphabet = string.ascii_letters + string.digits
     while True:
         password = "".join(secrets.choice(alphabet) for i in range(length))
@@ -45,8 +83,27 @@ def generate_password(length):
     return password
 
 
-# Check if a user is authenticated, if the user is authenticated the user id will be returned else None.
 def is_athenticated(cookie):
+    """
+    Validate user authentication status using session cookie.
+
+    This function checks if a provided cookie corresponds to a valid,
+    non-expired user session. It validates the cookie format, checks
+    database records, and verifies expiration time.
+
+    Returns:
+        User|None: User object if authenticated, None if invalid/expired
+
+    Parameters:
+        cookie (str): The session cookie to validate
+
+    Error Cases:
+        Returns None if cookie is None
+        Returns None if cookie format is invalid
+        Returns None if cookie not found in database
+        Returns None if session has expired
+        Returns None if associated user not found
+    """
     # Check if cookie is None first
     if cookie is None:
         return None
@@ -85,6 +142,26 @@ def is_athenticated(cookie):
 
 @bp.route("/register", methods=["POST", "GET"])
 def register():
+    """
+    Handle user account and user registration process.
+
+    This function manages both GET and POST requests for user registration.
+    GET requests display the registration form, while POST requests create
+    a new account with an initial user, generating secure credentials.
+
+    Returns:
+        Response: Flask response with registration form or user credentials
+
+    Request Form Parameters:
+        csrf_token (str): CSRF protection token for POST requests
+
+    Error Responses:
+        None: This endpoint does not return error responses
+
+    Success Response:
+        GET: Renders registration.html template with registration form
+        POST: Returns user_created.html with account identifier, username, generated password, and generated encryption key
+    """
     if request.method == "GET":
         return render_template("register.html")
     if request.method == "POST":
@@ -141,6 +218,26 @@ def register():
 
 @bp.route("/download_keyfile", methods=["POST"])
 def download_keyfile():
+    """
+    Provide secure download of user encryption key file.
+
+    This function validates and processes requests to download encryption
+    key files. It performs input validation and returns the key as a
+    downloadable text file for secure local storage.
+
+    Returns:
+        Response: Flask response with key file download or error message
+
+    Request Form Parameters:
+        password_key (str): The encryption key to be downloaded
+
+    Error Responses:
+        "Failed to download keyfile, data is missing": If key is empty/whitespace
+        "failed to download keyfile, validation failed": If key fails security validation
+
+    Success Response:
+        File download with Content-Type text/plain and filename ddmail.key
+    """
     cleartext_password_key_from_form = request.form["password_key"].strip()
 
     # Check if cleartext_password_key_from_form is empty.
@@ -176,6 +273,34 @@ def download_keyfile():
 
 @bp.route("/login", methods=["POST", "GET"])
 def login():
+    """
+    Handle user authentication and session establishment.
+
+    This function manages user login process with multi-factor authentication
+    using username, password, and encryption key file. It validates credentials,
+    creates secure sessions, and redirects authenticated users.
+
+    Returns:
+        Response: Flask response with login form, error message, or redirect
+
+    Request Form Parameters:
+        user (str): Username for authentication
+        password (str): User's password
+        key (file): Encryption key file upload
+
+    Error Responses:
+        "Failed to login, wrong username and/or password and/or key": If form data is missing or empty
+        "Failed to login, wrong username and/or password and/or key": If username validation fails
+        "Failed to login, wrong username and/or password and/or key": If password validation fails
+        "Failed to login, wrong username and/or password and/or key": If key validation fails
+        "Failed to login, wrong username and/or password and/or key": If user not found in database
+        "Failed to login, wrong username and/or password and/or key": If password verification fails
+        "Failed to login, wrong username and/or password and/or key": If key verification fails
+
+    Success Response:
+        GET: Renders login.html template with authentication form
+        POST: Redirect to /settings page with established session
+    """
     current_user = None
 
     if request.method == "GET":
@@ -355,6 +480,25 @@ def login():
 
 @bp.route("/logout")
 def logout():
+    """
+    Handle user logout and session cleanup.
+
+    This function terminates user sessions by clearing browser cookies
+    and removing authentication records from the database. It ensures
+    complete session cleanup for security.
+
+    Returns:
+        Response: Flask redirect to home page (/)
+
+    Request Form Parameters:
+        None: This endpoint does not require form parameters
+
+    Error Responses:
+        None: This endpoint does not return error responses
+
+    Success Response:
+        Redirect to home page (/) with cleared session data
+    """
     # Check if user is authenticated.
     if "secret" in session:
         current_user = is_athenticated(session["secret"])
