@@ -50,8 +50,16 @@ def security():
     disclosure procedures for security researchers. Available at both
     root level and RFC 9116 compliant well-known location.
 
+    The fields are dynamically set from the SECURITY_TXT_* configuration
+    variables:
+        - SECURITY_TXT_CONTACT: list of contact URIs
+        - SECURITY_TXT_EXPIRES: expiry timestamp string
+        - SECURITY_TXT_ENCRYPTION: list of encryption key URIs
+        - SECURITY_TXT_PREFERRED_LANGUAGES: comma-separated language tags
+        - SECURITY_TXT_CANONICAL: list of canonical URIs
+
     Returns:
-        Response: Flask response with static security.txt file
+        Response: Flask response with dynamically generated security.txt content
 
     Request Form Parameters:
         None: This endpoint does not require form parameters
@@ -60,7 +68,30 @@ def security():
         None: This endpoint does not return error responses
 
     Success Response:
-        Returns static security.txt file with security contact information
+        Returns dynamically generated security.txt with security contact information
     """
     current_app.logger.debug("/.well-known/security.txt")
-    return current_app.send_static_file("security.txt")
+
+    contact_lines = "".join(
+        f"Contact: {c}\n" for c in current_app.config["SECURITY_TXT_CONTACT"]
+    )
+    expires = current_app.config["SECURITY_TXT_EXPIRES"]
+    encryption_lines = "".join(
+        f"Encryption: {e}\n" for e in current_app.config["SECURITY_TXT_ENCRYPTION"]
+    )
+    preferred_languages = current_app.config["SECURITY_TXT_PREFERRED_LANGUAGES"]
+    canonical_lines = "".join(
+        f"Canonical: {c}\n" for c in current_app.config["SECURITY_TXT_CANONICAL"]
+    )
+
+    content = (
+        f"{contact_lines}"
+        f"Expires: {expires}\n"
+        f"{encryption_lines}"
+        f"Preferred-Languages: {preferred_languages}\n"
+        f"{canonical_lines}"
+    )
+
+    response = make_response(content)
+    response.headers["Content-Type"] = "text/plain; charset=utf-8"
+    return response
