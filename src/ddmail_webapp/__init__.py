@@ -104,6 +104,19 @@ def create_app(config_file=None, test_config=None):
         app.config["DKIM_CNAME_RECORD3"] = toml_config[mode]["DKIM_CNAME_RECORD3"]
         app.config["DMARC_RECORD"] = toml_config[mode]["DMARC_RECORD"]
 
+        # Configure security.txt fields.
+        app.config["SECURITY_TXT_CONTACT"] = toml_config[mode]["SECURITY_TXT_CONTACT"]
+        app.config["SECURITY_TXT_EXPIRES"] = toml_config[mode]["SECURITY_TXT_EXPIRES"]
+        app.config["SECURITY_TXT_ENCRYPTION"] = toml_config[mode][
+            "SECURITY_TXT_ENCRYPTION"
+        ]
+        app.config["SECURITY_TXT_PREFERRED_LANGUAGES"] = toml_config[mode][
+            "SECURITY_TXT_PREFERRED_LANGUAGES"
+        ]
+        app.config["SECURITY_TXT_CANONICAL"] = toml_config[mode][
+            "SECURITY_TXT_CANONICAL"
+        ]
+
         # Configure tor and i2p addres.
         app.config["TOR_ADDRESS"] = toml_config[mode]["TOR_ADDRESS"]
         app.config["I2P_ADDRESS"] = toml_config[mode]["I2P_ADDRESS"]
