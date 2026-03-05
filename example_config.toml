@@ -10,6 +10,7 @@ OPENPGP_KEYHANDLER_PASSWORD = 'change_me'
 SQLALCHEMY_DATABASE_URI = 'mysql://mail_rw:change_me@127.0.0.1/mail'
 MX_RECORD_PRIORITY = 10
 MX_RECORD_HOST = 'mail.ddmail.se.'
+MTA_STS_MX = ['mail.ddmail.se']
 SPF_RECORD = '"v=spf1 mx -all"'
 DKIM_CNAME_RECORD1 = 'dkim1._domainkey.ddmail.se'
 DKIM_CNAME_RECORD2 = 'dkim2._domainkey.ddmail.se'
@@ -37,6 +38,7 @@ OPENPGP_KEYHANDLER_PASSWORD = 'change_me'
 SQLALCHEMY_DATABASE_URI = 'mysql://mail_rw:change_me@127.0.0.1/mail_test'
 MX_RECORD_PRIORITY = 10
 MX_RECORD_HOST = 'mail.ddmail.se.'
+MTA_STS_MX = ['mail.ddmail.se']
 SPF_RECORD = '"v=spf1 mx -all"'
 DKIM_CNAME_RECORD1 = 'dkim1._domainkey.ddmail.se'
 DKIM_CNAME_RECORD2 = 'dkim2._domainkey.ddmail.se'
@@ -64,6 +66,7 @@ OPENPGP_KEYHANDLER_PASSWORD = 'change_me'
 SQLALCHEMY_DATABASE_URI = 'mysql://mail_rw:change_me@127.0.0.1/mail_dev'
 MX_RECORD_PRIORITY = 10
 MX_RECORD_HOST = 'mail.ddmail.se.'
+MTA_STS_MX = ['mail.ddmail.se']
 SPF_RECORD = '"v=spf1 mx -all"'
 DKIM_CNAME_RECORD1 = 'dkim1._domainkey.ddmail.se'
 DKIM_CNAME_RECORD2 = 'dkim2._domainkey.ddmail.se'
