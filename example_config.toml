@@ -16,6 +16,11 @@ DKIM_CNAME_RECORD1 = 'dkim1._domainkey.ddmail.se'
 DKIM_CNAME_RECORD2 = 'dkim2._domainkey.ddmail.se'
 DKIM_CNAME_RECORD3 = 'dkim3._domainkey.ddmail.se'
 DMARC_RECORD = '"v=DMARC1; p=none"'
+SECURITY_TXT_CONTACT = ['mailto:security@crew.ddmail.se']
+SECURITY_TXT_EXPIRES = '2035-01-01T21:00:00.000Z'
+SECURITY_TXT_ENCRYPTION = ['https://www.ddmail.se/static/contact_security_pubkey.asc', 'https://ddmail.se/static/contact_security_pubkey.asc']
+SECURITY_TXT_PREFERRED_LANGUAGES = 'en,sv'
+SECURITY_TXT_CANONICAL = ['https://www.ddmail.se/.well-known/security.txt', 'https://www.ddmail.se/security.txt', 'https://ddmail.se/.well-known/security.txt', 'https://ddmail.se/security.txt']
 PAYMENT_BANKGIRO = 'change_me'
 TOR_ADDRESS = 'change_me'
 I2P_ADDRESS = 'change_me'
@@ -44,6 +49,11 @@ DKIM_CNAME_RECORD1 = 'dkim1._domainkey.ddmail.se'
 DKIM_CNAME_RECORD2 = 'dkim2._domainkey.ddmail.se'
 DKIM_CNAME_RECORD3 = 'dkim3._domainkey.ddmail.se'
 DMARC_RECORD = '"v=DMARC1; p=none"'
+SECURITY_TXT_CONTACT = ['mailto:security@crew.ddmail.se']
+SECURITY_TXT_EXPIRES = '2035-01-01T21:00:00.000Z'
+SECURITY_TXT_ENCRYPTION = ['https://www.ddmail.se/static/contact_security_pubkey.asc', 'https://ddmail.se/static/contact_security_pubkey.asc']
+SECURITY_TXT_PREFERRED_LANGUAGES = 'en,sv'
+SECURITY_TXT_CANONICAL = ['https://www.ddmail.se/.well-known/security.txt', 'https://www.ddmail.se/security.txt', 'https://ddmail.se/.well-known/security.txt', 'https://ddmail.se/security.txt']
 PAYMENT_BANKGIRO = 'change_me'
 TOR_ADDRESS = 'change_me'
 I2P_ADDRESS = 'change_me'
@@ -72,6 +82,11 @@ DKIM_CNAME_RECORD1 = 'dkim1._domainkey.ddmail.se'
 DKIM_CNAME_RECORD2 = 'dkim2._domainkey.ddmail.se'
 DKIM_CNAME_RECORD3 = 'dkim3._domainkey.ddmail.se'
 DMARC_RECORD = '"v=DMARC1; p=none"'
+SECURITY_TXT_CONTACT = ['mailto:security@crew.ddmail.se']
+SECURITY_TXT_EXPIRES = '2035-01-01T21:00:00.000Z'
+SECURITY_TXT_ENCRYPTION = ['https://www.ddmail.se/static/contact_security_pubkey.asc', 'https://ddmail.se/static/contact_security_pubkey.asc']
+SECURITY_TXT_PREFERRED_LANGUAGES = 'en,sv'
+SECURITY_TXT_CANONICAL = ['https://www.ddmail.se/.well-known/security.txt', 'https://www.ddmail.se/security.txt', 'https://ddmail.se/.well-known/security.txt', 'https://ddmail.se/security.txt']
 PAYMENT_BANKGIRO = 'change_me'
 TOR_ADDRESS = 'change_me'
 I2P_ADDRESS = 'change_me'
