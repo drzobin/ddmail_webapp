@@ -1,4 +1,5 @@
-from flask import Blueprint, session, render_template, current_app
+from flask import Blueprint, current_app, render_template, session
+
 from ddmail_webapp.auth import is_athenticated
 
 bp = Blueprint("unauthenticated", __name__, url_prefix="/")
@@ -68,6 +69,8 @@ def help():
     dkim_cname_record2 = current_app.config["DKIM_CNAME_RECORD2"]
     dkim_cname_record3 = current_app.config["DKIM_CNAME_RECORD3"]
     dmarc_record = current_app.config["DMARC_RECORD"]
+    smtp_server = current_app.config["SMTP_SERVER"]
+    imap_server = current_app.config["IMAP_SERVER"]
 
     return render_template(
         "help.html",
@@ -79,6 +82,8 @@ def help():
         dkim_cname_record2=dkim_cname_record2,
         dkim_cname_record3=dkim_cname_record3,
         dmarc_record=dmarc_record,
+        smtp_server=smtp_server,
+        imap_server=imap_server,
     )
 
 
@@ -109,7 +114,15 @@ def about():
     else:
         current_user = None
 
-    return render_template("about.html", current_user=current_user)
+    smtp_server = current_app.config.get("SMTP_SERVER")
+    imap_server = current_app.config.get("IMAP_SERVER")
+
+    return render_template(
+        "about.html",
+        current_user=current_user,
+        smtp_server=smtp_server,
+        imap_server=imap_server,
+    )
 
 
 @bp.route("/pricing_and_payment")
