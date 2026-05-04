@@ -1,12 +1,13 @@
-import os
-import sys
 import logging
 import logging.handlers
+import os
+import sys
+from logging import FileHandler
+from logging.config import dictConfig
+
 import toml
 from flask import Flask
 from flask_wtf.csrf import CSRFProtect
-from logging.config import dictConfig
-from logging import FileHandler
 
 
 def create_app(config_file=None, test_config=None):
@@ -103,6 +104,8 @@ def create_app(config_file=None, test_config=None):
         app.config["DKIM_CNAME_RECORD2"] = toml_config[mode]["DKIM_CNAME_RECORD2"]
         app.config["DKIM_CNAME_RECORD3"] = toml_config[mode]["DKIM_CNAME_RECORD3"]
         app.config["DMARC_RECORD"] = toml_config[mode]["DMARC_RECORD"]
+        app.config["SMTP_SERVER"] = toml_config[mode]["SMTP_SERVER"]
+        app.config["IMAP_SERVER"] = toml_config[mode]["IMAP_SERVER"]
 
         # Configure security.txt fields.
         app.config["SECURITY_TXT_CONTACT"] = toml_config[mode]["SECURITY_TXT_CONTACT"]
