@@ -52,10 +52,10 @@ the service more resilient to threats.
 
 <h3>DANE/TLSA</h3>
 We have DANE/TLSA 311 DNS records for the following services and ports:<br />
-SMTP mail.ddmail.se port 25 (with support for STARTTLS)<br />
-SMTP mail.ddmail.se port 587 (with support for STARTTLS)<br />
-SMTPS mail.ddmail.se port 465 (SMTP wrapped in TLS)<br />
-IMAPS mail.ddmail.se port 993 (IMAP wrapped in TLS)<br />
+SMTP {{ smtp_server }} port 25 (with support for STARTTLS)<br />
+SMTP {{ smtp_server }} port 587 (with support for STARTTLS)<br />
+SMTPS {{ smtp_server }} port 465 (SMTP wrapped in TLS)<br />
+IMAPS {{ imap_server }} port 993 (IMAP wrapped in TLS)<br />
 HTTPS ddmail.se port 443 (HTTP wrapped in TLS)<br />
 HTTPS www.ddmail.se port 443 (HTTP wrapped in TLS)<br />
 
