@@ -6829,7 +6829,6 @@ def test_settings_enabled_account_remove_domain(client, app):
         "/settings/add_domain",
         data={"domain": "test.ddmail.se", "csrf_token": csrf_token_settings_add_domain},
     )
-    print(response_settings_add_domain_post.data)
     assert response_settings_add_domain_post.status_code == 200
     assert b"<h3>Add Domain</h3>" in response_settings_add_domain_post.data
     assert b"Successfully added domain." in response_settings_add_domain_post.data
