@@ -2078,7 +2078,6 @@ def test_settings_enabled_account_remove_email(client, app, mocker):
             "csrf_token": csrf_token_settings_remove_email,
         },
     )
-    print(response_settings_remove_email_post.data)
     assert b"<h3>Remove Email Account</h3>" in response_settings_remove_email_post.data
     assert b"Successfully removed email." in response_settings_remove_email_post.data
 
