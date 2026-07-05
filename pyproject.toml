@@ -41,6 +41,7 @@ dev = [
   "toml",
   "gunicorn",
   "pytest-cov",
+  "pytest-mock",
   "pyright",
   "ruff",
   "hatchling",
