@@ -1,26 +1,27 @@
-import pytest
 import re
 from io import BytesIO
+
+import ddmail_validators.validators as validators
+import pytest
 from flask import session
 from werkzeug.http import parse_cookie
-from tests.helpers import get_csrf_token
-from tests.helpers import get_register_data
+
 from ddmail_webapp.auth import (
-    is_athenticated,
     generate_password,
     generate_token,
+    is_athenticated,
 )
 from ddmail_webapp.models import (
-    db,
     Account,
-    Email,
     Account_domain,
     Alias,
+    Authenticated,
+    Email,
     Global_domain,
     User,
-    Authenticated,
+    db,
 )
-import ddmail_validators.validators as validators
+from tests.helpers import get_csrf_token, get_register_data
 
 
 def test_generate_password():
@@ -1673,7 +1674,7 @@ def test_login_successful_cookie_generation(client, app):
     with app.app_context():
         authenticated = Authenticated.query.filter_by(cookie=session_secret).first()
         assert authenticated is not None
-        user = User.query.get(authenticated.user_id)
+        user = db.session.get(User, authenticated.user_id)
         assert user.user == register_data["username"]
 
         # Verify expiration time is set (should be 3 hours from now)
