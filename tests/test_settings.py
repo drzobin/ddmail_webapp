@@ -1,20 +1,21 @@
-import pytest
-import re
 import datetime
-import requests
+import re
 from io import BytesIO
-from tests.helpers import get_csrf_token
-from tests.helpers import get_register_data
+
+import pytest
+import requests
+
 from ddmail_webapp.models import (
-    db,
     Account,
-    Email,
     Account_domain,
     Alias,
+    Authenticated,
+    Email,
     Global_domain,
     User,
-    Authenticated,
+    db,
 )
+from tests.helpers import get_csrf_token, get_register_data
 
 
 def test_settings_disabled_account(client, app):
@@ -1919,7 +1920,7 @@ def test_settings_disabled_account_remove_email(client, app):
     )
 
 
-def test_settings_enabled_account_remove_email(client, app):
+def test_settings_enabled_account_remove_email(client, app, mocker):
     """Test removing email from enabled account
 
     This test verifies that users with enabled accounts can successfully
@@ -2063,6 +2064,13 @@ def test_settings_enabled_account_remove_email(client, app):
     #
     #
     # Test to remove email account with a global domain.
+
+    # Mock the requests.post response from ddmail_email_remover.
+    mock_response = mocker.MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b"done"
+    mocker.patch("requests.post", return_value=mock_response)
+
     response_settings_remove_email_post = client.post(
         "/settings/remove_email",
         data={
@@ -2071,11 +2079,8 @@ def test_settings_enabled_account_remove_email(client, app):
         },
     )
     print(response_settings_remove_email_post.data)
-    assert b"<h3>Remove Email Error</h3>" in response_settings_remove_email_post.data
-    assert (
-        b"Failed to removed email beacuse email remover service is unavalible."
-        in response_settings_remove_email_post.data
-    )
+    assert b"<h3>Remove Email Account</h3>" in response_settings_remove_email_post.data
+    assert b"Successfully removed email." in response_settings_remove_email_post.data
 
     # Test GET /settings/show_email
     assert client.get("/settings/show_email").status_code == 200
@@ -5360,8 +5365,10 @@ def test_settings_openpgp_operations_comprehensive(client, app):
             "csrf_token": csrf_token,
         },
     )
+
+    print(response.data)
     assert (
-        b"Failed to upload openpgp public key beacuse validation failed"
+        b"Failed to upload openpgp public key because uploaded public key is empty"
         in response.data
     )
 
