@@ -6,8 +6,9 @@ from logging import FileHandler
 from logging.config import dictConfig
 
 import toml
-from flask import Flask
+from flask import Flask, render_template
 from flask_wtf.csrf import CSRFProtect
+from werkzeug.exceptions import RequestEntityTooLarge
 
 
 def create_app(config_file=None, test_config=None):
@@ -75,6 +76,9 @@ def create_app(config_file=None, test_config=None):
             "SQLALCHEMY_DATABASE_URI"
         ]
         app.config["WTF_CSRF_SECRET_KEY"] = toml_config[mode]["WTF_CSRF_SECRET_KEY"]
+
+        # Cap request body size.
+        app.config["MAX_CONTENT_LENGTH"] = toml_config[mode]["MAX_CONTENT_LENGTH"]
 
         # Configure services that ddmail_webapp depend on.
         app.config["EMAIL_REMOVER_URL"] = toml_config[mode]["EMAIL_REMOVER_URL"]
@@ -162,6 +166,16 @@ def create_app(config_file=None, test_config=None):
     # app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI']
 
     csrf = CSRFProtect(app)
+
+    # Serve a friendly page instead of a raw 500 when uploads exceed
+    # MAX_CONTENT_LENGTH.
+    @app.errorhandler(RequestEntityTooLarge)
+    def _handle_request_too_large(e):
+        return render_template(
+            "message.html",
+            headline="Upload too large",
+            message="The uploaded file is larger than the allowed limit.",
+        ), 413
 
     # Ensure the instance folder exists
     try:
