@@ -1,27 +1,29 @@
-import requests
 import base64
+
+import ddmail_validators.validators as validators
+import requests
+from argon2 import PasswordHasher
 from flask import (
     Blueprint,
-    session,
-    render_template,
-    request,
     current_app,
     redirect,
+    render_template,
+    request,
+    session,
     url_for,
 )
-from argon2 import PasswordHasher
-from ddmail_webapp.auth import is_athenticated, generate_password, generate_token
+
+from ddmail_webapp.auth import generate_password, generate_token, is_athenticated
+from ddmail_webapp.forms import AliasForm, DomainForm, EmailForm, EmailPasswordForm
 from ddmail_webapp.models import (
-    db,
-    Email,
-    Openpgp_public_key,
     Account_domain,
     Alias,
+    Email,
     Global_domain,
+    Openpgp_public_key,
     User,
+    db,
 )
-from ddmail_webapp.forms import EmailForm, AliasForm, DomainForm, EmailPasswordForm
-import ddmail_validators.validators as validators
 
 bp = Blueprint("settings", __name__, url_prefix="/")
 
@@ -1046,7 +1048,7 @@ def settings_remove_email():
         )
         return render_template(
             "message.html",
-            headline="Remove email error",
+            headline="Remove Email Error",
             message="Failed to remove email beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",
             current_user=current_user,
         )
@@ -1075,7 +1077,7 @@ def settings_remove_email():
             )
             return render_template(
                 "message.html",
-                headline="Remove email error",
+                headline="Remove Email Error",
                 message="Failed to removed email, validation failed.",
                 current_user=current_user,
             )
@@ -1095,7 +1097,7 @@ def settings_remove_email():
             )
             return render_template(
                 "message.html",
-                headline="Remove email error",
+                headline="Remove Email Error",
                 message="Failed to removed email, validation failed.",
                 current_user=current_user,
             )
@@ -1121,7 +1123,7 @@ def settings_remove_email():
             )
             return render_template(
                 "message.html",
-                headline="Remove email error",
+                headline="Remove Email Error",
                 message="Failed to removed email, validation failed.",
                 current_user=current_user,
             )
@@ -1176,7 +1178,7 @@ def settings_remove_email():
             )
             return render_template(
                 "message.html",
-                headline="Remove email error",
+                headline="Remove Email Error",
                 message="Failed to remove data on disc for email account.",
                 current_user=current_user,
             )
@@ -1594,22 +1596,54 @@ def settings_upload_openpgp_public_key():
         )
 
     if request.method == "POST":
-        file = request.files["openpgp_public_key"]
-        openpgp_public_key = file.read().strip().decode("utf-8")
-
-        # Check if public key file is empty.
-        if openpgp_public_key == None:
+        # Guard against missing form field.
+        file = request.files.get("openpgp_public_key")
+        if file is None or file.filename == "":
             current_app.logger.warning(
                 "user "
                 + current_user.user
                 + " account "
                 + current_user.account.account
-                + " openpgp public key i empty"
+                + " openpgp public key upload missing file"
             )
             return render_template(
                 "message.html",
                 headline="Upload openpgp public key error",
-                message="Failed to upload openpgp public key beacuse uploaded public key i empty",
+                message="Failed to upload openpgp public key because no file was provided.",
+                current_user=current_user,
+            )
+
+        # Guard against non-UTF-8 payloads.
+        try:
+            openpgp_public_key = file.read().strip().decode("utf-8")
+        except UnicodeDecodeError:
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " openpgp public key upload is not valid utf-8"
+            )
+            return render_template(
+                "message.html",
+                headline="Upload openpgp public key error",
+                message="Failed to upload openpgp public key because the file is not valid UTF-8 text.",
+                current_user=current_user,
+            )
+
+        # Check if public key file is empty.
+        if not openpgp_public_key:
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " openpgp public key is empty"
+            )
+            return render_template(
+                "message.html",
+                headline="Upload openpgp public key error",
+                message="Failed to upload openpgp public key because uploaded public key is empty",
                 current_user=current_user,
             )
 
