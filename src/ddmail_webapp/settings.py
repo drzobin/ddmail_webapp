@@ -1797,8 +1797,8 @@ def settings_remove_openpgp_public_key():
     Remove an OpenPGP public key from the user's account.
 
     This function allows users to delete OpenPGP public keys from their
-    account. It communicates with external key handlers to properly remove
-    the key and cleans up database records.
+    account. After removal of the key it will confirm that the key has been
+    removed from the database for the account.
 
     Returns:
         Response: Flask response with removal result or login redirect
