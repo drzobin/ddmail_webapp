@@ -427,8 +427,12 @@ def test_settings_enabled_account_change_password_on_user(client, app):
     )
     new_user_password = m.group(1).decode("utf-8")
 
-    # Logout current user /logout
-    assert client.get("/logout").status_code == 302
+    # Logout current user /logout (POST + CSRF token)
+    csrf_token_logout = get_csrf_token(client.get("/settings").data)
+    assert (
+        client.post("/logout", data={"csrf_token": csrf_token_logout}).status_code
+        == 302
+    )
 
     # Test that user is not logged in.
     assert client.get("/").status_code == 200
@@ -652,8 +656,12 @@ def test_settings_enabled_account_change_key_on_user(client, app):
     )
     new_user_key = m.group(1).decode("utf-8")
 
-    # Logout current user /logout
-    assert client.get("/logout").status_code == 302
+    # Logout current user /logout (POST + CSRF token)
+    csrf_token_logout = get_csrf_token(client.get("/settings").data)
+    assert (
+        client.post("/logout", data={"csrf_token": csrf_token_logout}).status_code
+        == 302
+    )
 
     # Test that user is not logged in.
     assert client.get("/").status_code == 200
@@ -867,8 +875,12 @@ def test_settings_enabled_account_add_user_to_account(client, app):
     # Get the new user information
     new_user_data = get_register_data(response_settings_add_user_to_account_post.data)
 
-    # Logout current user /logout
-    assert client.get("/logout").status_code == 302
+    # Logout current user /logout (POST + CSRF token)
+    csrf_token_logout = get_csrf_token(client.get("/settings").data)
+    assert (
+        client.post("/logout", data={"csrf_token": csrf_token_logout}).status_code
+        == 302
+    )
 
     # Test that user is not logged in.
     assert client.get("/").status_code == 200
