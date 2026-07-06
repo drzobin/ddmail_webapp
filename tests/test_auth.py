@@ -592,20 +592,35 @@ def test_register_login_post(client, app):
     )
 
 
-def test_logout_get(client):
-    """Test logout functionality
+def test_logout_post(client):
+    """Test logout functionality via POST
 
     This test verifies that the logout endpoint properly handles user
     logout requests by redirecting users and clearing their session,
     ensuring users are properly logged out and redirected to the home page.
     """
-    # Test that we get redirected.
-    assert client.get("/logout").status_code == 302
+    # Get a CSRF token from any page that renders one.
+    response_login_get = client.get("/login")
+    csrf_token = get_csrf_token(response_login_get.data)
 
-    # Test that we are not logged in.
-    response = client.get("/logout", follow_redirects=True)
+    # Test that we get redirected. Note that /logout calls session.clear(),
+    # so the CSRF token in the session is invalidated after this call.
+    assert client.post("/logout", data={"csrf_token": csrf_token}).status_code == 302
+
+    # Test that we are not logged in (via a subsequent GET).
+    response = client.get("/")
     assert b"Logged in on account: Not logged in" in response.data
     assert b"Logged in as user: Not logged in" in response.data
+
+
+def test_logout_get_method_not_allowed(client):
+    """Test that GET on /logout is rejected
+
+    /logout must only accept POST to prevent logout-CSRF (e.g. cross-site
+    <img src="/logout"> forcing a victim to be logged out). This test
+    guards that invariant.
+    """
+    assert client.get("/logout").status_code == 405
 
 
 def test_register_login_settings_logout(client, app):
@@ -684,11 +699,14 @@ def test_register_login_settings_logout(client, app):
     )
     assert b"Is account enabled: No" in response_settings_get.data
 
-    # Test /logout that we get redirected.
-    assert client.get("/logout").status_code == 302
+    # Test /logout that we get redirected. Note that /logout calls
+    # session.clear(), so the CSRF token is invalidated after this call.
+    assert (
+        client.post("/logout", data={"csrf_token": csrf_token_login}).status_code == 302
+    )
 
-    # Test /logout that we are not logged in.
-    response = client.get("/logout", follow_redirects=True)
+    # Test that we are not logged in (via a subsequent GET).
+    response = client.get("/")
     assert b"Logged in on account: Not logged in" in response.data
 
     # Test that we cant se the data from /settings.
@@ -1250,7 +1268,11 @@ def test_logout_without_session(client):
     from users who are not logged in, redirecting them appropriately
     without causing errors or security issues.
     """
-    response = client.get("/logout")
+    # Bootstrap a CSRF token in the session.
+    response_login_get = client.get("/login")
+    csrf_token = get_csrf_token(response_login_get.data)
+
+    response = client.post("/logout", data={"csrf_token": csrf_token})
     assert response.status_code == 302  # Redirect to home
 
 
@@ -1261,10 +1283,14 @@ def test_logout_with_invalid_session(client):
     with invalid or corrupted session secrets, cleaning up gracefully
     and redirecting users to the home page.
     """
+    # Bootstrap a CSRF token in the session before poisoning it.
+    response_login_get = client.get("/login")
+    csrf_token = get_csrf_token(response_login_get.data)
+
     with client.session_transaction() as sess:
         sess["secret"] = "invalid_secret"
 
-    response = client.get("/logout")
+    response = client.post("/logout", data={"csrf_token": csrf_token})
     assert response.status_code == 302  # Redirect to home
 
 
@@ -1507,7 +1533,7 @@ def test_logout_authenticated_user_cleanup(client, app):
 
     # Logout
     with client:
-        response = client.get("/logout")
+        response = client.post("/logout", data={"csrf_token": csrf_token_login})
         assert response.status_code == 302
 
     # Verify authenticated entry was removed
@@ -1881,12 +1907,16 @@ def test_logout_session_clearing(client):
     data from the client session, ensuring no residual authentication
     information remains after logout completion.
     """
+    # Bootstrap a CSRF token in the session before poisoning it.
+    response_login_get = client.get("/login")
+    csrf_token = get_csrf_token(response_login_get.data)
+
     # Set up session data
     with client.session_transaction() as sess:
         sess["secret"] = "test_secret"
         sess["other_data"] = "should_be_cleared"
 
-    response = client.get("/logout")
+    response = client.post("/logout", data={"csrf_token": csrf_token})
     assert response.status_code == 302
 
     # Verify session is cleared
