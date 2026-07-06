@@ -3,6 +3,7 @@ import base64
 import ddmail_validators.validators as validators
 import requests
 from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 from flask import (
     Blueprint,
     current_app,
@@ -1371,6 +1372,7 @@ def settings_change_password_on_email():
                 )
                 != True
             ):
+                # Login failed.
                 current_app.logger.warning(
                     "user "
                     + current_user.user
@@ -1386,7 +1388,8 @@ def settings_change_password_on_email():
                     message="Failed to change password on email account, current email account password is wrong.",
                     current_user=current_user,
                 )
-        except:
+        except VerifyMismatchError:
+            # Login failed.
             current_app.logger.warning(
                 "user "
                 + current_user.user
