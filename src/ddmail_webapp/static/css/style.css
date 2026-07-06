@@ -36,6 +36,25 @@ ul {
     list-style-type: none;
 }
 
+/* Keep the logout POST form flowing inline like the other <li><a> nav items. */
+.logout-form {
+    display: inline;
+    margin: 0;
+    padding: 0;
+}
+
+/* Make the logout <button> visually match the surrounding <a> nav links. */
+.logout-button {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: #eccdba;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 .middle {
     background-color: #3b224c;
     padding: 20px;
