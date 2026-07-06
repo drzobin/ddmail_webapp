@@ -1,22 +1,24 @@
-import random
-import string
 import datetime
+import random
 import secrets
+import string
 from io import BytesIO
-from flask import (
-    Blueprint,
-    request,
-    render_template,
-    session,
-    redirect,
-    url_for,
-    current_app,
-    send_file,
-)
+
+import ddmail_validators.validators as validators
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from ddmail_webapp.models import db, Account, User, Authenticated
-import ddmail_validators.validators as validators
+from flask import (
+    Blueprint,
+    current_app,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    session,
+    url_for,
+)
+
+from ddmail_webapp.models import Account, Authenticated, User, db
 
 bp = Blueprint("auth", __name__, url_prefix="/")
 
@@ -49,14 +51,12 @@ def generate_token(length):
     return token
 
 
-# Generate a password with digit, upparcase letters and lowercase letters.
 def generate_password(length):
     """
     Generate a secure password with mixed character types.
 
     This function creates a cryptographically secure password containing
-    uppercase letters, lowercase letters, and digits. The password meets
-    minimum complexity requirements for enhanced security.
+    uppercase letters, lowercase letters, and digits.
 
     Returns:
         str: A secure password with mixed character types
@@ -97,12 +97,15 @@ def is_athenticated(cookie):
     Parameters:
         cookie (str): The session cookie to validate
 
-    Error Cases:
+    Error Responses:
         Returns None if cookie is None
         Returns None if cookie format is invalid
         Returns None if cookie not found in database
         Returns None if session has expired
         Returns None if associated user not found
+
+     Success Response:
+         User object from database if authenticated
     """
     # Check if cookie is None first
     if cookie is None:
@@ -277,7 +280,7 @@ def login():
     Handle user authentication and session establishment.
 
     This function manages user login process with multi-factor authentication
-    using username, password, and encryption key file. It validates credentials,
+    using username, password, and key file. It validates credentials,
     creates secure sessions, and redirects authenticated users.
 
     Returns:
@@ -478,14 +481,13 @@ def login():
         return redirect("/settings")
 
 
-@bp.route("/logout")
+@bp.route("/logout", methods=["POST"])
 def logout():
     """
     Handle user logout and session cleanup.
 
     This function terminates user sessions by clearing browser cookies
-    and removing authentication records from the database. It ensures
-    complete session cleanup for security.
+    and removing authentication records from the database.
 
     Returns:
         Response: Flask redirect to home page (/)
