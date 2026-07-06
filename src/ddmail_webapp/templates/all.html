@@ -29,7 +29,12 @@
                 <ul>
                     <li><a href="/">Main</a></li>
                     {% if current_user %}
-                    <li><a href="/logout">Logout</a></li>
+                    <li>
+                        <form action="{{ url_for('auth.logout') }}" method="post" class="logout-form">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <button type="submit" class="logout-button">Logout</button>
+                        </form>
+                    </li>
                     <li><a href="/settings">Settings</a></li>
                     {% else %}
                     <li><a href="/login">Login</a></li>
