@@ -1,39 +1,191 @@
+#
+# ddmail_webapp main configuration
+#
+#
+# This file is loaded at startup by ddmail_webapp.create_app(). The section
+# that is applied is chosen by the MODE environment variable, which must be
+# one of: PRODUCTION, TESTING, or DEVELOPMENT.
+#
+# Every key is REQUIRED in the section that MODE selects. A missing key will
+# raise KeyError at startup (it is better to fail fast and early).
+#
+# Only the [PRODUCTION] section is fully commented below; [TESTING] and
+# [DEVELOPMENT] use exactly the same schema.
+# =============================================================================
+
+
 [PRODUCTION]
+
+# Secrets
+
+# Flask session-signing key. Used to sign the session cookie so that clients
+# cannot tamper with it.
 SECRET_KEY = 'change_me'
+
+# CSRF-token signing key used by Flask-WTF's CSRFProtect. Independent from
+# SECRET_KEY.
 WTF_CSRF_SECRET_KEY = 'change_me'
+
+
+# Backend services
+#
+# ddmail_webapp does not talk to Postfix / Dovecot / GnuPG directly and does
+# not have write access to disc; it calls small internal HTTP services that
+# do the privileged work. Each service is authenticated with a shared secret
+# sent in the request body. Only bind these on loopback (127.0.0.1) or a
+# private network.
+
+# DMCP (DDMail Mail Control Protocol) key handler.
+# Manages Dovecot mailbox encryption keys keyed to the user's password_key.
 DMCP_KEYHANDLER_URL = 'http://127.0.0.1:8002'
 DMCP_KEYHANDLER_PASSWORD = 'change_me'
+
+# Email remover service. Called when an email account is deleted so the
+# underlying mailbox files are purged from disk.
 EMAIL_REMOVER_URL = '127.0.0.1:8001'
 EMAIL_REMOVER_PASSWORD = 'change_me'
+
+# OpenPGP key handler. Wraps GnuPG to manage per-account keyrings used for
+# encrypting inbound mail before delivery to disk.
 OPENPGP_KEYHANDLER_URL = 'http://127.0.0.1:8003'
 OPENPGP_KEYHANDLER_PASSWORD = 'change_me'
+
+
+# Database
+
+# SQLAlchemy connection URI. In production this should point at the MySQL/
+# MariaDB instance holding the ddmail_webapp schema. The credentials embedded
+# here are secrets — treat this file accordingly.
 SQLALCHEMY_DATABASE_URI = 'mysql://mail_rw:change_me@127.0.0.1/mail'
+
+
+# Request-size cap
+
+# Maximum request body size, in bytes. Enforced by Werkzeug before any route
+# handler runs; oversize requests are rejected with HTTP 413 and rendered via
+# the "Upload too large" error page. This is a defense-in-depth control
+# against upload-based memory-exhaustion DoS.
+#
+# The largest legitimate upload is an OpenPGP public key (typically a few KB,
+# up to ~100 KB when a key has many signatures/UIDs). 131072 bytes = 128 KiB
+# is a comfortable default.
 MAX_CONTENT_LENGTH = 131072
+
+
+# DNS records verified at "add domain" time
+#
+# When a user adds their own domain (settings_add_domain), ddmail_webapp
+# queries DNS and requires the domain to publish records that match the
+# values below. If your public mail hostname changes, update these.
+
+# Expected MX record: priority + host (note the trailing dot — this is a
+# fully-qualified DNS name).
 MX_RECORD_PRIORITY = 10
 MX_RECORD_HOST = 'smtp.ddmail.se.'
+
+# List of MX hosts published in the MTA-STS policy served at
+# /.well-known/mta-sts.txt. Multiple entries produce multiple `mx:` lines.
 MTA_STS_MX = ['smtp.ddmail.se']
+
+# Expected SPF TXT record (must be surrounded by literal double quotes as it
+# appears in DNS).
 SPF_RECORD = '"v=spf1 mx -all"'
+
+# Expected DKIM CNAME targets (three selectors: dkim1, dkim2, dkim3). Users'
+# domains must publish CNAMEs pointing at these hosts before the domain can
+# be added.
 DKIM_CNAME_RECORD1 = 'dkim1._domainkey.ddmail.se'
 DKIM_CNAME_RECORD2 = 'dkim2._domainkey.ddmail.se'
 DKIM_CNAME_RECORD3 = 'dkim3._domainkey.ddmail.se'
+
+# Expected DMARC TXT record (surround by literal double quotes as in DNS).
 DMARC_RECORD = '"v=DMARC1; p=none"'
+
+
+# User-facing server hostnames
+#
+# Shown in the /help and /about pages so users know which servers to point
+# their mail clients at. Purely informational — no DNS is done with these.
 SMTP_SERVER = 'smtp.ddmail.se'
 IMAP_SERVER = 'imap.ddmail.se'
+
+
+# /.well-known/security.txt (RFC 9116)
+#
+# Values are rendered verbatim into the security.txt response served at both
+# /security.txt and /.well-known/security.txt.
+
+# One or more contact URIs (mailto:, https:, tel:) — a list, each becomes
+# a separate `Contact:` line.
 SECURITY_TXT_CONTACT = ['mailto:security@crew.ddmail.se']
+
+# ISO-8601 timestamp after which this security.txt is considered expired
+# and should be refreshed. Update before this date.
 SECURITY_TXT_EXPIRES = '2035-01-01T21:00:00.000Z'
+
+# One or more URIs to the PGP key(s) used to encrypt vulnerability reports —
+# a list, each becomes a separate `Encryption:` line.
 SECURITY_TXT_ENCRYPTION = ['https://www.ddmail.se/static/contact_security_pubkey.asc', 'https://ddmail.se/static/contact_security_pubkey.asc']
+
+# Comma-separated language tags accepted for vulnerability reports.
 SECURITY_TXT_PREFERRED_LANGUAGES = 'en,sv'
+
+# All canonical URLs where this security.txt is served.
 SECURITY_TXT_CANONICAL = ['https://www.ddmail.se/.well-known/security.txt', 'https://www.ddmail.se/security.txt', 'https://ddmail.se/.well-known/security.txt', 'https://ddmail.se/security.txt']
+
+
+# Payment
+
+# Swedish bankgiro number shown on the payment page. Users transfer funds to
+# this number with their unique per-account payment_token as the reference.
 PAYMENT_BANKGIRO = 'change_me'
+
+
+# Alternative-network addresses (shown in the site header)
+
+# Tor onion service address for this instance (v3 .onion). Displayed at the
+# top of every page.
 TOR_ADDRESS = 'change_me'
+
+# I2P eepsite address for this instance (base32.b32.i2p). Displayed at the
+# top of every page.
 I2P_ADDRESS = 'change_me'
+
+
+# Logging
 [PRODUCTION.LOGGING]
+
+# Minimum log severity emitted by app.logger. One of:
+#     ERROR   — only errors
+#     WARNING — errors + warnings
+#     INFO    — everything except debug (recommended for PRODUCTION)
+#     DEBUG   — verbose; do NOT use in production (may log request internals)
 LOGLEVEL = 'INFO'
+
+# If true, app.logger writes to LOGFILE in addition to stderr.
 LOG_TO_FILE = true
+
+# Path to the log file (must be writable by the process user). Only used if
+# LOG_TO_FILE = true. Consider rotating externally (logrotate).
 LOGFILE = '/var/log/ddmail_webapp.log'
+
+# If true, app.logger also sends records to a syslog handler pointed at
+# SYSLOG_SERVER.
 LOG_TO_SYSLOG = true
+
+# Syslog destination. Either a local UNIX socket path (e.g. "/dev/log") or a
+# "host:port" for a network syslog server. See logging.handlers.SysLogHandler.
 SYSLOG_SERVER = '/dev/log'
 
+#
+# TESTING
+#
+# Same schema as [PRODUCTION] above. Used when MODE=TESTING (pytest sets this
+# automatically in tests/conftest.py). Differences worth noting:
+#   * SQLALCHEMY_DATABASE_URI points at a throwaway "mail_test" database that
+#     is wiped between test runs.
+#   * LOGLEVEL is DEBUG so failing tests produce maximum context.
+#
 [TESTING]
 SECRET_KEY = 'change_me'
 WTF_CSRF_SECRET_KEY = 'change_me'
@@ -70,6 +222,15 @@ LOGFILE = '/var/log/ddmail_webapp.log'
 LOG_TO_SYSLOG = true
 SYSLOG_SERVER = '/dev/log'
 
+
+#
+# DEVELOPMENT
+#
+# Same schema as [PRODUCTION] above. Used when MODE=DEVELOPMENT (e.g. via
+# run_dev.sh). Differences worth noting:
+#   * SQLALCHEMY_DATABASE_URI points at a local "mail_dev" database.
+#   * LOGLEVEL is DEBUG for developer visibility.
+#
 [DEVELOPMENT]
 SECRET_KEY = 'change_me'
 WTF_CSRF_SECRET_KEY = 'change_me'
