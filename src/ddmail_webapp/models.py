@@ -88,7 +88,9 @@ class Account_domain(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     account_id = db.mapped_column(db.Integer, ForeignKey("accounts.id"), nullable=False)
     domain = db.Column(db.String(200), unique=True, nullable=False)
-
+    is_enabled = db.Column(db.Boolean, unique=False, nullable=False, default=False)
+    verification = db.Column(db.String(40), unique=True, nullable=False)
+    last_time_verified = db.Column(db.DateTime, unique=False, nullable=True)
     account = relationship("Account", back_populates="account_domains")
     emails = relationship("Email", back_populates="account_domain")
     aliases = relationship("Alias", back_populates="account_domain")
