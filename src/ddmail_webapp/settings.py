@@ -1,4 +1,6 @@
 import base64
+import string
+import secrets
 
 import ddmail_validators.validators as validators
 import requests
@@ -28,6 +30,32 @@ from ddmail_webapp.models import (
 
 bp = Blueprint("settings", __name__, url_prefix="/")
 
+def generate_domain_verification_code(length):
+    """
+    Generate a secure token for domain verification.
+
+    This function creates a cryptographically secure token using lowercase
+    letters and digits. The token ensures minimum security requirements with
+    at least 4 digits.
+
+    Returns:
+        str: A secure token containing lowercase letters and digits
+
+    Parameters:
+        length (int): The desired length of the generated token
+
+    Security Requirements:
+        Must contain at least one lowercase letter
+        Must contain at least 4 digits
+        Uses cryptographically secure random generation
+        Character set: a-z, 0-9
+    """
+    alphabet = string.ascii_lowercase + string.digits
+    while True:
+        token = "".join(secrets.choice(alphabet) for i in range(length))
+        if any(c.islower() for c in token) and sum(c.isdigit() for c in token) >= 4:
+            break
+    return token
 
 @bp.route("/settings")
 def settings():
@@ -691,7 +719,8 @@ def settings_add_email():
     if request.method == "GET":
         # Get the accounts domains.
         account_domains = db.session.query(Account_domain.domain).filter(
-            Account_domain.account_id == current_user.account_id
+            Account_domain.account_id == current_user.account_id,
+            Account_domain.is_enabled == True
         )
         global_domains = db.session.query(Global_domain.domain).filter(
             Global_domain.is_enabled == True
@@ -747,7 +776,8 @@ def settings_add_email():
 
             # Validate domain part of email from form.
             validate_email_domain = add_email_from_form.split("@")
-            if validators.is_domain_allowed(validate_email_domain[1]) == False:
+            domain = validate_email_domain[1]
+            if validators.is_domain_allowed(domain) == False:
                 current_app.logger.warning(
                     "user "
                     + current_user.user
@@ -755,7 +785,7 @@ def settings_add_email():
                     + current_user.account.account
                     + " failed to add email "
                     + add_email_from_form
-                    + " beacuse domain is not in db"
+                    + " domain validation failed."
                 )
                 return render_template(
                     "message.html",
@@ -768,7 +798,7 @@ def settings_add_email():
             is_domain_global = (
                 db.session.query(Global_domain)
                 .filter(
-                    Global_domain.domain == validate_email_domain[1],
+                    Global_domain.domain == domain,
                     Global_domain.is_enabled == True,
                 )
                 .count()
@@ -778,7 +808,7 @@ def settings_add_email():
             is_domain_mine = (
                 db.session.query(Account_domain)
                 .filter(
-                    Account_domain.domain == validate_email_domain[1],
+                    Account_domain.domain == domain,
                     Account_domain.account_id == current_user.account_id,
                 )
                 .count()
@@ -798,6 +828,49 @@ def settings_add_email():
                     "message.html",
                     headline="Add email error",
                     message="Failed to add email, domain is not active in our system.",
+                    current_user=current_user,
+                )
+
+            # Check that domain is enabled.
+            is_domain_enabled = 0
+
+            # Check if domain is enabled in global domains table.
+            if is_domain_global == 1 and is_domain_mine != 1:
+                is_domain_enabled = (
+                    db.session.query(Global_domain)
+                    .filter(
+                        Global_domain.domain == domain,
+                        Global_domain.is_enabled == 1
+                    )
+                    .count()
+                )
+            # Check if domain is enabled in account domains table.
+            else:
+                is_domain_enabled = (
+                    db.session.query(Account_domain)
+                    .filter(
+                        Account_domain.domain == domain,
+                        Account_domain.is_enabled == 1
+                    )
+                    .count()
+                )
+
+            # If domain is not enabled, log warning and return error message.
+            if is_domain_enabled == 0:
+                current_app.logger.warning(
+                    "user "
+                    + current_user.user
+                    + " account "
+                    + current_user.account.account
+                    + " failed to add email "
+                    + add_email_from_form
+                    + " beacuse domain is not enabled."
+                )
+
+                return render_template(
+                    "message.html",
+                    headline="Add email error",
+                    message="Failed to add email, domain is not enabled.",
                     current_user=current_user,
                 )
 
@@ -2539,7 +2612,8 @@ def settings_add_alias():
             Email.account_id == current_user.account_id
         )
         account_domains = db.session.query(Account_domain.domain).filter(
-            Account_domain.account_id == current_user.account_id
+            Account_domain.account_id == current_user.account_id,
+            Account_domain.is_enabled == True
         )
         global_domains = db.session.query(Global_domain.domain).filter(
             Global_domain.is_enabled == True
@@ -2728,6 +2802,49 @@ def settings_add_alias():
                     "message.html",
                     headline="Add alias error",
                     message="Failed to add alias, source email domain is not allowed.",
+                    current_user=current_user,
+                )
+
+            # Check that src email domain is enabled.
+            is_domain_enabled = 0
+
+            # Check if src domain is enabled in global domains table.
+            if is_src_email_domain_global == 1 and is_src_email_domain_mine != 1:
+                is_domain_enabled = (
+                    db.session.query(Global_domain)
+                    .filter(
+                        Global_domain.domain == validate_src_email_domain[1],
+                        Global_domain.is_enabled == 1
+                    )
+                    .count()
+                )
+            # Check if src domain is enabled in account domains table.
+            else:
+                is_domain_enabled = (
+                    db.session.query(Account_domain)
+                    .filter(
+                        Account_domain.domain == validate_src_email_domain[1],
+                        Account_domain.is_enabled == 1
+                    )
+                    .count()
+                )
+
+            # If src domain is not enabled, log warning and return error message.
+            if is_domain_enabled == 0:
+                current_app.logger.warning(
+                    "user "
+                    + current_user.user
+                    + " account "
+                    + current_user.account.account
+                    + " failed to add alias with src email "
+                    + src_email_from_form
+                    + " beacuse src domain is not enabled."
+                )
+
+                return render_template(
+                    "message.html",
+                    headline="Add alias error",
+                    message="Failed to add alias, src domain is not enabled.",
                     current_user=current_user,
                 )
 
@@ -3102,6 +3219,7 @@ def settings_add_domain():
         dkim_cname_record2 = current_app.config["DKIM_CNAME_RECORD2"]
         dkim_cname_record3 = current_app.config["DKIM_CNAME_RECORD3"]
         dmarc_record = current_app.config["DMARC_RECORD"]
+        verification_name = current_app.config["ACCOUNT_DOMAIN_VERIFICATION"]
 
         return render_template(
             "settings_add_domain.html",
@@ -3114,8 +3232,48 @@ def settings_add_domain():
             dkim_cname_record2=dkim_cname_record2,
             dkim_cname_record3=dkim_cname_record3,
             dmarc_record=dmarc_record,
+            verification_name=verification_name,
         )
 
+@bp.route("/settings/add_domain_step1", methods=["POST"])
+def settings_add_domain_step1():
+
+    # Set variables from current_app config.
+    mx_record_host = current_app.config["MX_RECORD_HOST"]
+    mx_record_priority = current_app.config["MX_RECORD_PRIORITY"]
+    spf_record = current_app.config["SPF_RECORD"]
+    dkim_cname_record1 = current_app.config["DKIM_CNAME_RECORD1"]
+    dkim_cname_record2 = current_app.config["DKIM_CNAME_RECORD2"]
+    dkim_cname_record3 = current_app.config["DKIM_CNAME_RECORD3"]
+    dmarc_record = current_app.config["DMARC_RECORD"]
+    verification_name = current_app.config["ACCOUNT_DOMAIN_VERIFICATION"]
+
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
+        return redirect(url_for("auth.login"))
+
+    # Check if user is authenticated.
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        current_app.logger.warning("user is not authenticated")
+        return redirect(url_for("auth.login"))
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        current_app.logger.debug(
+            "account " + current_user.account.account + " is not enabled"
+        )
+        return render_template(
+            "message.html",
+            headline="Add Domain Step 1 Error",
+            message="Failed to add domain step1, beacuse this account is disabled.",
+            current_user=current_user,
+        )
+
+    form = DomainForm()
     if request.method == "POST":
         if not form.validate_on_submit():
             current_app.logger.warning(
@@ -3127,8 +3285,8 @@ def settings_add_domain():
             )
             return render_template(
                 "message.html",
-                headline="Add Domain Error",
-                message="Failed to add domain, form validation failed.",
+                headline="Add Domain Step 1 Error",
+                message="Failed to add domain step1, form validation failed.",
                 current_user=current_user,
             )
         else:
@@ -3145,8 +3303,8 @@ def settings_add_domain():
                 )
                 return render_template(
                     "message.html",
-                    headline="Add Domain Error",
-                    message="Failed to add domain, domain validation failed.",
+                    headline="Add Domain Step 1 Error",
+                    message="Failed to add domain step1, domain validation failed.",
                     current_user=current_user,
                 )
 
@@ -3174,10 +3332,235 @@ def settings_add_domain():
                 )
                 return render_template(
                     "message.html",
-                    headline="Add Domain Error",
-                    message="Failed to add domain, the current domain already exist.",
+                    headline="Add Domain Step 1 Error",
+                    message="Failed to add domain step1, the current domain already exist.",
                     current_user=current_user,
                 )
+            # Generate domain verification code.
+            verification_code = generate_domain_verification_code(40)
+
+            # Add domain to db.
+            account_domain = Account_domain(
+                account_id=current_user.account_id,
+                domain=form.domain.data,
+                verification=verification_code,
+                is_enabled=False
+            )
+            db.session.add(account_domain)
+            db.session.commit()
+
+            current_app.logger.debug(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " domain "
+                + form.domain.data
+                + " verification code "
+                + verification_code
+                + " is enabled "
+                + str(False)
+                + " was added"
+            )
+
+        return render_template(
+            "settings_add_domain_step1.html",
+            form=form,
+            domain=form.domain.data,
+            current_user=current_user,
+            mx_record_host=mx_record_host,
+            mx_record_priority=mx_record_priority,
+            spf_record=spf_record,
+            dkim_cname_record1=dkim_cname_record1,
+            dkim_cname_record2=dkim_cname_record2,
+            dkim_cname_record3=dkim_cname_record3,
+            dmarc_record=dmarc_record,
+            verification_name=verification_name,
+            verification_code=verification_code,
+        )
+
+
+@bp.route("/settings/add_domain_step2", methods=["POST"])
+def settings_add_domain_step2():
+    # Set variables from current_app config.
+    mx_record_host = current_app.config["MX_RECORD_HOST"]
+    mx_record_priority = current_app.config["MX_RECORD_PRIORITY"]
+    spf_record = current_app.config["SPF_RECORD"]
+    dkim_cname_record1 = current_app.config["DKIM_CNAME_RECORD1"]
+    dkim_cname_record2 = current_app.config["DKIM_CNAME_RECORD2"]
+    dkim_cname_record3 = current_app.config["DKIM_CNAME_RECORD3"]
+    dmarc_record = current_app.config["DMARC_RECORD"]
+    verification_name = current_app.config["ACCOUNT_DOMAIN_VERIFICATION"]
+
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
+        return redirect(url_for("auth.login"))
+
+    # Check if user is authenticated.
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        current_app.logger.warning("user is not authenticated")
+        return redirect(url_for("auth.login"))
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        current_app.logger.debug(
+            "account " + current_user.account.account + " is not enabled"
+        )
+        return render_template(
+            "message.html",
+            headline="Add Domain Step 2 Error",
+            message="Failed to add domain step2 beacuse this account is disabled.",
+            current_user=current_user,
+        )
+
+    form = DomainForm()
+    if request.method == "POST":
+
+        if not form.validate_on_submit():
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " form validation failed"
+            )
+            return render_template(
+                "message.html",
+                headline="Add Domain Step 2 Error",
+                message="Failed to add domain step2, form validation failed.",
+                current_user=current_user,
+            )
+        else:
+            # Validate domain.
+            if validators.is_domain_allowed(form.domain.data) == False:
+                current_app.logger.warning(
+                    "user "
+                    + current_user.user
+                    + " account "
+                    + current_user.account.account
+                    + " domain "
+                    + form.domain.data
+                    + " validation failed"
+                )
+                return render_template(
+                    "message.html",
+                    headline="Add Domain Step 2 Error",
+                    message="Failed to add domain step2, domain validation failed.",
+                    current_user=current_user,
+                )
+
+            # Check that domain do not already exsist in global_domains.
+            does_global_domain_exist = (
+                db.session.query(Global_domain)
+                .filter(Global_domain.domain == form.domain.data)
+                .count()
+            )
+
+            if does_global_domain_exist == 1:
+                current_app.logger.warning(
+                    "user "
+                    + current_user.user
+                    + " account "
+                    + current_user.account.account
+                    + " domain "
+                    + form.domain.data
+                    + " already exist in db and is global"
+                )
+                return render_template(
+                    "message.html",
+                    headline="Add Domain Step 2 Error",
+                    message="Failed to add domain step2, the current domain already exist in global domains.",
+                    current_user=current_user,
+                )
+
+            # Check that domain exist in account_domain, is owned by current account and is not enabled.
+            account_domain = (
+                db.session.query(Account_domain)
+                .filter(
+                    Account_domain.account_id == current_user.account_id,
+                    Account_domain.domain == form.domain.data,
+                    Account_domain.is_enabled == False
+                )
+                .first()
+            )
+
+            # Check that domain exist in database.
+            if account_domain is None:
+                current_app.logger.warning(
+                    "user "
+                    + current_user.user
+                    + " account "
+                    + current_user.account.account
+                    + " domain "
+                    + form.domain.data
+                    + " is not in db"
+                )
+                return render_template(
+                    "message.html",
+                    headline="Add Domain Step 2 Error",
+                    message="Failed to add domain step2, the domain is not in the database.",
+                    current_user=current_user,
+                )
+
+            # Check that domain is owned by current account.
+            if account_domain.account_id != current_user.account_id:
+                current_app.logger.warning(
+                    "user "
+                    + current_user.user
+                    + " account "
+                    + current_user.account.account
+                    + " domain "
+                    + form.domain.data
+                    + " is not owned by current account"
+                )
+                return render_template(
+                    "message.html",
+                    headline="Add Domain Step 2 Error",
+                    message="Failed to add domain step2, the domain is not owned by the current account.",
+                    current_user=current_user,
+                )
+
+            # Check that domain is not enabled.
+            if account_domain.is_enabled:
+                current_app.logger.warning(
+                    "user "
+                    + current_user.user
+                    + " account "
+                    + current_user.account.account
+                    + " domain "
+                    + form.domain.data
+                    + " is enabled"
+                )
+                return render_template(
+                    "message.html",
+                    headline="Add Domain Step 2 Error",
+                    message="Failed to add domain step2, the domain is already added and is enabled ",
+                    current_user=current_user,
+                )
+            # Track account domain status.
+            status = {
+                "verification": False,
+                "mx": False,
+                "spf": False,
+                "dkim": False,
+                "dmarc": False,
+            }
+
+            # Validate domain dns verification.
+            account_domain = (
+                db.session.query(Account_domain)
+                .filter(
+                    Account_domain.account_id == current_user.account_id,
+                    Account_domain.domain == form.domain.data,
+                    Account_domain.is_enabled == False
+                )
+                .first()
+            )
+            verification_code = account_domain.verification
 
             # Validate domain dns mx record.
             mx_record_host = current_app.config["MX_RECORD_HOST"]
@@ -3185,6 +3568,12 @@ def settings_add_domain():
             is_mx = validators.is_mx_valid(
                 str(form.domain.data), mx_record_host, mx_record_priority
             )
+
+            # MX record is correct.
+            if is_mx == True:
+                status["mx"] = True
+
+            # MX record is not correct.
             if is_mx != True:
                 current_app.logger.warning(
                     "user "
@@ -3195,16 +3584,17 @@ def settings_add_domain():
                     + form.domain.data
                     + " mx is not valid"
                 )
-                return render_template(
-                    "message.html",
-                    headline="Add Domain Error",
-                    message="Failed to add domain, the domain dns mx record is not correct.",
-                    current_user=current_user,
-                )
+
 
             # Validate dns spf record.
             spf_record = current_app.config["SPF_RECORD"]
             is_spf = validators.is_spf_valid(form.domain.data, spf_record)
+
+            # SPF record is correct.
+            if is_spf == True:
+                status["spf"] = True
+
+            # SPF record is not correct.
             if is_spf != True:
                 current_app.logger.warning(
                     "user "
@@ -3215,12 +3605,6 @@ def settings_add_domain():
                     + form.domain.data
                     + " spf is not valid"
                 )
-                return render_template(
-                    "message.html",
-                    headline="Add Domain Error",
-                    message="Failed to add domain, the domain dns spf record is not correct.",
-                    current_user=current_user,
-                )
 
             # Validate that dns dkim records is a cname to correct records.
             correct_records = [
@@ -3228,6 +3612,7 @@ def settings_add_domain():
                 current_app.config["DKIM_CNAME_RECORD2"],
                 current_app.config["DKIM_CNAME_RECORD3"],
             ]
+
             count = 1
             for correct_record in correct_records:
                 # The user supplyed dkim record that should be a cname.
@@ -3246,17 +3631,22 @@ def settings_add_domain():
                         + record
                         + " is not valid"
                     )
-                    return render_template(
-                        "message.html",
-                        headline="Add Domain Error",
-                        message="Failed to add domain, the domain dns dkim record is not correct.",
-                        current_user=current_user,
-                    )
+                    break
                 count = count + 1
+
+            # DKIM records is valid.
+            if count == 3:
+                status["dkim"] = True
 
             # Validate dns dmarc record.
             dmarc_record = current_app.config["DMARC_RECORD"]
             is_dmarc = validators.is_dmarc_valid(form.domain.data, dmarc_record)
+
+            # DMARC record is correct.
+            if is_dmarc == True:
+                status["dmarc"] = True
+
+            # DMARC record is not correct.
             if is_dmarc != True:
                 current_app.logger.warning(
                     "user "
@@ -3267,35 +3657,43 @@ def settings_add_domain():
                     + form.domain.data
                     + " dmarc is not valid"
                 )
+
+
+            # All dns records is correct. Change account domain to is_enabled = True, this will enable the domain for the current account.
+            if status["mx"] == True and status["dmarc"] == True and status["dkim"] == True and status["spf"] == True and status["verification"] == True:
+                current_app.logger.debug(
+                    "user "
+                    + current_user.user
+                    + " account "
+                    + current_user.account.account
+                    + " domain "
+                    + form.domain.data
+                    + " is_enabled set to True"
+                )
                 return render_template(
                     "message.html",
-                    headline="Add Domain Error",
-                    message="Failed to add domain, the domain dns dmarc record is not correct.",
+                    headline="Add domain",
+                    message="Successfully added domain.",
                     current_user=current_user,
                 )
-
-            # Add domain to db.
-            account_domain = Account_domain(
-                account_id=current_user.account_id, domain=form.domain.data
-            )
-            db.session.add(account_domain)
-            db.session.commit()
-
-            current_app.logger.debug(
-                "user "
-                + current_user.user
-                + " account "
-                + current_user.account.account
-                + " domain "
-                + form.domain.data
-                + " was added"
-            )
-            return render_template(
-                "message.html",
-                headline="Add Domain",
-                message="Successfully added domain.",
-                current_user=current_user,
-            )
+            # All dns records is not correct.
+            else:
+                return render_template(
+                    "settings_add_domain_step2.html",
+                    form=form,
+                    domain=form.domain.data,
+                    current_user=current_user,
+                    mx_record_host=mx_record_host,
+                    mx_record_priority=mx_record_priority,
+                    spf_record=spf_record,
+                    dkim_cname_record1=dkim_cname_record1,
+                    dkim_cname_record2=dkim_cname_record2,
+                    dkim_cname_record3=dkim_cname_record3,
+                    dmarc_record=dmarc_record,
+                    verification_name=verification_name,
+                    verification_code=verification_code,
+                    status=status,
+                )
 
 
 @bp.route("/settings/remove_domain", methods=["POST", "GET"])
