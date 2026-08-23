@@ -69,6 +69,7 @@ def help():
     dkim_cname_record2 = current_app.config["DKIM_CNAME_RECORD2"]
     dkim_cname_record3 = current_app.config["DKIM_CNAME_RECORD3"]
     dmarc_record = current_app.config["DMARC_RECORD"]
+    verification_name = current_app.config["ACCOUNT_DOMAIN_VERIFICATION"]
     smtp_server = current_app.config["SMTP_SERVER"]
     imap_server = current_app.config["IMAP_SERVER"]
 
@@ -81,6 +82,7 @@ def help():
         dkim_cname_record1=dkim_cname_record1,
         dkim_cname_record2=dkim_cname_record2,
         dkim_cname_record3=dkim_cname_record3,
+        verification_name=verification_name,
         dmarc_record=dmarc_record,
         smtp_server=smtp_server,
         imap_server=imap_server,
