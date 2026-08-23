@@ -1,0 +1,29 @@
+{% extends "all.html" %} {% block content %} {% include 'settings_menu.html' %}
+<h3>Add Domain</h3>
+The following dns records is needed before you can add domain {{ domain }}:
+<pre>
+{{ domain }}                  3600 IN MX    {{ mx_record_priority }} {{ mx_record_host }}
+{{ domain }}                  3600 IN TXT   {{ spf_record }}
+{{ domain }}                  3600 IN TXT   "{{ verification_name }}{{ verification_code }}"
+dkim1._domainkey.{{ domain }} 3600 IN CNAME {{ dkim_cname_record1 }}
+dkim2._domainkey.{{ domain }} 3600 IN CNAME {{ dkim_cname_record2 }}
+dkim3._domainkey.{{ domain }} 3600 IN CNAME {{ dkim_cname_record3 }}
+_dmarc.{{ domain }}           3600 IN TXT   {{ dmarc_record }}
+</pre>
+<p></p>
+Current status of the above dns records for domain {{ domain }}:
+<p></p>
+MX record: {{ status["mx"] }}<br>
+TXT record for domain verification: {{ status["verification"] }}<br>
+SPF record: {{ status["spf"] }}<br>
+DKIM records: {{ status["dkim"] }}<br>
+DMARC record: {{ status["dmarc"] }}<br>
+
+<p></p>
+<form method="POST" action="{{ url_for('settings.settings_add_domain_step2') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    {{ form.domain.label }}:<br />
+    {{ form.domain(size=20) }}
+    <input type="submit" value="Try again to add domain" />
+</form>
+{% endblock%}
