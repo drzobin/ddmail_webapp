@@ -91,6 +91,7 @@ class Account_domain(db.Model):
     is_enabled = db.Column(db.Boolean, unique=False, nullable=False, default=False)
     verification = db.Column(db.String(40), unique=True, nullable=False)
     last_time_verified = db.Column(db.DateTime, unique=False, nullable=True)
+
     account = relationship("Account", back_populates="account_domains")
     emails = relationship("Email", back_populates="account_domain")
     aliases = relationship("Alias", back_populates="account_domain")
