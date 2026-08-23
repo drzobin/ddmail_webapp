@@ -108,6 +108,8 @@ def create_app(config_file=None, test_config=None):
         app.config["DKIM_CNAME_RECORD2"] = toml_config[mode]["DKIM_CNAME_RECORD2"]
         app.config["DKIM_CNAME_RECORD3"] = toml_config[mode]["DKIM_CNAME_RECORD3"]
         app.config["DMARC_RECORD"] = toml_config[mode]["DMARC_RECORD"]
+        app.config["ACCOUNT_DOMAIN_VERIFICATION"] = toml_config[mode]["ACCOUNT_DOMAIN_VERIFICATION"]
+
         app.config["SMTP_SERVER"] = toml_config[mode]["SMTP_SERVER"]
         app.config["IMAP_SERVER"] = toml_config[mode]["IMAP_SERVER"]
 
