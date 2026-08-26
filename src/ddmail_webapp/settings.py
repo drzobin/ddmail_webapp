@@ -3219,7 +3219,7 @@ def settings_add_domain():
         dkim_cname_record2 = current_app.config["DKIM_CNAME_RECORD2"]
         dkim_cname_record3 = current_app.config["DKIM_CNAME_RECORD3"]
         dmarc_record = current_app.config["DMARC_RECORD"]
-        verification_name = current_app.config["ACCOUNT_DOMAIN_VERIFICATION"]
+        verification_id = current_app.config["ACCOUNT_DOMAIN_VERIFICATION"]
 
         return render_template(
             "settings_add_domain.html",
@@ -3232,7 +3232,7 @@ def settings_add_domain():
             dkim_cname_record2=dkim_cname_record2,
             dkim_cname_record3=dkim_cname_record3,
             dmarc_record=dmarc_record,
-            verification_name=verification_name,
+            verification_id=verification_id,
         )
 
 @bp.route("/settings/add_domain_step1", methods=["POST"])
@@ -3246,7 +3246,7 @@ def settings_add_domain_step1():
     dkim_cname_record2 = current_app.config["DKIM_CNAME_RECORD2"]
     dkim_cname_record3 = current_app.config["DKIM_CNAME_RECORD3"]
     dmarc_record = current_app.config["DMARC_RECORD"]
-    verification_name = current_app.config["ACCOUNT_DOMAIN_VERIFICATION"]
+    verification_id = current_app.config["ACCOUNT_DOMAIN_VERIFICATION"]
 
     # Check if cookie secret is set.
     if not "secret" in session:
@@ -3308,19 +3308,21 @@ def settings_add_domain_step1():
                     current_user=current_user,
                 )
 
-            # Check that domain do not already exsist.
+            # Check if domain existin account_domains.
             does_account_domain_exist = (
                 db.session.query(Account_domain)
                 .filter(Account_domain.domain == form.domain.data)
                 .count()
             )
+
+            # Check if domain exist in global_domains.
             does_global_domain_exist = (
                 db.session.query(Global_domain)
                 .filter(Global_domain.domain == form.domain.data)
                 .count()
             )
 
-            if does_account_domain_exist == 1 or does_global_domain_exist == 1:
+            if does_global_domain_exist == 1:
                 current_app.logger.warning(
                     "user "
                     + current_user.user
@@ -3328,7 +3330,7 @@ def settings_add_domain_step1():
                     + current_user.account.account
                     + " domain "
                     + form.domain.data
-                    + " already exist in db"
+                    + " already exist in db in global_domains table"
                 )
                 return render_template(
                     "message.html",
@@ -3336,8 +3338,75 @@ def settings_add_domain_step1():
                     message="Failed to add domain step1, the current domain already exist.",
                     current_user=current_user,
                 )
+
+            # Check if account domain is owned by current account.
+            if does_account_domain_exist == 1:
+                # Get account domain from db if it is owned by current account and is not enabled.
+                account_domain = (
+                    db.session.query(Account_domain)
+                    .filter(
+                        Account_domain.account_id == current_user.account_id,
+                        Account_domain.domain == form.domain.data,
+                        Account_domain.is_enabled == False,
+
+                    )
+                    .first()
+                )
+
+                # If account domain is not owned by current account or is owned by current account but is_enabled == True return error.
+                if account_domain == None:
+                    current_app.logger.warning(
+                        "user "
+                        + current_user.user
+                        + " account "
+                        + current_user.account.account
+                        + " domain "
+                        + form.domain.data
+                        + " already exist in account_domains table and is not owned by current account or is enabled"
+                    )
+
+                    return render_template(
+                        "message.html",
+                        headline="Add Domain Step 1 Error",
+                        message="Failed to add domain step1, the current domain is not owned by your account or is enabled",
+                        current_user=current_user,
+                    )
+
+                # If account domain is owned by current account and is_enabled == False than move to step2.
+                else:
+                    current_app.logger.debug(
+                        "user "
+                        + current_user.user
+                        + " account "
+                        + current_user.account.account
+                        + " domain "
+                        + form.domain.data
+                        + " is enabled "
+                        + str(False)
+                        + " domain exist in account_domains, is owned by current account and is not enabled, moving to step1"
+                    )
+
+                    # Get domain verification code
+                    verification_code = account_domain.verification
+
+                    return render_template(
+                        "settings_add_domain_step1.html",
+                        form=form,
+                        domain=form.domain.data,
+                        current_user=current_user,
+                        mx_record_host=mx_record_host,
+                        mx_record_priority=mx_record_priority,
+                        spf_record=spf_record,
+                        dkim_cname_record1=dkim_cname_record1,
+                        dkim_cname_record2=dkim_cname_record2,
+                        dkim_cname_record3=dkim_cname_record3,
+                        dmarc_record=dmarc_record,
+                        verification_id=verification_id,
+                        verification_code=verification_code,
+                    )
+
             # Generate domain verification code.
-            verification_code = generate_domain_verification_code(40)
+            verification_code = generate_domain_verification_code(24)
 
             # Add domain to db.
             account_domain = Account_domain(
@@ -3360,7 +3429,7 @@ def settings_add_domain_step1():
                 + verification_code
                 + " is enabled "
                 + str(False)
-                + " was added"
+                + " was added moving to step1"
             )
 
         return render_template(
@@ -3375,7 +3444,7 @@ def settings_add_domain_step1():
             dkim_cname_record2=dkim_cname_record2,
             dkim_cname_record3=dkim_cname_record3,
             dmarc_record=dmarc_record,
-            verification_name=verification_name,
+            verification_id=verification_id,
             verification_code=verification_code,
         )
 
@@ -3390,7 +3459,7 @@ def settings_add_domain_step2():
     dkim_cname_record2 = current_app.config["DKIM_CNAME_RECORD2"]
     dkim_cname_record3 = current_app.config["DKIM_CNAME_RECORD3"]
     dmarc_record = current_app.config["DMARC_RECORD"]
-    verification_name = current_app.config["ACCOUNT_DOMAIN_VERIFICATION"]
+    verification_id = current_app.config["ACCOUNT_DOMAIN_VERIFICATION"]
 
     # Check if cookie secret is set.
     if not "secret" in session:
@@ -3541,7 +3610,7 @@ def settings_add_domain_step2():
                     message="Failed to add domain step2, the domain is already added and is enabled ",
                     current_user=current_user,
                 )
-            # Track account domain status.
+            # Track account domain status regarding required dns records.
             status = {
                 "verification": False,
                 "mx": False,
@@ -3561,6 +3630,11 @@ def settings_add_domain_step2():
                 .first()
             )
             verification_code = account_domain.verification
+
+            is_domain_mine = validators.is_domain_mine(form.domain.data, verification_id, verification_code)
+            if is_domain_mine == True:
+                status["verification"] = True
+
 
             # Validate domain dns mx record.
             mx_record_host = current_app.config["MX_RECORD_HOST"]
@@ -3670,6 +3744,15 @@ def settings_add_domain_step2():
                     + form.domain.data
                     + " is_enabled set to True"
                 )
+
+                # Enable account domain for current account.
+                account_domain = AccountDomain.query.filter_by(
+                    account_id=current_user.account_id,
+                    domain=form.domain.data
+                ).first()
+                account_domain.is_enabled = True
+                db.session.commit()
+
                 return render_template(
                     "message.html",
                     headline="Add domain",
@@ -3690,7 +3773,7 @@ def settings_add_domain_step2():
                     dkim_cname_record2=dkim_cname_record2,
                     dkim_cname_record3=dkim_cname_record3,
                     dmarc_record=dmarc_record,
-                    verification_name=verification_name,
+                    verification_id=verification_id,
                     verification_code=verification_code,
                     status=status,
                 )
