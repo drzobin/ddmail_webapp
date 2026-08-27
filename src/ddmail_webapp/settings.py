@@ -3137,7 +3137,8 @@ def settings_show_domains():
 
     # Get the account domains and global domains.
     account_domains = db.session.query(Account_domain.domain).filter(
-        Account_domain.account_id == current_user.account_id
+        Account_domain.account_id == current_user.account_id,
+        Account_domain.is_enabled == True
     )
     global_domains = db.session.query(Global_domain.domain).filter(
         Global_domain.is_enabled == True
@@ -3687,11 +3688,15 @@ def settings_add_domain_step2():
                 current_app.config["DKIM_CNAME_RECORD3"],
             ]
 
-            count = 1
+            count = 0
             for correct_record in correct_records:
+                count = count + 1
+                print("count in loop: " + str(count))
                 # The user supplyed dkim record that should be a cname.
                 record = "dkim" + str(count) + "._domainkey." + str(form.domain.data)
                 # Check if the record is a valid cname to correct record.
+                print("record: " + record)
+                print("correct_record: " + correct_record)
                 is_correct = validators.is_cname_valid(record, correct_record)
                 if not is_correct:
                     current_app.logger.warning(
@@ -3706,10 +3711,11 @@ def settings_add_domain_step2():
                         + " is not valid"
                     )
                     break
-                count = count + 1
+
 
             # DKIM records is valid.
-            if count == 3:
+            print("count: " + str(count))
+            if count == len(correct_records):
                 status["dkim"] = True
 
             # Validate dns dmarc record.
@@ -3746,7 +3752,7 @@ def settings_add_domain_step2():
                 )
 
                 # Enable account domain for current account.
-                account_domain = AccountDomain.query.filter_by(
+                account_domain = Account_domain.query.filter_by(
                     account_id=current_user.account_id,
                     domain=form.domain.data
                 ).first()
@@ -3832,7 +3838,8 @@ def settings_remove_domain():
 
     if request.method == "GET":
         domains = db.session.query(Account_domain).filter(
-            Account_domain.account_id == current_user.account_id
+            Account_domain.account_id == current_user.account_id,
+            Account_domain.is_enabled == True
         )
         return render_template(
             "settings_remove_domain.html", domains=domains, current_user=current_user
@@ -3886,9 +3893,30 @@ def settings_remove_domain():
 
         domain = (
             db.session.query(Account_domain)
-            .filter(Account_domain.domain == remove_domain_from_form)
+            .filter(
+                Account_domain.domain == remove_domain_from_form,
+                Account_domain.account_id == current_user.account_id,
+            )
             .first()
         )
+
+        # Check that domain is enabled.
+        if not domain.is_enabled:
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " domain "
+                + remove_domain_from_form
+                + " is not enabled"
+            )
+            return render_template(
+                "message.html",
+                headline="Remove Domain Error",
+                message="Failed to remove domain, domain is not enabled.",
+                current_user=current_user,
+            )
 
         # Check that domain does not have emails or aliases.
         number_off_emails = (
