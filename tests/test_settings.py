@@ -4179,32 +4179,24 @@ def test_settings_enabled_account_add_domain(client, app):
     #
     # Test to add account domain
     response_settings_add_domain_post = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={"domain": "test.ddmail.se", "csrf_token": csrf_token_settings_add_domain},
     )
     assert response_settings_add_domain_post.status_code == 200
-    assert b"<h3>Add Domain</h3>" in response_settings_add_domain_post.data
-    assert b"Successfully added domain." in response_settings_add_domain_post.data
+    assert b"<h3>Add Domain Step 1</h3>" in response_settings_add_domain_post.data
 
-    #
-    #
-    # Test to add a domain that already exsist in current/same account
     response_settings_add_domain_post = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step2",
         data={"domain": "test.ddmail.se", "csrf_token": csrf_token_settings_add_domain},
     )
     assert response_settings_add_domain_post.status_code == 200
-    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
-    assert (
-        b"Failed to add domain, the current domain already exist."
-        in response_settings_add_domain_post.data
-    )
+    assert b"<h3>Add Domain Step 2</h3>" in response_settings_add_domain_post.data
 
     #
     #
     # Test to add a domain that failes backend validation.
     response_settings_add_domain_post = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={
             "domain": "tes<t.ddmail.se",
             "csrf_token": csrf_token_settings_add_domain,
@@ -4221,7 +4213,7 @@ def test_settings_enabled_account_add_domain(client, app):
     #
     # Test to add a domain that failes backend validation.
     response_settings_add_domain_post = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={
             "domain": 'tes"t.ddmail.se',
             "csrf_token": csrf_token_settings_add_domain,
@@ -4238,7 +4230,7 @@ def test_settings_enabled_account_add_domain(client, app):
     #
     # Test to add a domain that failes backend validation.
     response_settings_add_domain_post = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={
             "domain": "t--iest.ddmail.se",
             "csrf_token": csrf_token_settings_add_domain,
@@ -4255,7 +4247,7 @@ def test_settings_enabled_account_add_domain(client, app):
     #
     # Test to add a domain that failes backend validation.
     response_settings_add_domain_post = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={
             "domain": "test..ddmail.se",
             "csrf_token": csrf_token_settings_add_domain,
@@ -4272,7 +4264,7 @@ def test_settings_enabled_account_add_domain(client, app):
     #
     # Test to add a domain that failes backend validation.
     response_settings_add_domain_post = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={
             "domain": "t;est.ddmail.se",
             "csrf_token": csrf_token_settings_add_domain,
@@ -4289,7 +4281,7 @@ def test_settings_enabled_account_add_domain(client, app):
     #
     # Test to add a domain that failes backend validation.
     response_settings_add_domain_post = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={
             "domain": "t'est.ddmail.se",
             "csrf_token": csrf_token_settings_add_domain,
@@ -4306,7 +4298,7 @@ def test_settings_enabled_account_add_domain(client, app):
     #
     # Test to add a domain that failes form validation.
     response_settings_add_domain_post = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={"domain": "a.s", "csrf_token": csrf_token_settings_add_domain},
     )
     assert response_settings_add_domain_post.status_code == 200
