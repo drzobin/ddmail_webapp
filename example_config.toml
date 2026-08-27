@@ -99,7 +99,7 @@ DKIM_CNAME_RECORD2 = 'dkim2._domainkey.ddmail.se'
 DKIM_CNAME_RECORD3 = 'dkim3._domainkey.ddmail.se'
 
 # Expected DMARC TXT record (surround by literal double quotes as in DNS).
-DMARC_RECORD = '"v=DMARC1; p=none"'
+DMARC_RECORD = '"v=DMARC1; p=quarantine"'
 
 # Expected account domain verification name (surround by literal double quotes as in DNS).
 ACCOUNT_DOMAIN_VERIFICATION = 'ddmail-verification='
