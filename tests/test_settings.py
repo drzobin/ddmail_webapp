@@ -3974,19 +3974,25 @@ def test_settings_enabled_account_show_domains(client, app):
     assert b"Is account enabled: Yes" in response_settings_add_domain_get.data
     assert b"<h3>Add Domain</h3>" in response_settings_add_domain_get.data
 
-    # Get csrf_token from /settings/add_domain
-    csrf_token_settings_add_domain = get_csrf_token(
-        response_settings_add_domain_get.data
-    )
-
-    # Test to add account domain
-    response_settings_add_domain_post = client.post(
-        "/settings/add_domain",
-        data={"domain": "test.ddmail.se", "csrf_token": csrf_token_settings_add_domain},
-    )
-    assert response_settings_add_domain_post.status_code == 200
-    assert b"<h3>Add Domain</h3>" in response_settings_add_domain_post.data
-    assert b"Successfully added domain." in response_settings_add_domain_post.data
+    # Add an enabled account domain directly to the db. The two-step
+    # /settings/add_domain flow requires live DNS validation to enable a
+    # domain, so for the purpose of testing show_domains we insert one
+    # directly with is_enabled=True.
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == register_data["account"])
+            .first()
+        )
+        db.session.add(
+            Account_domain(
+                account_id=account.id,
+                domain="test.ddmail.se",
+                is_enabled=True,
+                verification="testverification0001",
+            )
+        )
+        db.session.commit()
 
     # Test GET /settings/show_domains
     assert client.get("/settings/show_domains").status_code == 200
@@ -4002,7 +4008,7 @@ def test_settings_enabled_account_show_domains(client, app):
     assert b"Is account enabled: Yes" in response_settings_show_domains_get.data
     assert b"<h3>Show Domains</h3>" in response_settings_show_domains_get.data
     assert (
-        b"Current active account domains for this account:"
+        b"Current enabled account domains for this account:"
         in response_settings_show_domains_get.data
     )
     assert b"test.ddmail.se" in response_settings_show_domains_get.data
@@ -4155,10 +4161,10 @@ def test_settings_enabled_account_add_domain(client, app):
 
     #
     #
-    # Test wrong csrf_token on /settings/add_domain
+    # Test wrong csrf_token on /settings/add_domain_step1
     assert (
         client.post(
-            "/settings/add_domain",
+            "/settings/add_domain_step1",
             data={"domain": "test.ddmail.se", "csrf_token": "wrong csrf_token"},
         ).status_code
         == 400
@@ -4166,9 +4172,10 @@ def test_settings_enabled_account_add_domain(client, app):
 
     #
     #
-    # Test empty csrf_token on /settings/add_domain
+    # Test empty csrf_token on /settings/add_domain_step1
     response_settings_add_domain_empty_csrf_post = client.post(
-        "/settings/add_domain", data={"domain": "test.ddmail.se", "csrf_token": ""}
+        "/settings/add_domain_step1",
+        data={"domain": "test.ddmail.se", "csrf_token": ""},
     )
     assert (
         b"The CSRF token is missing"
@@ -4203,9 +4210,12 @@ def test_settings_enabled_account_add_domain(client, app):
         },
     )
     assert response_settings_add_domain_post.status_code == 200
-    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert (
-        b"Failed to add domain, domain validation failed."
+        b"<h3>Add Domain Step 1 Error</h3>"
+        in response_settings_add_domain_post.data
+    )
+    assert (
+        b"Failed to add domain step1, domain validation failed."
         in response_settings_add_domain_post.data
     )
 
@@ -4220,9 +4230,12 @@ def test_settings_enabled_account_add_domain(client, app):
         },
     )
     assert response_settings_add_domain_post.status_code == 200
-    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert (
-        b"Failed to add domain, domain validation failed."
+        b"<h3>Add Domain Step 1 Error</h3>"
+        in response_settings_add_domain_post.data
+    )
+    assert (
+        b"Failed to add domain step1, domain validation failed."
         in response_settings_add_domain_post.data
     )
 
@@ -4237,9 +4250,12 @@ def test_settings_enabled_account_add_domain(client, app):
         },
     )
     assert response_settings_add_domain_post.status_code == 200
-    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert (
-        b"Failed to add domain, domain validation failed."
+        b"<h3>Add Domain Step 1 Error</h3>"
+        in response_settings_add_domain_post.data
+    )
+    assert (
+        b"Failed to add domain step1, domain validation failed."
         in response_settings_add_domain_post.data
     )
 
@@ -4254,9 +4270,12 @@ def test_settings_enabled_account_add_domain(client, app):
         },
     )
     assert response_settings_add_domain_post.status_code == 200
-    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert (
-        b"Failed to add domain, domain validation failed."
+        b"<h3>Add Domain Step 1 Error</h3>"
+        in response_settings_add_domain_post.data
+    )
+    assert (
+        b"Failed to add domain step1, domain validation failed."
         in response_settings_add_domain_post.data
     )
 
@@ -4271,9 +4290,12 @@ def test_settings_enabled_account_add_domain(client, app):
         },
     )
     assert response_settings_add_domain_post.status_code == 200
-    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert (
-        b"Failed to add domain, domain validation failed."
+        b"<h3>Add Domain Step 1 Error</h3>"
+        in response_settings_add_domain_post.data
+    )
+    assert (
+        b"Failed to add domain step1, domain validation failed."
         in response_settings_add_domain_post.data
     )
 
@@ -4288,9 +4310,12 @@ def test_settings_enabled_account_add_domain(client, app):
         },
     )
     assert response_settings_add_domain_post.status_code == 200
-    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert (
-        b"Failed to add domain, domain validation failed."
+        b"<h3>Add Domain Step 1 Error</h3>"
+        in response_settings_add_domain_post.data
+    )
+    assert (
+        b"Failed to add domain step1, domain validation failed."
         in response_settings_add_domain_post.data
     )
 
@@ -4302,9 +4327,12 @@ def test_settings_enabled_account_add_domain(client, app):
         data={"domain": "a.s", "csrf_token": csrf_token_settings_add_domain},
     )
     assert response_settings_add_domain_post.status_code == 200
-    assert b"<h3>Add Domain Error</h3>" in response_settings_add_domain_post.data
     assert (
-        b"Failed to add domain, form validation failed."
+        b"<h3>Add Domain Step 1 Error</h3>"
+        in response_settings_add_domain_post.data
+    )
+    assert (
+        b"Failed to add domain step1, form validation failed."
         in response_settings_add_domain_post.data
     )
 
@@ -4688,23 +4716,23 @@ def test_settings_domain_validation_errors(client, app):
 
     # Test domain with invalid characters
     response = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={
             "domain": "invalid<domain>.com",
             "csrf_token": csrf_token,
         },
     )
-    assert b"Failed to add domain, domain validation failed" in response.data
+    assert b"Failed to add domain step1, domain validation failed" in response.data
 
     # Test domain that's too short
     response = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={
             "domain": "a.b",
             "csrf_token": csrf_token,
         },
     )
-    assert b"Failed to add domain, form validation failed" in response.data
+    assert b"Failed to add domain step1, form validation failed" in response.data
 
 
 def test_settings_alias_validation_errors(client, app):
@@ -5136,6 +5164,8 @@ def test_settings_external_service_failures(client, app):
     This test simulates external service failures and error conditions
     that are normally handled by the application.
     """
+    import unittest.mock
+
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
@@ -5186,7 +5216,12 @@ def test_settings_external_service_failures(client, app):
         db.session.add(test_alias)
 
         # Add account domain for testing
-        account_domain = Account_domain(account_id=account_id, domain="mydomain.se")
+        account_domain = Account_domain(
+            account_id=account_id,
+            domain="mydomain.se",
+            is_enabled=True,
+            verification="mydomainseverif0001",
+        )
         db.session.add(account_domain)
         db.session.flush()  # Ensure ID is available
         account_domain_id = account_domain.id
@@ -5217,17 +5252,22 @@ def test_settings_external_service_failures(client, app):
         db.session.query(Alias).filter(Alias.dst_email_id == test_email_id).delete()
         db.session.commit()
 
-    # Test email removal (will fail due to service unavailable)
+    # Test email removal (will fail due to service unavailable).
+    # Mock requests.post so the email remover service appears unreachable
+    # regardless of what is actually running on EMAIL_REMOVER_URL.
     response = client.get("/settings/remove_email")
     csrf_token = get_csrf_token(response.data)
 
-    response = client.post(
-        "/settings/remove_email",
-        data={
-            "remove_email": "test@testdomain.se",
-            "csrf_token": csrf_token,
-        },
-    )
+    with unittest.mock.patch(
+        "requests.post", side_effect=requests.exceptions.ConnectionError
+    ):
+        response = client.post(
+            "/settings/remove_email",
+            data={
+                "remove_email": "test@testdomain.se",
+                "csrf_token": csrf_token,
+            },
+        )
     assert (
         b"Failed to removed email beacuse email remover service is unavalible"
         in response.data
@@ -5537,8 +5577,14 @@ def test_settings_domain_operations_comprehensive(client, app):
         account.is_enabled = True
         account_id = account.id
 
-        # Add existing domain for conflict testing
-        existing_domain = Account_domain(account_id=account_id, domain="existing.com")
+        # Add existing domain for conflict testing (enabled so remove_domain
+        # can operate on it later in this test).
+        existing_domain = Account_domain(
+            account_id=account_id,
+            domain="existing.com",
+            is_enabled=True,
+            verification="existingverification001",
+        )
         db.session.add(existing_domain)
         db.session.flush()  # Ensure ID is available
         existing_domain_id = existing_domain.id
@@ -5568,28 +5614,36 @@ def test_settings_domain_operations_comprehensive(client, app):
         == 302
     )
 
-    # Test add domain that already exists in account domains
+    # Test add domain that already exists in account domains. The existing
+    # domain was inserted as enabled and belongs to this account, so step1
+    # rejects it as "not owned by your account or is enabled".
     response = client.get("/settings/add_domain")
     csrf_token = get_csrf_token(response.data)
 
     response = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={
             "domain": "existing.com",
             "csrf_token": csrf_token,
         },
     )
-    assert b"Failed to add domain, the current domain already exist" in response.data
+    assert (
+        b"Failed to add domain step1, the current domain is not owned by your account or is enabled"
+        in response.data
+    )
 
     # Test add domain that already exists in global domains
     response = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={
             "domain": "global.com",
             "csrf_token": csrf_token,
         },
     )
-    assert b"Failed to add domain, the current domain already exist" in response.data
+    assert (
+        b"Failed to add domain step1, the current domain already exist"
+        in response.data
+    )
 
     # Test remove domain that doesn't exist
     response = client.get("/settings/remove_domain")
@@ -5638,6 +5692,8 @@ def test_settings_successful_email_creation_account_domain(client, app):
     This test covers the successful email creation path using account domains,
     including DMCP keyhandler integration and password generation.
     """
+    import unittest.mock
+
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
@@ -5660,7 +5716,12 @@ def test_settings_successful_email_creation_account_domain(client, app):
         account_id = account.id
 
         # Add account domain for testing
-        account_domain = Account_domain(account_id=account_id, domain="mydomain.com")
+        account_domain = Account_domain(
+            account_id=account_id,
+            domain="mydomain.com",
+            is_enabled=True,
+            verification="mydomaincomverif0001",
+        )
         db.session.add(account_domain)
         db.session.flush()
         account_domain_id = account_domain.id
@@ -5685,18 +5746,23 @@ def test_settings_successful_email_creation_account_domain(client, app):
         == 302
     )
 
-    # Test successful email creation with account domain
+    # Test successful email creation with account domain.
+    # Mock requests.post so the DMCP keyhandler service appears unreachable
+    # regardless of what is actually running on DMCP_KEYHANDLER_URL.
     response = client.get("/settings/add_email")
     csrf_token = get_csrf_token(response.data)
 
-    response = client.post(
-        "/settings/add_email",
-        data={
-            "domain": "mydomain.com",
-            "email": "newuser",
-            "csrf_token": csrf_token,
-        },
-    )
+    with unittest.mock.patch(
+        "requests.post", side_effect=requests.exceptions.ConnectionError
+    ):
+        response = client.post(
+            "/settings/add_email",
+            data={
+                "domain": "mydomain.com",
+                "email": "newuser",
+                "csrf_token": csrf_token,
+            },
+        )
     # DMCP keyhandler is unavailable, so expect error message
     assert (
         b"Failed to add email account beacuse dmcp keyhandler service is unavalible"
@@ -5710,6 +5776,8 @@ def test_settings_successful_email_creation_global_domain(client, app):
     This test covers the successful email creation path using global domains,
     including DMCP keyhandler integration and password generation.
     """
+    import unittest.mock
+
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
@@ -5757,18 +5825,23 @@ def test_settings_successful_email_creation_global_domain(client, app):
         == 302
     )
 
-    # Test successful email creation with global domain
+    # Test successful email creation with global domain.
+    # Mock requests.post so the DMCP keyhandler service appears unreachable
+    # regardless of what is actually running on DMCP_KEYHANDLER_URL.
     response = client.get("/settings/add_email")
     csrf_token = get_csrf_token(response.data)
 
-    response = client.post(
-        "/settings/add_email",
-        data={
-            "domain": "testdomain.com",
-            "email": "globaluser",
-            "csrf_token": csrf_token,
-        },
-    )
+    with unittest.mock.patch(
+        "requests.post", side_effect=requests.exceptions.ConnectionError
+    ):
+        response = client.post(
+            "/settings/add_email",
+            data={
+                "domain": "testdomain.com",
+                "email": "globaluser",
+                "csrf_token": csrf_token,
+            },
+        )
     # DMCP keyhandler is unavailable, so expect error message
     assert (
         b"Failed to add email account beacuse dmcp keyhandler service is unavalible"
@@ -5963,19 +6036,20 @@ def test_settings_successful_domain_addition(client, app):
         == 302
     )
 
-    # Test successful domain addition
+    # Test successful domain addition step 1
     response = client.get("/settings/add_domain")
     csrf_token = get_csrf_token(response.data)
 
     response = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={
             "domain": "newdomain.com",
             "csrf_token": csrf_token,
         },
     )
-    # Should succeed - will show either success or DNS validation message
+    # Should succeed - shows the DNS configuration step 1 page.
     assert response.status_code == 200
+    assert b"<h3>Add Domain Step 1</h3>" in response.data
 
 
 def test_settings_successful_alias_creation(client, app):
@@ -6360,7 +6434,12 @@ def test_settings_successful_domain_removal(client, app):
         account_id = account.id
 
         # Add account domain for testing
-        account_domain = Account_domain(account_id=account_id, domain="removeme.com")
+        account_domain = Account_domain(
+            account_id=account_id,
+            domain="removeme.com",
+            is_enabled=True,
+            verification="removemecomverif0001",
+        )
         db.session.add(account_domain)
         db.session.flush()
         account_domain_id = account_domain.id
@@ -6628,7 +6707,7 @@ def test_settings_comprehensive_form_validations(client, app):
     csrf_token = get_csrf_token(response.data)
 
     response = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={
             "domain": "",
             "csrf_token": csrf_token,
@@ -6714,7 +6793,7 @@ def test_settings_dns_validation_paths(client, app):
 
     # Test with subdomain
     response = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={
             "domain": "mail.example.com",
             "csrf_token": csrf_token,
@@ -6724,7 +6803,7 @@ def test_settings_dns_validation_paths(client, app):
 
     # Test with international domain
     response = client.post(
-        "/settings/add_domain",
+        "/settings/add_domain_step1",
         data={
             "domain": "тест.com",
             "csrf_token": csrf_token,
@@ -6823,19 +6902,25 @@ def test_settings_enabled_account_remove_domain(client, app):
     assert b"Is account enabled: Yes" in response_settings_add_domain_get.data
     assert b"<h3>Add Domain</h3>" in response_settings_add_domain_get.data
 
-    # Get csrf_token from /settings/add_domain
-    csrf_token_settings_add_domain = get_csrf_token(
-        response_settings_add_domain_get.data
-    )
-
-    # Test to add account domain
-    response_settings_add_domain_post = client.post(
-        "/settings/add_domain",
-        data={"domain": "test.ddmail.se", "csrf_token": csrf_token_settings_add_domain},
-    )
-    assert response_settings_add_domain_post.status_code == 200
-    assert b"<h3>Add Domain</h3>" in response_settings_add_domain_post.data
-    assert b"Successfully added domain." in response_settings_add_domain_post.data
+    # Add an enabled account domain directly to the db. The two-step
+    # /settings/add_domain flow requires live DNS validation to enable a
+    # domain, so for the purpose of testing remove_domain we insert one
+    # directly with is_enabled=True.
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == register_data["account"])
+            .first()
+        )
+        db.session.add(
+            Account_domain(
+                account_id=account.id,
+                domain="test.ddmail.se",
+                is_enabled=True,
+                verification="removedomainverif0001",
+            )
+        )
+        db.session.commit()
 
     # Test GET /settings/remove_domain
     response_settings_remove_domain_get = client.get("/settings/remove_domain")
