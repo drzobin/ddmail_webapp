@@ -3989,7 +3989,7 @@ def test_settings_enabled_account_show_domains(client, app):
                 account_id=account.id,
                 domain="test.ddmail.se",
                 is_enabled=True,
-                verification="testverification0001",
+                verification_code="testverification0001",
             )
         )
         db.session.commit()
@@ -5220,7 +5220,7 @@ def test_settings_external_service_failures(client, app):
             account_id=account_id,
             domain="mydomain.se",
             is_enabled=True,
-            verification="mydomainseverif0001",
+            verification_code="mydomainseverif0001",
         )
         db.session.add(account_domain)
         db.session.flush()  # Ensure ID is available
@@ -5583,7 +5583,7 @@ def test_settings_domain_operations_comprehensive(client, app):
             account_id=account_id,
             domain="existing.com",
             is_enabled=True,
-            verification="existingverification001",
+            verification_code="existingverification001",
         )
         db.session.add(existing_domain)
         db.session.flush()  # Ensure ID is available
@@ -5720,7 +5720,7 @@ def test_settings_successful_email_creation_account_domain(client, app):
             account_id=account_id,
             domain="mydomain.com",
             is_enabled=True,
-            verification="mydomaincomverif0001",
+            verification_code="mydomaincomverif0001",
         )
         db.session.add(account_domain)
         db.session.flush()
@@ -6438,7 +6438,7 @@ def test_settings_successful_domain_removal(client, app):
             account_id=account_id,
             domain="removeme.com",
             is_enabled=True,
-            verification="removemecomverif0001",
+            verification_code="removemecomverif0001",
         )
         db.session.add(account_domain)
         db.session.flush()
@@ -6917,7 +6917,7 @@ def test_settings_enabled_account_remove_domain(client, app):
                 account_id=account.id,
                 domain="test.ddmail.se",
                 is_enabled=True,
-                verification="removedomainverif0001",
+                verification_code="removedomainverif0001",
             )
         )
         db.session.commit()
