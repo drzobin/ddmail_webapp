@@ -1,7 +1,7 @@
 import base64
 import string
 import secrets
-
+from datetime import date
 import ddmail_validators.validators as validators
 import requests
 from argon2 import PasswordHasher
@@ -3388,7 +3388,7 @@ def settings_add_domain_step1():
                     )
 
                     # Get domain verification code
-                    verification_code = account_domain.verification
+                    verification_code = account_domain.verification_code
 
                     return render_template(
                         "settings_add_domain_step1.html",
@@ -3413,8 +3413,9 @@ def settings_add_domain_step1():
             account_domain = Account_domain(
                 account_id=current_user.account_id,
                 domain=form.domain.data,
-                verification=verification_code,
-                is_enabled=False
+                verification_code=verification_code,
+                is_enabled=False,
+                created = date.today()
             )
             db.session.add(account_domain)
             db.session.commit()
@@ -3630,7 +3631,7 @@ def settings_add_domain_step2():
                 )
                 .first()
             )
-            verification_code = account_domain.verification
+            verification_code = account_domain.verification_code
 
             is_domain_mine = validators.is_domain_mine(form.domain.data, verification_id, verification_code)
             if is_domain_mine == True:
@@ -3757,6 +3758,7 @@ def settings_add_domain_step2():
                     domain=form.domain.data
                 ).first()
                 account_domain.is_enabled = True
+                account_domain.last_time_enabled = date.today()
                 db.session.commit()
 
                 return render_template(
