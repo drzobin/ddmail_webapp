@@ -467,7 +467,7 @@ def login():
         authenticated = Authenticated(
             cookie,
             user_from_db.id,
-            datetime.datetime.now() + datetime.timedelta(hours=3),
+            datetime.datetime.now() + datetime.timedelta(minutes=30),
         )
         db.session.add(authenticated)
         db.session.commit()
