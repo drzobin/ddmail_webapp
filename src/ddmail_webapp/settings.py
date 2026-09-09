@@ -1,7 +1,8 @@
 import base64
-import string
 import secrets
+import string
 from datetime import date
+
 import ddmail_validators.validators as validators
 import requests
 from argon2 import PasswordHasher
@@ -17,7 +18,7 @@ from flask import (
 )
 
 from ddmail_webapp.auth import generate_password, generate_token, is_athenticated
-from ddmail_webapp.forms import AliasForm, DomainForm, EmailForm, EmailPasswordForm
+from ddmail_webapp.forms import AliasForm, DomainForm, EmailForm, EmailPasswordForm, VoucherForm
 from ddmail_webapp.models import (
     Account_domain,
     Alias,
@@ -25,8 +26,12 @@ from ddmail_webapp.models import (
     Global_domain,
     Openpgp_public_key,
     User,
+    Voucher,
+    Account,
     db,
 )
+from ddmail_webapp.shared import hash_voucher_code
+from wtforms import form
 
 bp = Blueprint("settings", __name__, url_prefix="/")
 
@@ -218,6 +223,103 @@ def payment_token():
         payment_token=current_user.account.payment_token,
         current_user=current_user,
     )
+
+@bp.route("/settings/voucher", methods=["GET", "POST"])
+def settings_voucher():
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
+        return redirect(url_for("auth.login"))
+
+    # Check if user is athenticated
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        current_app.logger.warning("user is not authenticated")
+        return redirect(url_for("auth.login"))
+
+    if request.method == "GET":
+        form = VoucherForm()
+
+        return render_template(
+            "settings_voucher.html", form=form, current_user=current_user
+        )
+
+    elif request.method == "POST":
+        voucher_code_form = request.form["voucher"].strip()
+
+        # Validate voucher code
+
+        voucher_code_hash = hash_voucher_code(voucher_code_form, current_app.config["VOUCHER_SECRET_KEY"])
+        voucher = (
+            db.session.query(Voucher)
+            .filter(
+                Voucher.voucher_code_hash == voucher_code_hash
+            )
+            .first()
+        )
+
+        # Voucher is wrong.
+        if voucher is None:
+            current_app.logger.warning(
+                "account "
+                + current_user.account.account
+                + " user "
+                + current_user.user
+                + " voucher "
+                + voucher_code_form
+                + " is wrong"
+            )
+
+            return render_template(
+                "message.html",
+                headline="Voucher Error",
+                message="Wrong voucher code.",
+                current_user=current_user,
+            )
+        # Voucher is valid.
+        else:
+            voucher_fund = voucher.funds_in_sek
+            account = (
+                db.session.query(Account)
+                .filter(
+                    Account.account == current_user.account.account
+                )
+                .first()
+            )
+
+            # If account is disabled then enable account.
+            if not account.is_enabled:
+                account.is_enabled = True
+
+            # Add voucher fund to account.
+            account.funds_in_sek = account.funds_in_sek + voucher_fund
+            db.session.commit()
+
+            # Remove used voucher from database.
+            db.session.query(Voucher).filter(
+                Voucher.voucher_code_hash == voucher_code_hash
+            ).delete()
+            db.session.commit()
+
+            current_app.logger.info(
+                "account "
+                + current_user.account.account
+                + " user "
+                + current_user.user
+                + " voucher "
+                + voucher_code_form
+                + " successfully used voucher"
+            )
+
+            return render_template(
+                "message.html",
+                headline="Voucher",
+                message="Successfully used voucher.",
+                current_user=current_user,
+            )
+
 
 
 @bp.route("/settings/change_password_on_user", methods=["POST", "GET"])
