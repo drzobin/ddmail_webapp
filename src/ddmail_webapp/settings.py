@@ -136,6 +136,7 @@ def usage_and_funds():
     return render_template(
         "settings_usage_and_funds.html",
         account=current_user.account,
+        funds_in_eur=current_user.account.funds_in_sek / 10,
         current_user=current_user,
     )
 
