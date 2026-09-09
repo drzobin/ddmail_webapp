@@ -66,6 +66,9 @@ test = [
 Homepage = "https://github.com/drzobin/ddmail_webapp"
 Issues = "https://github.com/drzobin/ddmail_webapp/issues"
 
+[project.scripts]
+ddmail-cli-add_voucher = "ddmail_webapp.cli.add_voucher:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
