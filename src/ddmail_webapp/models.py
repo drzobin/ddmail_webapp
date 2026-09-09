@@ -137,3 +137,11 @@ class Authenticated(db.Model):
         self.cookie = cookie
         self.user_id = user_id
         self.valid_to = valid_to
+
+# DB modul for vouchers.
+class Voucher(db.Model):
+    __tablename__ = "vouchers"
+    id = db.Column(db.Integer, primary_key=True, nullable=False)
+    voucher_code_hash = db.Column(db.String(200), unique=True, nullable=False)
+    funds_in_sek = db.Column(db.Integer, unique=False, nullable=False)
+    created = db.Column(db.Date, unique=False, nullable=True)
