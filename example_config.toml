@@ -26,6 +26,8 @@ SECRET_KEY = 'change_me'
 # SECRET_KEY.
 WTF_CSRF_SECRET_KEY = 'change_me'
 
+# Voucher secret key used for HMAC-SHA256 voucher code hashing.
+VOUCHER_SECRET_KEY = 'change_me'
 
 # Backend services
 #
@@ -191,6 +193,7 @@ SYSLOG_SERVER = '/dev/log'
 [TESTING]
 SECRET_KEY = 'change_me'
 WTF_CSRF_SECRET_KEY = 'change_me'
+VOUCHER_SECRET_KEY = 'change_me'
 DMCP_KEYHANDLER_URL = 'http://127.0.0.1:8002'
 DMCP_KEYHANDLER_PASSWORD = 'change_me'
 EMAIL_REMOVER_URL = '127.0.0.1:8001'
@@ -236,6 +239,7 @@ SYSLOG_SERVER = '/dev/log'
 [DEVELOPMENT]
 SECRET_KEY = 'change_me'
 WTF_CSRF_SECRET_KEY = 'change_me'
+VOUCHER_SECRET_KEY = 'change_me'
 DMCP_KEYHANDLER_URL = 'http://127.0.0.1:8002'
 DMCP_KEYHANDLER_PASSWORD = 'change_me'
 EMAIL_REMOVER_URL = '127.0.0.1:8001'
