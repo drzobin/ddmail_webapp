@@ -239,9 +239,9 @@ def settings_voucher():
         current_app.logger.warning("user is not authenticated")
         return redirect(url_for("auth.login"))
 
-    if request.method == "GET":
-        form = VoucherForm()
+    form = VoucherForm()
 
+    if request.method == "GET":
         return render_template(
             "settings_voucher.html", form=form, current_user=current_user
         )
@@ -249,7 +249,43 @@ def settings_voucher():
     elif request.method == "POST":
         voucher_code_form = request.form["voucher"].strip()
 
+        # Validate voucher form.
+        if not form.validate_on_submit():
+            current_app.logger.warning(
+                "account "
+                + current_user.account.account
+                + " user "
+                + current_user.user
+                + " voucher code "
+                + voucher_code_form
+                + " failed form validation"
+            )
+
+            return render_template(
+                "message.html",
+                headline="Voucher Error",
+                message="Form validation failed.",
+                current_user=current_user,
+            )
+
         # Validate voucher code
+        if not validators.is_voucher_code_allowed(voucher_code_form):
+            current_app.logger.warning(
+                "account "
+                + current_user.account.account
+                + " user "
+                + current_user.user
+                + " voucher code "
+                + voucher_code_form
+                + " failed validation"
+            )
+
+            return render_template(
+                "message.html",
+                headline="Voucher Error",
+                message="Validation failed.",
+                current_user=current_user,
+            )
 
         voucher_code_hash = hash_voucher_code(voucher_code_form, current_app.config["VOUCHER_SECRET_KEY"])
         voucher = (
