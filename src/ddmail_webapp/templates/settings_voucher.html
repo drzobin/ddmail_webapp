@@ -1,0 +1,12 @@
+{% extends "all.html" %} {% block content %} {% include 'settings_menu.html' %}
+<h3>Voucher</h3>
+Add funds by using a voucher. If your account is not enabled, this will enable it.
+<p></p>
+
+<form method="POST" action="{{ url_for('settings.settings_voucher') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    {{ form.voucher.label }}:<br />
+    {{ form.voucher(size=20) }}
+    <input type="submit" value="Use voucher" />
+</form>
+{% endblock%}
