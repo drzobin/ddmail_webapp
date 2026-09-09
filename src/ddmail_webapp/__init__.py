@@ -77,6 +77,9 @@ def create_app(config_file=None, test_config=None):
         ]
         app.config["WTF_CSRF_SECRET_KEY"] = toml_config[mode]["WTF_CSRF_SECRET_KEY"]
 
+        # Secret key used for voucher HMAC hashing.
+        app.config["VOUCHER_SECRET_KEY"] = toml_config[mode]["VOUCHER_SECRET_KEY"]
+
         # Cap request body size.
         app.config["MAX_CONTENT_LENGTH"] = toml_config[mode]["MAX_CONTENT_LENGTH"]
 
