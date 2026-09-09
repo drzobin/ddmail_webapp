@@ -20,3 +20,6 @@ class AliasForm(FlaskForm):
     domain = StringField('Domain', [validators.DataRequired(),validators.Length(min=4, max=200)])
     dst = StringField('Destination', [validators.DataRequired(),validators.Length(min=4, max=200)])
 
+# Form modul for voucher.
+class VoucherForm(FlaskForm):
+    voucher = StringField('Voucher', [validators.DataRequired(),validators.Length(min=24, max=24)])
