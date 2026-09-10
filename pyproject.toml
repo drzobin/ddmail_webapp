@@ -68,6 +68,7 @@ Issues = "https://github.com/drzobin/ddmail_webapp/issues"
 
 [project.scripts]
 ddmail-cli-add_voucher = "ddmail_webapp.cli.add_voucher:main"
+ddmail-cli-add_funds = "ddmail_webapp.cli.add_funds:main"
 
 [build-system]
 requires = ["hatchling"]
