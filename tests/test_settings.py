@@ -13,6 +13,7 @@ from ddmail_webapp.models import (
     Email,
     Global_domain,
     User,
+    Voucher,
     db,
 )
 from tests.helpers import get_csrf_token, get_register_data
@@ -7072,3 +7073,594 @@ def test_settings_enabled_account_remove_domain(client, app):
         b"Failed to remove domain, domain does not exist or is not owned by your account."
         in response_settings_remove_domain_post.data
     )
+
+
+def test_settings_voucher_disabled_account(client, app):
+    """Test voucher page for disabled account
+
+    This test verifies that users with disabled accounts can access the
+    voucher redemption page and see the voucher form.
+    """
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post(
+        "/register", data={"csrf_token": csrf_token_register}
+    )
+    register_data = get_register_data(response_register_post.data)
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Login with new account
+    assert (
+        client.post(
+            "/login",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "user": register_data["username"],
+                "password": register_data["password"],
+                "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+                "csrf_token": csrf_token_login,
+            },
+        ).status_code
+        == 302
+    )
+
+    # Test GET /settings/voucher
+    response = client.get("/settings/voucher")
+    assert response.status_code == 200
+    assert (
+        b"Logged in on account: " + bytes(register_data["account"], "utf-8")
+        in response.data
+    )
+    assert (
+        b"Logged in as user: " + bytes(register_data["username"], "utf-8")
+        in response.data
+    )
+    assert b"Is account enabled: No" in response.data
+
+
+def test_settings_voucher_enabled_account(client, app):
+    """Test voucher page for enabled account
+
+    This test verifies that users with enabled accounts can access the
+    voucher redemption page and see the voucher form with full functionality.
+    """
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post(
+        "/register", data={"csrf_token": csrf_token_register}
+    )
+    register_data = get_register_data(response_register_post.data)
+
+    # Enable account
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == register_data["account"])
+            .first()
+        )
+        account.is_enabled = True
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Login with new account
+    assert (
+        client.post(
+            "/login",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "user": register_data["username"],
+                "password": register_data["password"],
+                "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+                "csrf_token": csrf_token_login,
+            },
+        ).status_code
+        == 302
+    )
+
+    # Test GET /settings/voucher
+    response = client.get("/settings/voucher")
+    assert response.status_code == 200
+    assert (
+        b"Logged in on account: " + bytes(register_data["account"], "utf-8")
+        in response.data
+    )
+    assert (
+        b"Logged in as user: " + bytes(register_data["username"], "utf-8")
+        in response.data
+    )
+    assert b"Is account enabled: Yes" in response.data
+
+
+def test_settings_voucher_no_session_redirect(client):
+    """Test voucher endpoint redirects to login when no session exists
+
+    This test verifies that the voucher endpoint properly redirects users
+    to the login page when they don't have an active session.
+    """
+    # Test voucher endpoint without session
+    response = client.get("/settings/voucher")
+    assert response.status_code == 302
+    assert "/login" in response.location
+
+
+def test_settings_voucher_invalid_session_redirect(client):
+    """Test voucher endpoint redirects to login with invalid session
+
+    This test verifies that the voucher endpoint properly redirects users
+    to the login page when they have an invalid session token.
+    """
+    # Set invalid session token
+    with client.session_transaction() as session:
+        session["secret"] = "invalid_token_123"
+
+    # Test voucher endpoint
+    response = client.get("/settings/voucher")
+    assert response.status_code == 302
+    assert "/login" in response.location
+
+
+def test_settings_voucher_form_validation_error(client, app):
+    """Test voucher form validation errors
+
+    This test verifies that the voucher form properly validates input
+    and rejects invalid voucher codes with appropriate error messages.
+    """
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post(
+        "/register", data={"csrf_token": csrf_token_register}
+    )
+    register_data = get_register_data(response_register_post.data)
+
+    # Enable account
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == register_data["account"])
+            .first()
+        )
+        account.is_enabled = True
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Login with new account
+    assert (
+        client.post(
+            "/login",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "user": register_data["username"],
+                "password": register_data["password"],
+                "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+                "csrf_token": csrf_token_login,
+            },
+        ).status_code
+        == 302
+    )
+
+    # Get CSRF token for voucher form
+    response = client.get("/settings/voucher")
+    csrf_token = get_csrf_token(response.data)
+
+    # Test POST with empty voucher code (form validation should fail)
+    response = client.post(
+        "/settings/voucher",
+        data={
+            "voucher": "",
+            "csrf_token": csrf_token,
+        },
+    )
+    assert response.status_code == 200
+    assert b"Voucher Error" in response.data
+    assert b"Form validation failed" in response.data
+
+
+def test_settings_voucher_code_validation_error(client, app):
+    """Test voucher code validation errors
+
+    This test verifies that invalid voucher codes are properly rejected
+    with appropriate error messages.
+    """
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post(
+        "/register", data={"csrf_token": csrf_token_register}
+    )
+    register_data = get_register_data(response_register_post.data)
+
+    # Enable account
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == register_data["account"])
+            .first()
+        )
+        account.is_enabled = True
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Login with new account
+    assert (
+        client.post(
+            "/login",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "user": register_data["username"],
+                "password": register_data["password"],
+                "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+                "csrf_token": csrf_token_login,
+            },
+        ).status_code
+        == 302
+    )
+
+    # Get CSRF token for voucher form
+    response = client.get("/settings/voucher")
+    csrf_token = get_csrf_token(response.data)
+
+    # Test POST with invalid voucher code (wrong length - fails form validation)
+    response = client.post(
+        "/settings/voucher",
+        data={
+            "voucher": "invalid<>voucher",  # Wrong length, fails form validation
+            "csrf_token": csrf_token,
+        },
+    )
+    assert response.status_code == 200
+    assert b"Voucher Error" in response.data
+    assert b"Form validation failed" in response.data
+
+
+def test_settings_voucher_not_found_error(client, app):
+    """Test voucher not found error
+
+    This test verifies that when a valid but non-existent voucher code
+    is submitted, the user receives an appropriate error message.
+    """
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post(
+        "/register", data={"csrf_token": csrf_token_register}
+    )
+    register_data = get_register_data(response_register_post.data)
+
+    # Enable account
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == register_data["account"])
+            .first()
+        )
+        account.is_enabled = True
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Login with new account
+    assert (
+        client.post(
+            "/login",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "user": register_data["username"],
+                "password": register_data["password"],
+                "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+                "csrf_token": csrf_token_login,
+            },
+        ).status_code
+        == 302
+    )
+
+    # Get CSRF token for voucher form
+    response = client.get("/settings/voucher")
+    csrf_token = get_csrf_token(response.data)
+
+    # Test POST with a valid-length but non-existent voucher code
+    response = client.post(
+        "/settings/voucher",
+        data={
+            "voucher": "ABCDEFGHIJKLMNOPQRSTUVWX",  # 24 chars, valid length but fails voucher validation
+            "csrf_token": csrf_token,
+        },
+    )
+    assert response.status_code == 200
+    assert b"Voucher Error" in response.data
+    assert b"Validation failed" in response.data
+
+
+def test_settings_voucher_successful_redemption(client, app):
+    """Test successful voucher redemption
+
+    This test verifies that valid vouchers can be successfully redeemed,
+    adding funds to the account and enabling disabled accounts.
+    """
+    from ddmail_webapp.shared import hash_voucher_code
+
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post(
+        "/register", data={"csrf_token": csrf_token_register}
+    )
+    register_data = get_register_data(response_register_post.data)
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Login with new account
+    assert (
+        client.post(
+            "/login",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "user": register_data["username"],
+                "password": register_data["password"],
+                "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+                "csrf_token": csrf_token_login,
+            },
+        ).status_code
+        == 302
+    )
+
+    # Create a valid voucher for this account
+    with app.app_context():
+        # Get the VOUCHER_SECRET_KEY from app config
+        voucher_secret_key = app.config["VOUCHER_SECRET_KEY"]
+        # Use a unique voucher code to avoid conflicts
+        # Voucher codes must be 24 chars, A-Z and 2-9 only (no 0, O, 1, I)
+        import secrets
+        import string
+        allowed_chars = [c for c in string.ascii_uppercase if c not in ['O', 'I']] + [str(i) for i in range(2, 10)]
+        voucher_code = ''.join(secrets.choice(allowed_chars) for _ in range(24))
+        voucher_code_hash = hash_voucher_code(voucher_code, voucher_secret_key)
+        
+        # Clean up any existing voucher with the same hash first
+        db.session.query(Voucher).filter(
+            Voucher.voucher_code_hash == voucher_code_hash
+        ).delete()
+        
+        # Create and add the voucher to database
+        voucher = Voucher(
+            voucher_code_hash=voucher_code_hash,
+            funds_in_sek=100,
+            created=datetime.date.today()
+        )
+        db.session.add(voucher)
+        db.session.commit()
+
+    # Get CSRF token for voucher form
+    response = client.get("/settings/voucher")
+    csrf_token = get_csrf_token(response.data)
+
+    # Test POST with valid voucher code
+    response = client.post(
+        "/settings/voucher",
+        data={
+            "voucher": voucher_code,
+            "csrf_token": csrf_token,
+        },
+    )
+    assert response.status_code == 200
+    assert b"Voucher" in response.data
+    assert b"Successfully used voucher" in response.data
+
+    # Verify account is now enabled and funds are added
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == register_data["account"])
+            .first()
+        )
+        assert account.is_enabled == True
+        assert account.funds_in_sek == 100
+        
+        # Verify voucher was removed from database
+        voucher_count = db.session.query(Voucher).filter(
+            Voucher.voucher_code_hash == voucher_code_hash
+        ).count()
+        assert voucher_count == 0
+
+
+def test_settings_voucher_successful_redemption_enabled_account(client, app):
+    """Test successful voucher redemption for enabled account
+
+    This test verifies that valid vouchers can be successfully redeemed
+    for enabled accounts, simply adding funds without changing account status.
+    """
+    from ddmail_webapp.shared import hash_voucher_code
+
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post(
+        "/register", data={"csrf_token": csrf_token_register}
+    )
+    register_data = get_register_data(response_register_post.data)
+
+    # Enable account
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == register_data["account"])
+            .first()
+        )
+        account.is_enabled = True
+        account.funds_in_sek = 50  # Start with some funds
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Login with new account
+    assert (
+        client.post(
+            "/login",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "user": register_data["username"],
+                "password": register_data["password"],
+                "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+                "csrf_token": csrf_token_login,
+            },
+        ).status_code
+        == 302
+    )
+
+    # Create a valid voucher for this account
+    with app.app_context():
+        # Get the VOUCHER_SECRET_KEY from app config
+        voucher_secret_key = app.config["VOUCHER_SECRET_KEY"]
+        # Use a unique voucher code to avoid conflicts
+        # Voucher codes must be 24 chars, A-Z and 2-9 only (no 0, O, 1, I)
+        import secrets
+        import string
+        allowed_chars = [c for c in string.ascii_uppercase if c not in ['O', 'I']] + [str(i) for i in range(2, 10)]
+        voucher_code = ''.join(secrets.choice(allowed_chars) for _ in range(24))
+        voucher_code_hash = hash_voucher_code(voucher_code, voucher_secret_key)
+        
+        # Clean up any existing voucher with the same hash first
+        db.session.query(Voucher).filter(
+            Voucher.voucher_code_hash == voucher_code_hash
+        ).delete()
+        
+        # Create and add the voucher to database
+        voucher = Voucher(
+            voucher_code_hash=voucher_code_hash,
+            funds_in_sek=75,
+            created=datetime.date.today()
+        )
+        db.session.add(voucher)
+        db.session.commit()
+
+    # Get CSRF token for voucher form
+    response = client.get("/settings/voucher")
+    csrf_token = get_csrf_token(response.data)
+
+    # Test POST with valid voucher code
+    response = client.post(
+        "/settings/voucher",
+        data={
+            "voucher": voucher_code,
+            "csrf_token": csrf_token,
+        },
+    )
+    assert response.status_code == 200
+    assert b"Voucher" in response.data
+    assert b"Successfully used voucher" in response.data
+
+    # Verify account is still enabled and funds are added
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == register_data["account"])
+            .first()
+        )
+        assert account.is_enabled == True
+        assert account.funds_in_sek == 125  # 50 + 75
+        
+        # Verify voucher was removed from database
+        voucher_count = db.session.query(Voucher).filter(
+            Voucher.voucher_code_hash == voucher_code_hash
+        ).count()
+        assert voucher_count == 0
+
+
+def test_settings_voucher_csrf_validation(client, app):
+    """Test CSRF validation for voucher redemption
+
+    This test verifies that voucher redemption operations properly validate
+    CSRF tokens and reject requests with invalid or missing tokens.
+    """
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post(
+        "/register", data={"csrf_token": csrf_token_register}
+    )
+    register_data = get_register_data(response_register_post.data)
+
+    # Enable account
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == register_data["account"])
+            .first()
+        )
+        account.is_enabled = True
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Login with new account
+    assert (
+        client.post(
+            "/login",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "user": register_data["username"],
+                "password": register_data["password"],
+                "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+                "csrf_token": csrf_token_login,
+            },
+        ).status_code
+        == 302
+    )
+
+    # Test POST with wrong CSRF token
+    response = client.post(
+        "/settings/voucher",
+        data={
+            "voucher": "ABCDEFGHIJKLMNOPQRSTUVWX",
+            "csrf_token": "wrong csrf_token",
+        },
+    )
+    assert response.status_code == 400
+
+    # Test POST with empty CSRF token
+    response = client.post(
+        "/settings/voucher",
+        data={
+            "voucher": "ABCDEFGHIJKLMNOPQRSTUVWX",
+            "csrf_token": "",
+        },
+    )
+    assert b"The CSRF token is missing" in response.data
