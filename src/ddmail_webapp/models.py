@@ -10,7 +10,7 @@ class Account(db.Model):
     __tablename__ = "accounts"
     id = db.Column(db.Integer, primary_key=True)
     account = db.Column(db.String(100), unique=True, nullable=False)
-    payment_token = db.Column(db.String(12), unique=True, nullable=False)
+    payment_token = db.Column(db.String(56), unique=True, nullable=False)
     funds_in_sek = db.Column(db.Integer, nullable=False)
     is_enabled = db.Column(db.Boolean, unique=False, nullable=False)
     is_gratis = db.Column(db.Boolean, unique=False, nullable=False)
@@ -138,10 +138,20 @@ class Authenticated(db.Model):
         self.user_id = user_id
         self.valid_to = valid_to
 
+
 # DB modul for vouchers.
 class Voucher(db.Model):
     __tablename__ = "vouchers"
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     voucher_code_hash = db.Column(db.String(200), unique=True, nullable=False)
     funds_in_sek = db.Column(db.Integer, unique=False, nullable=False)
-    created = db.Column(db.Date, unique=False, nullable=True)
+    created = db.Column(db.Date, unique=False, nullable=False)
+
+
+# DB modul for receipts.
+class Receipt(db.Model):
+    __tablename__ = "receipts"
+    id = db.Column(db.Integer, primary_key=True, nullable=False)
+    payment_token = db.Column(db.String(56), unique=True, nullable=False)
+    funds_in_sek = db.Column(db.Integer, unique=False, nullable=False)
+    created = db.Column(db.Date, unique=False, nullable=False)
