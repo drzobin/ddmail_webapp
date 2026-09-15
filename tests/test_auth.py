@@ -1593,7 +1593,7 @@ def test_register_post_database_commit_verification(client, app):
         user = User.query.filter_by(user=register_data["username"]).first()
 
         assert account.payment_token is not None
-        assert len(account.payment_token) == 12
+        assert len(account.payment_token) == 24
         assert user.account_id == account.id
 
         # Clean up
@@ -2008,10 +2008,10 @@ def test_generate_token_various_lengths():
     for length in [10, 20, 50, 100]:
         token = generate_token(length)
         assert len(token) == length
-        
+
         # Check that token contains only uppercase letters and digits
         assert all(c in (string.ascii_uppercase + string.digits) for c in token)
-        
+
         # Check security requirements: at least one uppercase letter and at least 4 digits
         assert any(c.isupper() for c in token)
         assert sum(c.isdigit() for c in token) >= 4
@@ -2024,15 +2024,15 @@ def test_generate_password_various_lengths():
     with different length parameters and always meets security requirements.
     """
     import string
-    
+
     # Test with different lengths
     for length in [10, 20, 50, 100]:
         password = generate_password(length)
         assert len(password) == length
-        
+
         # Check that password contains only letters and digits
         assert all(c in (string.ascii_letters + string.digits) for c in password)
-        
+
         # Check security requirements: at least one lowercase, one uppercase, and 3 digits
         assert any(c.islower() for c in password)
         assert any(c.isupper() for c in password)
@@ -2061,7 +2061,7 @@ def test_is_athenticated_invalid_format_cookie(app):
         invalid_cookie = "invalid<>cookie"
         result = is_athenticated(invalid_cookie)
         assert result is None
-        
+
         # Test with empty string
         result = is_athenticated("")
         assert result is None
@@ -2074,7 +2074,7 @@ def test_is_athenticated_expired_cookie_with_db_entry(app):
     cookies that exist in the database but have expired.
     """
     from datetime import datetime, timedelta
-    
+
     with app.app_context():
         # Create a user first
         from ddmail_webapp.models import User, Account
@@ -2089,7 +2089,7 @@ def test_is_athenticated_expired_cookie_with_db_entry(app):
         )
         db.session.add(account)
         db.session.commit()
-        
+
         user = User(
             account_id=account.id,
             user="test_user",
@@ -2098,7 +2098,7 @@ def test_is_athenticated_expired_cookie_with_db_entry(app):
         )
         db.session.add(user)
         db.session.commit()
-        
+
         # Create an expired authenticated entry
         expired_time = datetime.now() - timedelta(hours=1)
         from ddmail_webapp.models import Authenticated
@@ -2109,7 +2109,7 @@ def test_is_athenticated_expired_cookie_with_db_entry(app):
         )
         db.session.add(expired_auth)
         db.session.commit()
-        
+
         # Test with expired cookie
         result = is_athenticated("EXPIREDCOOKIE123")
         assert result is None
@@ -2135,7 +2135,7 @@ def test_is_athenticated_valid_cookie_nonexistent_user(app):
     cookies that exist in the database but reference nonexistent users.
     """
     from datetime import datetime, timedelta
-    
+
     with app.app_context():
         # Create a user first
         from ddmail_webapp.models import User, Account
@@ -2150,7 +2150,7 @@ def test_is_athenticated_valid_cookie_nonexistent_user(app):
         )
         db.session.add(account)
         db.session.commit()
-        
+
         user = User(
             account_id=account.id,
             user="test_user_orphan",
@@ -2159,9 +2159,9 @@ def test_is_athenticated_valid_cookie_nonexistent_user(app):
         )
         db.session.add(user)
         db.session.commit()
-        
+
         user_id = user.id
-        
+
         # Create a valid authenticated entry
         future_time = datetime.now() + timedelta(hours=1)
         from ddmail_webapp.models import Authenticated
@@ -2172,12 +2172,12 @@ def test_is_athenticated_valid_cookie_nonexistent_user(app):
         )
         db.session.add(auth_entry)
         db.session.commit()
-        
+
         # Now delete the authenticated entry first, then the user
         # This simulates the orphaned user scenario without violating foreign key constraints
         db.session.delete(auth_entry)
         db.session.commit()
-        
+
         # Now test with a cookie that doesn't exist in the database
         result = is_athenticated("ORPHANEDCOOKIE123")
         assert result is None
@@ -2192,16 +2192,16 @@ def test_logout_with_authenticated_user(client, app):
     # Register and login first
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
-    
+
     response_register_post = client.post(
         "/register", data={"csrf_token": csrf_token_register}
     )
     register_data = get_register_data(response_register_post.data)
-    
+
     # Login
     response_login_get = client.get("/login")
     csrf_token_login = get_csrf_token(response_login_get.data)
-    
+
     response_login_post = client.post(
         "/login",
         buffered=True,
@@ -2214,38 +2214,38 @@ def test_logout_with_authenticated_user(client, app):
         },
     )
     assert response_login_post.status_code == 302
-    
+
     # Verify user is authenticated
     with client.session_transaction() as sess:
         assert "secret" in sess
         secret = sess["secret"]
-        
+
     # Get the user ID for verification
     with app.app_context():
         from ddmail_webapp.models import User, Authenticated
         user = User.query.filter_by(user=register_data["username"]).first()
         user_id = user.id
-        
+
         # Verify authenticated record exists for this user
         auth_count_before = Authenticated.query.filter_by(user_id=user_id).count()
         assert auth_count_before >= 1
-        
+
         # Get the specific authenticated entry for this secret
         auth_entry = Authenticated.query.filter_by(cookie=secret).first()
         assert auth_entry is not None
-    
+
     # Now logout (using POST with CSRF as required by the endpoint)
     response_logout_get = client.get("/login")
     csrf_token_logout = get_csrf_token(response_logout_get.data)
-    
+
     response_logout_post = client.post("/logout", data={"csrf_token": csrf_token_logout})
     assert response_logout_post.status_code == 302
     assert response_logout_post.location == "/"
-    
+
     # Verify session is cleared
     with client.session_transaction() as sess:
         assert "secret" not in sess
-        
+
     # Verify authenticated records are removed for this user
     with app.app_context():
         from ddmail_webapp.models import Authenticated
@@ -2263,11 +2263,11 @@ def test_logout_without_authenticated_user(client):
     # Ensure no session
     with client.session_transaction() as sess:
         sess.clear()
-    
+
     # Get CSRF token first
     response_login_get = client.get("/login")
     csrf_token = get_csrf_token(response_login_get.data)
-    
+
     response = client.post("/logout", data={"csrf_token": csrf_token})
     assert response.status_code == 302
     assert response.location == "/"
@@ -2284,5 +2284,3 @@ def test_login_post_method_not_allowed(client):
         data={"csrf_token": "invalid_csrf"},
     )
     assert response.status_code == 400
-
-
