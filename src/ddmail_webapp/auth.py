@@ -28,8 +28,9 @@ def generate_token(length):
     Generate a secure token for user accounts and authentication.
 
     This function creates a cryptographically secure token using uppercase
-    letters and digits that is easy to write down and transcribe. The token
-    ensures minimum security requirements with at least 4 digits.
+    letters(not I, 1, 0, or O) and digits that is easy to write down and
+    transcribe. The tokenensures minimum security requirements with at
+    least 4 digits.
 
     Returns:
         str: A secure token containing uppercase letters and digits
@@ -43,11 +44,19 @@ def generate_token(length):
         Uses cryptographically secure random generation
         Character set: A-Z, 0-9
     """
-    alphabet = string.ascii_uppercase + string.digits
+    # Define characters to exclude.
+    excluded_chars = set("1IO0")
+
+    # Create the alphabet without excluded characters.
+    alphabet = "".join(
+        c for c in string.ascii_uppercase + string.digits if c not in excluded_chars
+    )
+
     while True:
         token = "".join(secrets.choice(alphabet) for i in range(length))
         if any(c.isupper() for c in token) and sum(c.isdigit() for c in token) >= 4:
             break
+
     return token
 
 
@@ -172,7 +181,7 @@ def register():
 
         # Generate new account.
         account = generate_token(12)
-        payment_token = generate_token(12)
+        payment_token = generate_token(24)
 
         # Add new org to the db.
         new_account = Account(
