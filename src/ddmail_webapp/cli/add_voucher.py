@@ -9,23 +9,7 @@ from flask import Flask
 
 from ddmail_webapp.models import Voucher, db
 from ddmail_webapp.shared import hash_voucher_code
-
-
-def generate_voucher_code(length: int = 24) -> str:
-    """Generate a random uppercase voucher code excluding 0, O, I, 1.
-
-    Args:
-        length: Length of the voucher code to generate (default: 24)
-
-    Returns:
-        Random uppercase string of specified length, excluding 0, O, I, 1
-    """
-    # Uppercase letters excluding O and I, digits excluding 0 and 1
-    characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-    return ''.join(random.choice(characters) for _ in range(length))
-
-
-
+from ddmail_webapp.auth import generate_token
 
 
 def create_app(config_file: str, mode: str) -> Flask:
@@ -129,7 +113,7 @@ def main() -> None:
     with app.app_context():
         for _ in range(args.number):
             # Generate cleartext voucher code
-            cleartext_code: str = generate_voucher_code(args.length)
+            cleartext_code: str = generate_token(args.length)
 
             # Hash the voucher code using HMAC-SHA256
             voucher_code_hash: str = hash_voucher_code(cleartext_code, secret_key)
