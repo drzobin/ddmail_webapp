@@ -199,7 +199,7 @@ def register():
         # Generate all the user data.
         user = generate_token(12)
         cleartext_password = generate_password(24)
-        cleartext_password_key = generate_password(4096)
+        cleartext_password_key = generate_password(128)
 
         # Generate password hashes for password and password-key.
         password_hash = ph.hash(cleartext_password)
@@ -261,8 +261,13 @@ def download_keyfile():
             message="Failed to download keyfile, data is missing",
         )
 
+    # Default to 128-bit password key length, but allow 4096-bit.
+    password_key_len = 128
+    if len(cleartext_password_key_from_form) == 4096:
+        password_key_len = 4096
+
     # Validate the form data password key.
-    if validators.is_password_key_allowed(cleartext_password_key_from_form) != True:
+    if validators.is_password_key_allowed(cleartext_password_key_from_form, key_len=password_key_len) != True:
         # validation failed.
         current_app.logger.warning("failed to download keyfile, validation failed")
         return render_template(
@@ -363,8 +368,13 @@ def login():
                 current_user=current_user,
             )
 
+        # Default to 128-bit password key length, but allow 4096-bit.
+        password_key_len = 128
+        if len(cleartext_password_key_from_form) == 4096:
+            password_key_len = 4096
+
         # Validate the form data password key.
-        if validators.is_password_key_allowed(cleartext_password_key_from_form) != True:
+        if validators.is_password_key_allowed(cleartext_password_key_from_form, key_len=password_key_len) != True:
             # Login failed.
             current_app.logger.warning("failed login, password key validation failed")
             return render_template(
