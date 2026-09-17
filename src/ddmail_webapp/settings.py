@@ -504,7 +504,7 @@ def settings_change_key_on_user():
         )
     elif request.method == "POST":
         # Generate new key for user.
-        cleartext_password_key = generate_password(4096)
+        cleartext_password_key = generate_password(128)
 
         # Generate password hashes for password key.
         ph = PasswordHasher()
