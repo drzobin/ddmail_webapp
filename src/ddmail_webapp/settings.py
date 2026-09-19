@@ -461,7 +461,7 @@ def settings_change_password_on_user():
                 "message.html",
                 headline="Change password on user error",
                 message="Failed to encrypt cleartext data beacuse openpgp keyhandler service do not answer.",
-                current_user=None,
+                current_user=current_user,
             )
 
         # Check if encryption was successfull.
@@ -479,7 +479,7 @@ def settings_change_password_on_user():
                 "message.html",
                 headline="Change password on user error",
                 message="Failed to encrypt cleartext data beacuse openpgp keyhandler service returned error",
-                current_user=None,
+                current_user=current_user,
             )
 
         # Get encrypted data.
@@ -624,7 +624,7 @@ def settings_change_key_on_user():
                 "message.html",
                 headline="Change user key error",
                 message="Failed to encrypt cleartext data beacuse openpgp keyhandler service do not answer.",
-                current_user=None,
+                current_user=current_user,
             )
 
         # Check if encryption was successfull.
@@ -642,7 +642,7 @@ def settings_change_key_on_user():
                 "message.html",
                 headline="Change user key error",
                 message="Failed to encrypt cleartext data beacuse openpgp keyhandler service returned error",
-                current_user=None,
+                current_user=current_user,
             )
 
         # Get encrypted data.
@@ -2947,6 +2947,298 @@ def settings_deactivate_openpgp_encryption():
             current_user=current_user,
         )
 
+
+@bp.route("/settings/show_users_openpgp_public_key")
+def settings_show_users_openpgp_public_key():
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
+        return redirect(url_for("auth.login"))
+
+    # Check if user is athenticated.
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        current_app.logger.warning("user is not authenticated")
+        return redirect(url_for("auth.login"))
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        current_app.logger.debug(
+            "account " + current_user.account.account + " is not enabled"
+        )
+        return render_template(
+            "message.html",
+            headline="Show Users Openpgp Public Keys",
+            message="Failed to show users OpenPGP public key beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",
+            current_user=current_user,
+        )
+
+    users = db.session.query(User).filter(
+        User.account_id == current_user.account_id
+    )
+
+    current_app.logger.debug(
+        "user "
+        + current_user.user
+        + " account "
+        + current_user.account.account
+        + " show users openpgp public key"
+    )
+    return render_template(
+        "settings_show_users_openpgp_public_key.html",
+        users=users,
+        current_user=current_user,
+    )
+
+@bp.route("/settings/change_users_openpgp_public_key", methods=["POST", "GET"])
+def settings_change_users_openpgp_public_key():
+    """
+    Change the OpenPGP public key for a account user.
+
+    This function change the account users OpenPGP public key to a OpenPGP public key that
+    is lookeded in the database.
+
+    Returns:
+        Response: Flask response with result
+
+    Request Form Parameters:
+        user (str): User to change the OpenPGP public key for
+        openpgp_public_key (str): Public key to use fot the specified user
+        csrf_token (str): CSRF protection token for POST requests
+
+    Error Responses:
+
+
+    Success Response:
+        GET: Renders settings_change_users_openpgp_public_key.html template with encryption setup form
+        POST: Renders template with success message or error message if not successful
+    """
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
+        return redirect(url_for("auth.login"))
+
+    # Check if user is athenticated.
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        current_app.logger.warning("user is not authenticated")
+        return redirect(url_for("auth.login"))
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        current_app.logger.debug(
+            "account " + current_user.account.account + " is not enabled"
+        )
+        return render_template(
+            "message.html",
+            headline="Change OpenPGP Public Key Error",
+            message="Failed to change OpenPGP public key beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",
+            current_user=current_user,
+        )
+
+    if request.method == "GET":
+        fingerprints = db.session.query(Openpgp_public_key).filter(
+            Openpgp_public_key.account_id == current_user.account_id
+        )
+        users = db.session.query(User).filter(
+            User.account_id == current_user.account_id
+        )
+
+        return render_template(
+            "settings_change_users_openpgp_public_key.html",
+            fingerprints=fingerprints,
+            users=users,
+            current_user=current_user,
+        )
+    if request.method == "POST":
+        fingerprint = request.form["fingerprint"].strip()
+        user = request.form["user"].strip()
+
+        # Check if fingeprint from form is empty.
+        if fingerprint == None or fingerprint == "":
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " fingerprint is empty"
+            )
+            return render_template(
+                "message.html",
+                headline="Change OpenPGP Public Key Error",
+                message="Failed to change OpenPGP public key beacuse fingerprint form is empty.",
+                current_user=current_user,
+            )
+
+        # Check if user from form is empty.
+        if user == None or user == "":
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " user is empty"
+            )
+            return render_template(
+                "message.html",
+                headline="Change OpenPGP Public Key Error",
+                message="Failed to change OpenPGP public key beacuse user form is empty.",
+                current_user=current_user,
+            )
+
+        # Validate fingerprint.
+        if validators.is_openpgp_key_fingerprint_allowed(fingerprint) != True:
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " fingerprint "
+                + fingerprint
+                + " failed validation"
+            )
+            return render_template(
+                "message.html",
+                headline="Change OpenPGP Public Key Error",
+                message="Failed to change OpenPGP public key beacuse fingerprint validation failed",
+                current_user=current_user,
+            )
+
+        # Validate user.
+        if validators.is_username_allowed(user) == False:
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " user "
+                + user
+                + " failed validation"
+            )
+            return render_template(
+                "message.html",
+                headline="Change OpenPGP Public Key Error",
+                message="Failed to change OpenPGP public key beacuse user validation failed.",
+                current_user=current_user,
+            )
+
+        # Check that openpgp public key fingerprint exist in db and is owned by current account.
+        is_fingerprint_mine = (
+            db.session.query(Openpgp_public_key)
+            .filter(
+                Openpgp_public_key.account_id == current_user.account_id,
+                Openpgp_public_key.fingerprint == fingerprint,
+            )
+            .count()
+        )
+        if is_fingerprint_mine != 1:
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " fingerprint "
+                + fingerprint
+                + " is not in db or is not owned by current user"
+            )
+            return render_template(
+                "message.html",
+                headline="Change OpenPGP Public Key Error",
+                message="Failed to change OpenPGP public key beacuse openpgp public key fingerprint can not be found in database",
+                current_user=current_user,
+            )
+
+        # Check that user already exist in db and is owned by current account.
+        is_user_mine = (
+            db.session.query(User)
+            .filter(User.user == user, User.account_id == current_user.account_id)
+            .count()
+        )
+        if is_user_mine != 1:
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " user "
+                + user
+                + " is not in db or is not owned by current user"
+            )
+            return render_template(
+                "message.html",
+                headline="Change OpenPGP Public Key Error",
+                message="Failed to change OpenPGP public key beacuse user can not be found in database",
+                current_user=current_user,
+            )
+
+        # Get the id of the openpgp public key record in db.
+        openpgp_public_key = (
+            db.session.query(Openpgp_public_key)
+            .filter(
+                Openpgp_public_key.account_id == current_user.account_id,
+                Openpgp_public_key.fingerprint == fingerprint,
+            )
+            .first()
+        )
+
+        # Update openpgp public key id for the user in db.
+        user_from_db = (
+            db.session.query(User)
+            .filter(User.account_id == current_user.account_id, User.user == user)
+            .first()
+        )
+        user_from_db.openpgp_public_key_id = openpgp_public_key.id
+        db.session.commit()
+
+        # Check that openpgp encryption is changed for the user.
+        user_from_db = (
+            db.session.query(User)
+            .filter(User.account_id == current_user.account_id, User.user == user)
+            .first()
+        )
+        if (
+            user_from_db.openpgp_public_key_id != openpgp_public_key.id
+            or openpgp_public_key.fingerprint != fingerprint
+        ):
+            current_app.logger.error(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " fingerprint "
+                + fingerprint
+                + " user "
+                + user
+                + " failed to change openpgp public key"
+            )
+            return render_template(
+                "message.html",
+                headline="Change OpenPGP Public Key Error",
+                message="Failed to change OpenPGP public key",
+                current_user=current_user,
+            )
+
+        current_app.logger.debug(
+            "user "
+            + current_user.user
+            + " account "
+            + current_user.account.account
+            + " openpgp public key with fingerprint "
+            + fingerprint
+            + " user "
+            + user
+            + " changed openpgp public key"
+        )
+        return render_template(
+            "message.html",
+            headline="Change OpenPGP Public Key",
+            message="Successfully changed OpenPGP public key for account user " + user + " to OpenPGP public key with fingerprint " + fingerprint,
+            current_user=current_user,
+        )
 
 @bp.route("/settings/show_alias")
 def setings_show_alias():
