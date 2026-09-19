@@ -80,6 +80,7 @@ class Openpgp_public_key(db.Model):
 
     account = relationship("Account", back_populates="openpgp_public_keys")
     emails = relationship("Email", back_populates="openpgp_public_key")
+    users = relationship("User", back_populates="openpgp_public_key")
 
 
 # DB modul for account domains.
@@ -115,12 +116,16 @@ class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     account_id = db.mapped_column(db.Integer, ForeignKey("accounts.id"), nullable=False)
+    openpgp_public_key_id = db.mapped_column(
+        db.Integer, ForeignKey("openpgp_public_keys.id"), nullable=False
+    )
     user = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), unique=True, nullable=False)
     password_key_hash = db.Column(db.String(200), unique=True, nullable=False)
 
     account = relationship("Account", back_populates="users")
     authenticated = relationship("Authenticated", back_populates="user")
+    openpgp_public_key = relationship("Openpgp_public_key", back_populates="users")
 
 
 # DB model for authenticated.
