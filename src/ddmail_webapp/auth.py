@@ -1,10 +1,13 @@
 import datetime
+import io
 import random
 import secrets
 import string
 from io import BytesIO
+from xxlimited import new
 
 import ddmail_validators.validators as validators
+import requests
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from flask import (
@@ -18,7 +21,7 @@ from flask import (
     url_for,
 )
 
-from ddmail_webapp.models import Account, Authenticated, User, db
+from ddmail_webapp.models import Account, Authenticated, Openpgp_public_key, User, db
 
 bp = Blueprint("auth", __name__, url_prefix="/")
 
@@ -155,11 +158,12 @@ def is_athenticated(cookie):
 @bp.route("/register", methods=["POST", "GET"])
 def register():
     """
-    Handle user account and user registration process.
+    Handle registration process.
 
     This function manages both GET and POST requests for user registration.
-    GET requests display the registration form, while POST requests create
-    a new account with an initial user, generating secure credentials.
+    GET requests display the registration form. POST requests takes a OpenPGP public key.
+    It creates a new account with a new user, encrypting the credentials with the uploaded public
+    key and then sends it to the user in a encrypted file ddmail-credentials.asc.
 
     Returns:
         Response: Flask response with registration form or user credentials
@@ -172,29 +176,164 @@ def register():
 
     Success Response:
         GET: Renders registration.html template with registration form
-        POST: Returns user_created.html with account identifier, username, generated password, and generated encryption key
+        POST: Returns the encrypted file ddmail-credentials.asc with the newly created credentials
     """
     if request.method == "GET":
         return render_template("register.html")
     if request.method == "POST":
-        ph = PasswordHasher()
+        # Guard against missing form field.
+        file = request.files.get("openpgp_public_key")
+        if file is None or file.filename == "":
+            current_app.logger.warning("openpgp public key upload missing file")
+            return render_template(
+                "message.html",
+                headline="Register Error",
+                message="Failed to upload openpgp public key because no file was provided.",
+                current_user=None,
+            )
+
+        # Guard against non-UTF-8 payloads.
+        try:
+            openpgp_public_key = file.read().strip().decode("utf-8")
+        except UnicodeDecodeError:
+            current_app.logger.warning(" openpgp public key upload is not valid utf-8")
+            return render_template(
+                "message.html",
+                headline="Register Error",
+                message="Failed to upload openpgp public key because the file is not valid UTF-8 text.",
+                current_user=None,
+            )
+
+        # Check if public key file is empty.
+        if not openpgp_public_key:
+            current_app.logger.warning("openpgp public key is empty")
+            return render_template(
+                "message.html",
+                headline="Register Error",
+                message="Failed to upload openpgp public key because uploaded public key is empty",
+                current_user=None,
+            )
+
+        # Validate openpgp public key data.
+        if validators.is_openpgp_public_key_allowed(openpgp_public_key) != True:
+            current_app.logger.warning("validation failed")
+            return render_template(
+                "message.html",
+                headline="Register Error",
+                message="Failed to upload openpgp public key beacuse validation failed",
+                current_user=None,
+            )
+
+        # Get fingerprint by send openpgp public key to ddmail openpgp keyhandler service.
+        openpgp_keyhandler_url = (
+            current_app.config["OPENPGP_KEYHANDLER_URL"] + "/get_fingerprint"
+        )
+        openpgp_keyhandler_password = current_app.config["OPENPGP_KEYHANDLER_PASSWORD"]
+        try:
+            r_respone = requests.post(
+                openpgp_keyhandler_url,
+                {
+                    "public_key": openpgp_public_key,
+                    "password": openpgp_keyhandler_password,
+                },
+                timeout=5,
+            )
+        except requests.exceptions.ConnectionError:
+            current_app.logger.error("faild to upload openpgp public key beacuse openpgp keyhandler service do not answer")
+            return render_template(
+                "message.html",
+                headline="Register Error",
+                message="Failed to upload openpgp public key beacuse openpgp keyhandler service do not answer.",
+                current_user=None,
+            )
+
+        # Check if upload was successfull.
+        if r_respone.status_code != 200 or "done fingerprint: " not in str(
+            r_respone.content
+        ):
+            current_app.logger.error("faild to upload openpgp public key beacuse openpgp keyhandler service returned error")
+            return render_template(
+                "message.html",
+                headline="Register error",
+                message="Failed to upload openpgp public key.",
+                current_user=None,
+            )
+
+        # Get fingerprint of uploaded openpgp public key.
+        fingerprint = str(r_respone.content, encoding="utf-8").replace(
+            "done fingerprint: ", ""
+        )
+        fingerprint = fingerprint.strip()
+
+        # Validate fingerprint.
+        if validators.is_openpgp_key_fingerprint_allowed(fingerprint) != True:
+            current_app.logger.error(
+                " faild to upload openpgp public key beacuse openpgp keyhandler service returned fingerprint "
+                + fingerprint
+                + " that failed validation"
+            )
+            return render_template(
+                "message.html",
+                headline="Register error",
+                message="Openpgp public key fingerprint validation failed.",
+                current_user=None,
+            )
+
+        # Check that openpgp public key fingerprint do not exist in db
+        is_fingerprint_uniq = (
+            db.session.query(Openpgp_public_key)
+            .filter(
+                Openpgp_public_key.fingerprint == fingerprint,
+            )
+            .count()
+        )
+        if is_fingerprint_uniq != 0:
+            current_app.logger.error(
+                " faild to upload openpgp public key beacuse openpgp keyhandler service returned fingerprint "
+                + fingerprint
+                + " that already exist in db"
+            )
+            return render_template(
+                "message.html",
+                headline="Register error",
+                message="Openpgp public key fingerprint already exist in database",
+                current_user=None,
+            )
 
         # Generate new account.
         account = generate_token(12)
         payment_token = generate_token(24)
 
-        # Add new org to the db.
+        # Add new account to the db.
         new_account = Account(
             account=account,
             payment_token=payment_token,
             funds_in_sek=0,
             is_enabled=False,
             is_gratis=False,
-            total_storage_space_g=0,
+            total_storage_space_g=1,
             created=datetime.datetime.now(),
         )
         db.session.add(new_account)
         db.session.commit()
+
+        # Insert openpgp public key and fingerprint to db.
+        new_openpgp_public_key = Openpgp_public_key(
+            account_id=new_account.id,
+            fingerprint=fingerprint,
+            public_key=openpgp_public_key,
+        )
+        db.session.add(new_openpgp_public_key)
+        db.session.commit()
+
+        current_app.logger.debug(
+            "account "
+            + new_account.account
+            + " uploaded openpgp public key with fingerprint"
+            + fingerprint
+        )
+
+        ph = PasswordHasher()
 
         # Generate all the user data.
         user = generate_token(12)
@@ -208,6 +347,7 @@ def register():
         # Add the user data to the db.
         new_user = User(
             account_id=new_account.id,
+            openpgp_public_key_id=new_openpgp_public_key.id,
             user=user,
             password_hash=password_hash,
             password_key_hash=password_key_hash,
@@ -215,77 +355,86 @@ def register():
         db.session.add(new_user)
         db.session.commit()
 
-        # Give the data to the user.
+        cleartext_data = (
+            "Account:"
+            + account
+            + "\nUsername:"
+            + user
+            + "\nOpenPGP public key fingerprint:"
+            + fingerprint
+            + "\nPassword:"
+            + cleartext_password
+            + "\nKey file data:"
+            + cleartext_password_key
+            + "\n"
+        )
+
+        openpgp_keyhandler_url = (
+            current_app.config["OPENPGP_KEYHANDLER_URL"] + "/encrypt_data"
+        )
+
+        try:
+            r_respone = requests.post(
+                openpgp_keyhandler_url,
+                {
+                    "public_key": openpgp_public_key,
+                    "password": openpgp_keyhandler_password,
+                    "cleartext_data": str(cleartext_data)
+                },
+                timeout=5,
+            )
+        except requests.exceptions.ConnectionError:
+            current_app.logger.error(
+                "user "
+                + new_user.user
+                + " account "
+                + new_account.account
+                + " faild to encrypt cleartext data beacuse openpgp keyhandler service do not answer"
+            )
+            return render_template(
+                "message.html",
+                headline="Register Error",
+                message="Failed to encrypt cleartext data beacuse openpgp keyhandler service do not answer.",
+                current_user=None,
+            )
+
+        # Check if encryption was successfull.
+        if r_respone.status_code != 200 or "done encrypted_data:" not in str(
+            r_respone.content
+        ):
+            current_app.logger.error(
+                "user "
+                + new_user.user
+                + " account "
+                + new_account.account
+                + " faild to encrypt cleartext data beacuse openpgp keyhandler service returned error"
+            )
+            return render_template(
+                "message.html",
+                headline="Register error",
+                message="Failed to encrypt cleartext data beacuse openpgp keyhandler service returned error",
+                current_user=None,
+            )
+
+        # Get encrypted data.
+        encrypted_data = str(r_respone.content, encoding="utf-8").replace(
+            "done encrypted_data:", ""
+        )
+        encrypted_data = encrypted_data.strip()
+
         current_app.logger.info(
-            "created new account: " + account + " with new user: " + user
-        )
-        return render_template(
-            "user_created.html",
-            account=new_account.account,
-            user=user,
-            cleartext_password=cleartext_password,
-            cleartext_password_key=cleartext_password_key,
+            "created new account: " + account + " with new user: " + user + " with openpgp public key fingerprint: " + fingerprint
         )
 
+        file_stream = io.BytesIO(encrypted_data.encode('utf-8'))
 
-@bp.route("/download_keyfile", methods=["POST"])
-def download_keyfile():
-    """
-    Provide secure download of user encryption key file.
-
-    This function validates and processes requests to download encryption
-    key files. It performs input validation and returns the key as a
-    downloadable text file for secure local storage.
-
-    Returns:
-        Response: Flask response with key file download or error message
-
-    Request Form Parameters:
-        password_key (str): The encryption key to be downloaded
-
-    Error Responses:
-        "Failed to download keyfile, data is missing": If key is empty/whitespace
-        "failed to download keyfile, validation failed": If key fails security validation
-
-    Success Response:
-        File download with Content-Type text/plain and filename ddmail.key
-    """
-    cleartext_password_key_from_form = request.form["password_key"].strip()
-
-    # Check if cleartext_password_key_from_form is empty.
-    if not cleartext_password_key_from_form:
-        current_app.logger.warning("failed to download keyfile, data is missing")
-        return render_template(
-            "message.html",
-            headline="Download keyfile error",
-            message="Failed to download keyfile, data is missing",
+        # Send the encrypted credentials as an attachment to the user.
+        return send_file(
+            file_stream,
+            mimetype='text/plain',
+            as_attachment=True,
+            download_name='ddmail-credentials.asc'
         )
-
-    # Default to 128-bit password key length, but allow 4096-bit.
-    password_key_len = 128
-    if len(cleartext_password_key_from_form) == 4096:
-        password_key_len = 4096
-
-    # Validate the form data password key.
-    if validators.is_password_key_allowed(cleartext_password_key_from_form, key_len=password_key_len) != True:
-        # validation failed.
-        current_app.logger.warning("failed to download keyfile, validation failed")
-        return render_template(
-            "message.html",
-            headline="Download keyfile error",
-            message="failed to download keyfile, validation failed.",
-        )
-
-    # Send the data to the user.
-    data = BytesIO()
-    data.write(cleartext_password_key_from_form.encode("utf-8"))
-    data.seek(0)
-    return send_file(
-        data,
-        mimetype="text/plain",
-        as_attachment=True,
-        download_name="ddmail.key",
-    )
 
 
 @bp.route("/login", methods=["POST", "GET"])
