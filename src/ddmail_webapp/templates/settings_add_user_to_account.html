@@ -2,11 +2,19 @@
 {% block content %}
 {% include 'settings_menu.html' %}
 <h2>Add new user to account</h2>
-<p>To create a new user for this account push the button below</p>
+<p>To create a new user for this account choose a OpenPGP public key to use for the new user. The new users credentials will be encrypted using this key. This key will also be the new users default OpenPGP key. The encrypted credentials will be sent as a file with the name ddmail-credentials_new_user.asc Push the button below to add the new user.</p>
 <p>
+
 <form action="" method="post">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-<input type="submit" value="Add new user">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  Fingerprint of OpenPGP public key to use for the new user:<br>
+  <select name="fingerprint">
+  {% for fingerprint in fingerprints %}
+    <option value="{{ fingerprint.fingerprint }}">{{ fingerprint.fingerprint }}</option>
+  {% endfor %}
+  </select>
+  <p></p>
+  <input type="submit" value="Add new user">
 </form>
 </p>
 {% endblock%}
