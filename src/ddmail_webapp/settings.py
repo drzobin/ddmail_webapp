@@ -1,6 +1,7 @@
 import base64
 import secrets
 import string
+import io
 from datetime import date
 
 import ddmail_validators.validators as validators
@@ -14,6 +15,7 @@ from flask import (
     render_template,
     request,
     session,
+    send_file,
     url_for,
 )
 
@@ -366,21 +368,21 @@ def settings_change_password_on_user():
 
     This function allows users to change their login password. It generates
     a new secure password, updates the password hash in the database, and
-    provides the new password to the user for future logins.
+    provides the new password encrypted with the users OpenPGP key to the user
+    as a encrypted file named ddmail_credentials_new_password.asc.
 
     Returns:
-        Response: Flask response with password change result or login redirect
+        Response: The new password encrypted with the users OpenPGP key as file ddmail_credentials_new_password.asc
 
     Request Form Parameters:
         csrf_token (str): CSRF protection token for POST requests
 
     Error Responses:
-        "Failed to change users password beacuse this account is disabled": If account is not enabled
-        "The CSRF token is missing": If CSRF token validation fails
+
 
     Success Response:
         GET: Renders change_password_on_user.html template with password change form
-        POST: Renders template with success message and new password
+        POST: The file ddmail_credentials_new_password.asc
     """
     # Check if cookie secret is set.
     if not "secret" in session:
@@ -419,6 +421,77 @@ def settings_change_password_on_user():
         ph = PasswordHasher()
         password_hash = ph.hash(cleartext_password)
 
+        cleartext_data = (
+            "Account:"
+            + current_user.account.account
+            + "\nUsername:"
+            + current_user.user
+            + "\nOpenPGP public key fingerprint:"
+            + current_user.openpgp_public_key.fingerprint
+            + "\nNew password:"
+            + cleartext_password
+            + "\n"
+        )
+
+        openpgp_keyhandler_url = (
+            current_app.config["OPENPGP_KEYHANDLER_URL"] + "/encrypt_data"
+        )
+
+        openpgp_keyhandler_password = current_app.config["OPENPGP_KEYHANDLER_PASSWORD"]
+
+        try:
+            r_respone = requests.post(
+                openpgp_keyhandler_url,
+                {
+                    "public_key": current_user.openpgp_public_key.public_key,
+                    "password": openpgp_keyhandler_password,
+                    "cleartext_data": str(cleartext_data)
+                },
+                timeout=5,
+            )
+        except requests.exceptions.ConnectionError:
+            current_app.logger.error(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " faild to encrypt cleartext data beacuse openpgp keyhandler service do not answer"
+            )
+            return render_template(
+                "message.html",
+                headline="Change password on user error",
+                message="Failed to encrypt cleartext data beacuse openpgp keyhandler service do not answer.",
+                current_user=None,
+            )
+
+        # Check if encryption was successfull.
+        if r_respone.status_code != 200 or "done encrypted_data:" not in str(
+            r_respone.content
+        ):
+            current_app.logger.error(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " faild to encrypt cleartext data beacuse openpgp keyhandler service returned error"
+            )
+            return render_template(
+                "message.html",
+                headline="Change password on user error",
+                message="Failed to encrypt cleartext data beacuse openpgp keyhandler service returned error",
+                current_user=None,
+            )
+
+        # Get encrypted data.
+        encrypted_data = str(r_respone.content, encoding="utf-8").replace(
+            "done encrypted_data:", ""
+        )
+        encrypted_data = encrypted_data.strip()
+
+        current_app.logger.debug(
+            " encrypted new password for user: " + current_user.user + " with openpgp public key fingerprint: " + current_user.openpgp_public_key.fingerprint
+        )
+
         # Save the new password hash to db.
         user = (
             db.session.query(User)
@@ -439,14 +512,15 @@ def settings_change_password_on_user():
             + current_user.account.account
             + " changed password"
         )
-        return render_template(
-            "message.html",
-            headline="Change password on user",
-            message="Successfully changed password on user: "
-            + current_user.user
-            + " to new password: "
-            + cleartext_password,
-            current_user=current_user,
+
+        file_stream = io.BytesIO(encrypted_data.encode('utf-8'))
+
+        # Send the encrypted credentials as an attachment to the user.
+        return send_file(
+            file_stream,
+            mimetype='text/plain',
+            as_attachment=True,
+            download_name='ddmail-credentials_new_password.asc'
         )
 
 
@@ -455,23 +529,23 @@ def settings_change_key_on_user():
     """
     Handle encryption key changes for the authenticated user.
 
-    This function allows users to change their encryption key used for
-    mailbox security. It generates a new secure key, updates the key hash
-    in the database, and provides the new key to the user.
+    This function allows users to change their key used for
+    authentication. It generates a new key, updates the key hash
+    in the database, and provides the new key to the user as a encrypted
+    file named ddmail-credentials_new_key.asc
 
     Returns:
-        Response: Flask response with key change result or login redirect
+        Response: The new password encrypted with the users OpenPGP key as file ddmail_credentials_new_key.asc
 
     Request Form Parameters:
         csrf_token (str): CSRF protection token for POST requests
 
     Error Responses:
-        "Failed to change users key beacuse this account is disabled": If account is not enabled
-        "The CSRF token is missing": If CSRF token validation fails
+
 
     Success Response:
-        GET: Renders change_key_on_user.html template with key change form
-        POST: Renders template with success message and new encryption key
+        GET: Renders change_password_on_user.html template with password change form
+        POST: The file ddmail_credentials_new_key.asc
     """
     # Check if cookie secret is set.
     if not "secret" in session:
@@ -510,6 +584,77 @@ def settings_change_key_on_user():
         ph = PasswordHasher()
         password_key_hash = ph.hash(cleartext_password_key)
 
+        cleartext_data = (
+            "Account:"
+            + current_user.account.account
+            + "\nUsername:"
+            + current_user.user
+            + "\nOpenPGP public key fingerprint:"
+            + current_user.openpgp_public_key.fingerprint
+            + "\nNew key file content:"
+            + cleartext_password_key
+            + "\n"
+        )
+
+        openpgp_keyhandler_url = (
+            current_app.config["OPENPGP_KEYHANDLER_URL"] + "/encrypt_data"
+        )
+
+        openpgp_keyhandler_password = current_app.config["OPENPGP_KEYHANDLER_PASSWORD"]
+
+        try:
+            r_respone = requests.post(
+                openpgp_keyhandler_url,
+                {
+                    "public_key": current_user.openpgp_public_key.public_key,
+                    "password": openpgp_keyhandler_password,
+                    "cleartext_data": str(cleartext_data)
+                },
+                timeout=5,
+            )
+        except requests.exceptions.ConnectionError:
+            current_app.logger.error(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " faild to encrypt cleartext data beacuse openpgp keyhandler service do not answer"
+            )
+            return render_template(
+                "message.html",
+                headline="Change user key error",
+                message="Failed to encrypt cleartext data beacuse openpgp keyhandler service do not answer.",
+                current_user=None,
+            )
+
+        # Check if encryption was successfull.
+        if r_respone.status_code != 200 or "done encrypted_data:" not in str(
+            r_respone.content
+        ):
+            current_app.logger.error(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " faild to encrypt cleartext data beacuse openpgp keyhandler service returned error"
+            )
+            return render_template(
+                "message.html",
+                headline="Change user key error",
+                message="Failed to encrypt cleartext data beacuse openpgp keyhandler service returned error",
+                current_user=None,
+            )
+
+        # Get encrypted data.
+        encrypted_data = str(r_respone.content, encoding="utf-8").replace(
+            "done encrypted_data:", ""
+        )
+        encrypted_data = encrypted_data.strip()
+
+        current_app.logger.debug(
+            " encrypted new password for user: " + current_user.user + " with openpgp public key fingerprint: " + current_user.openpgp_public_key.fingerprint
+        )
+
         # Save the new key hash to db.
         user = (
             db.session.query(User)
@@ -529,14 +674,15 @@ def settings_change_key_on_user():
             + " belonging to account "
             + current_user.account.account
         )
-        return render_template(
-            "message.html",
-            headline="Change key on user",
-            message="Successfully changed key on user: "
-            + current_user.user
-            + " to new key: "
-            + cleartext_password_key,
-            current_user=current_user,
+
+        file_stream = io.BytesIO(encrypted_data.encode('utf-8'))
+
+        # Send the encrypted credentials as an attachment to the user.
+        return send_file(
+            file_stream,
+            mimetype='text/plain',
+            as_attachment=True,
+            download_name='ddmail-credentials_new_key.asc'
         )
 
 
@@ -545,23 +691,24 @@ def settings_add_user_to_account():
     """
     Add a new user to the current account for multi-user access.
 
-    This function allows account owners to create additional users under
-    their account. It generates secure credentials for the new user and
-    creates the necessary database records for account sharing.
+    This function allows users to create additional users under
+    their account. It generates secure credentials for the new user
+    and provides the new user credentials to the user as a encrypted
+    file named ddmail-credentials_new_user.asc
 
     Returns:
-        Response: Flask response with user creation result or login redirect
+        Response: The new password encrypted with the users OpenPGP key as file ddmail_credentials_new_user.asc
 
     Request Form Parameters:
         csrf_token (str): CSRF protection token for POST requests
+        fingerprint (str): The OpenPGP fingerprint of the key to use for the new user.
 
     Error Responses:
-        "Failed to add user beacuse this account is disabled": If account is not enabled
-        "The CSRF token is missing": If CSRF token validation fails
+
 
     Success Response:
-        GET: Renders add_user_to_account.html template with user creation form
-        POST: Renders template with success message and new user credentials
+        GET: Renders add_user_to_account.html template
+        POST: The file ddmail_credentials_new_user.asc
     """
     # Check if cookie secret is set.
     if not "secret" in session:
@@ -589,46 +736,197 @@ def settings_add_user_to_account():
         )
 
     if request.method == "GET":
+        fingerprints = db.session.query(Openpgp_public_key).filter(
+            Openpgp_public_key.account_id == current_user.account_id
+        )
+
         return render_template(
-            "settings_add_user_to_account.html", current_user=current_user
+            "settings_add_user_to_account.html", fingerprints=fingerprints, current_user=current_user
         )
 
     if request.method == "POST":
+        fingerprint = request.form["fingerprint"].strip()
+
+        # Check if fingeprint from form is empty.
+        if fingerprint == None or fingerprint == "":
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " fingerprint is empty"
+            )
+            return render_template(
+                "message.html",
+                headline="Add new user to account error",
+                message="Failed to activate OpenPGP encryption beacuse fingerprint form is empty.",
+                current_user=current_user,
+            )
+
+            # Validate fingerprint.
+            if validators.is_openpgp_key_fingerprint_allowed(fingerprint) != True:
+                current_app.logger.warning(
+                    "user "
+                    + current_user.user
+                    + " account "
+                    + current_user.account.account
+                    + " fingerprint "
+                    + fingerprint
+                    + " failed validation"
+                )
+                return render_template(
+                    "message.html",
+                    headline="Add new user to account error",
+                    message="Failed to activate OpenPGP encryption beacuse fingerprint validation failed",
+                    current_user=current_user,
+                )
+
+        # Check that openpgp public key fingerprint exist in db and is owned by current account.
+        is_fingerprint_mine = (
+            db.session.query(Openpgp_public_key)
+            .filter(
+                Openpgp_public_key.account_id == current_user.account_id,
+                Openpgp_public_key.fingerprint == fingerprint,
+            )
+            .count()
+        )
+        if is_fingerprint_mine != 1:
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " fingerprint "
+                + fingerprint
+                + " is not in db or is not owned by current user"
+            )
+            return render_template(
+                "message.html",
+                headline="Add new user to account Error",
+                message="Failed to activate OpenPGP encryption beacuse openpgp public key fingerprint can not be found in database",
+                current_user=current_user,
+            )
+
+        # Get the id of the openpgp public key record in db.
+        openpgp_public_key = (
+            db.session.query(Openpgp_public_key)
+            .filter(
+                Openpgp_public_key.account_id == current_user.account_id,
+                Openpgp_public_key.fingerprint == fingerprint,
+            )
+            .first()
+        )
+
         ph = PasswordHasher()
 
         # Generate all the user data.
         user = generate_token(12)
         cleartext_password = generate_password(24)
-        cleartext_password_key = generate_password(4096)
+        cleartext_password_key = generate_password(128)
 
         # Generate password hashes for password and password-key.
         password_hash = ph.hash(cleartext_password)
         password_key_hash = ph.hash(cleartext_password_key)
 
+        cleartext_data = (
+            "Account:"
+            + current_user.account.account
+            + "\nUsername:"
+            + user
+            + "\nOpenPGP public key fingerprint:"
+            + openpgp_public_key.fingerprint
+            + "\nPassword:"
+            + cleartext_password
+            + "\nKey file content:"
+            + cleartext_password_key
+            + "\n"
+        )
+
+        openpgp_keyhandler_url = (
+            current_app.config["OPENPGP_KEYHANDLER_URL"] + "/encrypt_data"
+        )
+
+        openpgp_keyhandler_password = current_app.config["OPENPGP_KEYHANDLER_PASSWORD"]
+
+        try:
+            r_respone = requests.post(
+                openpgp_keyhandler_url,
+                {
+                    "public_key": current_user.openpgp_public_key.public_key,
+                    "password": openpgp_keyhandler_password,
+                    "cleartext_data": str(cleartext_data)
+                },
+                timeout=5,
+            )
+        except requests.exceptions.ConnectionError:
+            current_app.logger.error(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " faild to encrypt cleartext data beacuse openpgp keyhandler service do not answer"
+            )
+            return render_template(
+                "message.html",
+                headline="Add new user to account error",
+                message="Failed to encrypt cleartext data beacuse openpgp keyhandler service do not answer.",
+                current_user=current_user,
+            )
+
+        # Check if encryption was successfull.
+        if r_respone.status_code != 200 or "done encrypted_data:" not in str(
+            r_respone.content
+        ):
+            current_app.logger.error(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " faild to encrypt cleartext data beacuse openpgp keyhandler service returned error"
+            )
+            return render_template(
+                "message.html",
+                headline="Add new user to account error",
+                message="Failed to encrypt cleartext data beacuse openpgp keyhandler service returned error",
+                current_user=current_user,
+            )
+
+        # Get encrypted data.
+        encrypted_data = str(r_respone.content, encoding="utf-8").replace(
+            "done encrypted_data:", ""
+        )
+        encrypted_data = encrypted_data.strip()
+
+        current_app.logger.debug(
+            " encrypted new password for user: " + current_user.user + " with openpgp public key fingerprint: " + current_user.openpgp_public_key.fingerprint
+        )
+
         # Add the user data to the db.
         new_user = User(
             account_id=current_user.account_id,
             user=user,
+            openpgp_public_key_id=openpgp_public_key.id,
             password_hash=password_hash,
             password_key_hash=password_key_hash,
         )
         db.session.add(new_user)
         db.session.commit()
 
-        # Give the data to the user.
         current_app.logger.debug(
             "user "
             + current_user.user
             + " was added to account "
             + current_user.account.account
         )
-        return render_template(
-            "settings_added_user_to_account.html",
-            current_user=current_user,
-            account=current_user.account.account,
-            user=user,
-            cleartext_password=cleartext_password,
-            cleartext_password_key=cleartext_password_key,
+
+        file_stream = io.BytesIO(encrypted_data.encode('utf-8'))
+
+        # Send the encrypted credentials as a file to the user.
+        return send_file(
+            file_stream,
+            mimetype='text/plain',
+            as_attachment=True,
+            download_name='ddmail-credentials_new_user.asc'
         )
 
 
