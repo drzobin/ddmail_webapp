@@ -1,0 +1,27 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h3>Change Account Users OpenPGP Public Key</h3>
+Every account user has a specific OpenPGP public key that is used to encrypt sensitive data example passwords and account keys. It is also used for authentication for the specific user.
+Here you can change a users OpenPGP public key.
+<p></p>
+
+<form action="" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <br>Change OpenPGP public key for this user:<br>
+  <select name="user">
+  {% for user in users %}
+    <option value="{{ user.user }}">{{ user.user }}</option>
+  {% endfor %}
+  </select>
+  <p></p>
+  Fingerprint of OpenPGP public key:<br>
+  <select name="fingerprint">
+  {% for fingerprint in fingerprints %}
+    <option value="{{ fingerprint.fingerprint }}">{{ fingerprint.fingerprint }}</option>
+  {% endfor %}
+  </select>
+  <p></p>
+  <input type="submit" value="Change OpenPGP Public Key">
+</form>
+{% endblock%}
