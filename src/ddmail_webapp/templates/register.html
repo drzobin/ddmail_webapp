@@ -1,12 +1,19 @@
 {% extends "all.html" %}
 {% block content %}
 <h2>Register</h2>
-<p>To create a account push the button below. By register you agree to the ddmail terms</p>
+<p>To create a account you need to upload your OpenPGP public key in armored(base64 encoded) format. Your OpenPGP public key will be used to encrypt your account information and credentials.
+</p>
 <p>
-<form action="" method="post">
+<form action="" method="post" enctype="multipart/form-data">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+<p>OpenpPGP public key file in armored(base64 encoded) format:
+</p>
+<input type="file" name="openpgp_public_key" id="openpgp_public_key">
+<p>
 <input type="submit" value="Create account">
+</p>
 </form>
 </p>
+<p>By register you agree to the ddmail terms located at <a href="{{ url_for('unauthenticated.terms') }}">terms</a>.</p>
 <p>Happy mailing :)</p>
 {% endblock%}
