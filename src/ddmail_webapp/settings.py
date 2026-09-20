@@ -1187,296 +1187,364 @@ def settings_add_email():
                 message="Failed to add email, csrf validation failed.",
                 current_user=current_user,
             )
-        else:
-            email_from_form = form.email.data.strip()
-            domain_from_form = form.domain.data.strip()
 
-            add_email_from_form = email_from_form + "@" + domain_from_form
+        email_from_form = form.email.data.strip()
+        domain_from_form = form.domain.data.strip()
 
-            # Validate email from form.
-            if validators.is_email_allowed(add_email_from_form) == False:
-                current_app.logger.warning(
-                    "user "
-                    + current_user.user
-                    + " account "
-                    + current_user.account.account
-                    + " failed to add email "
-                    + add_email_from_form
-                    + " beacuse validation failed"
-                )
-                return render_template(
-                    "message.html",
-                    headline="Add email error",
-                    message="Failed to add email, email validation failed.",
-                    current_user=current_user,
-                )
+        add_email_from_form = email_from_form + "@" + domain_from_form
 
-            # Validate domain part of email from form.
-            validate_email_domain = add_email_from_form.split("@")
-            domain = validate_email_domain[1]
-            if validators.is_domain_allowed(domain) == False:
-                current_app.logger.warning(
-                    "user "
-                    + current_user.user
-                    + " account "
-                    + current_user.account.account
-                    + " failed to add email "
-                    + add_email_from_form
-                    + " domain validation failed."
-                )
-                return render_template(
-                    "message.html",
-                    headline="Add email error",
-                    message="Failed to add email, domain validation failed.",
-                    current_user=current_user,
-                )
-
-            # Check if domain is global.
-            is_domain_global = (
-                db.session.query(Global_domain)
-                .filter(
-                    Global_domain.domain == domain,
-                    Global_domain.is_enabled == True,
-                )
-                .count()
-            )
-
-            # Check if domain is owned by the account.
-            is_domain_mine = (
-                db.session.query(Account_domain)
-                .filter(
-                    Account_domain.domain == domain,
-                    Account_domain.account_id == current_user.account_id,
-                )
-                .count()
-            )
-
-            if is_domain_mine != 1 and is_domain_global != 1:
-                current_app.logger.warning(
-                    "user "
-                    + current_user.user
-                    + " account "
-                    + current_user.account.account
-                    + " failed to add email "
-                    + add_email_from_form
-                    + " beacuse domain is not in db"
-                )
-                return render_template(
-                    "message.html",
-                    headline="Add email error",
-                    message="Failed to add email, domain is not active in our system.",
-                    current_user=current_user,
-                )
-
-            # Check that domain is enabled.
-            is_domain_enabled = 0
-
-            # Check if domain is enabled in global domains table.
-            if is_domain_global == 1 and is_domain_mine != 1:
-                is_domain_enabled = (
-                    db.session.query(Global_domain)
-                    .filter(
-                        Global_domain.domain == domain,
-                        Global_domain.is_enabled == 1
-                    )
-                    .count()
-                )
-            # Check if domain is enabled in account domains table.
-            else:
-                is_domain_enabled = (
-                    db.session.query(Account_domain)
-                    .filter(
-                        Account_domain.domain == domain,
-                        Account_domain.is_enabled == 1
-                    )
-                    .count()
-                )
-
-            # If domain is not enabled, log warning and return error message.
-            if is_domain_enabled == 0:
-                current_app.logger.warning(
-                    "user "
-                    + current_user.user
-                    + " account "
-                    + current_user.account.account
-                    + " failed to add email "
-                    + add_email_from_form
-                    + " beacuse domain is not enabled."
-                )
-
-                return render_template(
-                    "message.html",
-                    headline="Add email error",
-                    message="Failed to add email, domain is not enabled.",
-                    current_user=current_user,
-                )
-
-            # Check that email does not already exist in emails table in db.
-            is_email_uniq = (
-                db.session.query(Email)
-                .filter(Email.email == add_email_from_form)
-                .count()
-            )
-            if is_email_uniq != 0:
-                current_app.logger.warning(
-                    "user "
-                    + current_user.user
-                    + " account "
-                    + current_user.account.account
-                    + " failed to add email "
-                    + add_email_from_form
-                    + " beacuse email aldready exist as email"
-                )
-                return render_template(
-                    "message.html",
-                    headline="Add email error",
-                    message="Failed to add email, email already exist.",
-                    current_user=current_user,
-                )
-
-            # Check that email does not already exist in alias table in db.
-            is_email_uniq = (
-                db.session.query(Alias)
-                .filter(Alias.src_email == add_email_from_form)
-                .count()
-            )
-            if is_email_uniq != 0:
-                current_app.logger.warning(
-                    "user "
-                    + current_user.user
-                    + " account "
-                    + current_user.account.account
-                    + " failed to add email "
-                    + add_email_from_form
-                    + " beacuse email already exist as alias"
-                )
-                return render_template(
-                    "message.html",
-                    headline="Add email error",
-                    message="Failed to add email, email already exist.",
-                    current_user=current_user,
-                )
-
-            # Generate password.
-            cleartext_password = generate_password(24)
-
-            # Hash the password SSHA512.
-            ph = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=1)
-            password_hash = ph.hash(cleartext_password)
-
-            # Get the domain id and add the new email account to db.
-            if is_domain_mine == 1:
-                account_domain = (
-                    db.session.query(Account_domain)
-                    .filter(Account_domain.domain == validate_email_domain[1])
-                    .first()
-                )
-                new_email = Email(
-                    account_id=int(current_user.account_id),
-                    email=add_email_from_form,
-                    password_hash=password_hash,
-                    storage_space_mb=0,
-                    account_domain_id=account_domain.id,
-                )
-                db.session.add(new_email)
-                db.session.commit()
-            elif is_domain_global == 1:
-                global_domain = (
-                    db.session.query(Global_domain)
-                    .filter(Global_domain.domain == validate_email_domain[1])
-                    .first()
-                )
-                new_email = Email(
-                    account_id=int(current_user.account_id),
-                    email=add_email_from_form,
-                    password_hash=password_hash,
-                    storage_space_mb=0,
-                    global_domain_id=global_domain.id,
-                )
-                db.session.add(new_email)
-                db.session.commit()
-
-            # Create encryptions keys and set password for key.
-            dmcp_keyhandler_url = (
-                current_app.config["DMCP_KEYHANDLER_URL"] + "/create_key"
-            )
-            dmcp_keyhandler_password = current_app.config["DMCP_KEYHANDLER_PASSWORD"]
-            try:
-                r_respone = requests.post(
-                    dmcp_keyhandler_url,
-                    {
-                        "email": add_email_from_form,
-                        "key_password": base64.b64encode(
-                            bytes(cleartext_password, "utf-8")
-                        ),
-                        "password": dmcp_keyhandler_password,
-                    },
-                    timeout=5,
-                )
-            except requests.exceptions.ConnectionError:
-                db.session.query(Email).filter(
-                    Email.account_id == int(current_user.account_id),
-                    Email.email == add_email_from_form,
-                ).delete()
-                db.session.commit()
-
-                current_app.logger.error(
-                    "user "
-                    + current_user.user
-                    + " account "
-                    + current_user.account.account
-                    + " failed to add email "
-                    + add_email_from_form
-                    + " beacuse dmcp keyhandler service is unavalible"
-                )
-                return render_template(
-                    "message.html",
-                    headline="Add Email Account Error",
-                    message="Failed to add email account beacuse dmcp keyhandler service is unavalible.",
-                    current_user=current_user,
-                )
-
-            # Check if password protected encryption key creation was successfull.
-            if r_respone.status_code != 200 or r_respone.content != b"done":
-                db.session.query(Email).filter(
-                    Email.account_id == int(current_user.account_id),
-                    Email.email == add_email_from_form,
-                ).delete()
-                db.session.commit()
-
-                current_app.logger.error(
-                    "user "
-                    + current_user.user
-                    + " account "
-                    + current_user.account.account
-                    + " failed to add email "
-                    + add_email_from_form
-                    + " error when creating encryption key"
-                )
-                return render_template(
-                    "message.html",
-                    headline="Add email error",
-                    message="Failed trying to create password protected encryptions keys.",
-                    current_user=current_user,
-                )
-
-            current_app.logger.debug(
+        # Validate email from form.
+        if validators.is_email_allowed(add_email_from_form) == False:
+            current_app.logger.warning(
                 "user "
                 + current_user.user
                 + " account "
                 + current_user.account.account
-                + " added email "
+                + " failed to add email "
                 + add_email_from_form
+                + " beacuse validation failed"
             )
             return render_template(
                 "message.html",
-                headline="Add Email Account",
-                message="Successfully added email: "
-                + add_email_from_form
-                + " with password: "
-                + cleartext_password,
+                headline="Add email error",
+                message="Failed to add email, email validation failed.",
                 current_user=current_user,
             )
+
+        # Validate domain part of email from form.
+        validate_email_domain = add_email_from_form.split("@")
+        domain = validate_email_domain[1]
+        if validators.is_domain_allowed(domain) == False:
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " failed to add email "
+                + add_email_from_form
+                + " domain validation failed."
+            )
+            return render_template(
+                "message.html",
+                headline="Add email error",
+                message="Failed to add email, domain validation failed.",
+                current_user=current_user,
+            )
+
+        # Check if domain is global.
+        is_domain_global = (
+            db.session.query(Global_domain)
+            .filter(
+                Global_domain.domain == domain,
+                Global_domain.is_enabled == True,
+            )
+            .count()
+        )
+
+        # Check if domain is owned by the account.
+        is_domain_mine = (
+            db.session.query(Account_domain)
+            .filter(
+                Account_domain.domain == domain,
+                Account_domain.account_id == current_user.account_id,
+            )
+            .count()
+        )
+
+        if is_domain_mine != 1 and is_domain_global != 1:
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " failed to add email "
+                + add_email_from_form
+                + " beacuse domain is not in db"
+            )
+            return render_template(
+                "message.html",
+                headline="Add email error",
+                message="Failed to add email, domain is not active in our system.",
+                current_user=current_user,
+            )
+
+        # Check that domain is enabled.
+        is_domain_enabled = 0
+
+        # Check if domain is enabled in global domains table.
+        if is_domain_global == 1 and is_domain_mine != 1:
+            is_domain_enabled = (
+                db.session.query(Global_domain)
+                .filter(
+                    Global_domain.domain == domain,
+                    Global_domain.is_enabled == 1
+                )
+                .count()
+            )
+        # Check if domain is enabled in account domains table.
+        else:
+            is_domain_enabled = (
+                db.session.query(Account_domain)
+                .filter(
+                    Account_domain.domain == domain,
+                    Account_domain.is_enabled == 1
+                )
+                .count()
+            )
+
+        # If domain is not enabled, log warning and return error message.
+        if is_domain_enabled == 0:
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " failed to add email "
+                + add_email_from_form
+                + " beacuse domain is not enabled."
+            )
+
+            return render_template(
+                "message.html",
+                headline="Add email error",
+                message="Failed to add email, domain is not enabled.",
+                current_user=current_user,
+            )
+
+        # Check that email does not already exist in emails table in db.
+        is_email_uniq = (
+            db.session.query(Email)
+            .filter(Email.email == add_email_from_form)
+            .count()
+        )
+        if is_email_uniq != 0:
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " failed to add email "
+                + add_email_from_form
+                + " beacuse email aldready exist as email"
+            )
+            return render_template(
+                "message.html",
+                headline="Add email error",
+                message="Failed to add email, email already exist.",
+                current_user=current_user,
+            )
+
+        # Check that email does not already exist in alias table in db.
+        is_email_uniq = (
+            db.session.query(Alias)
+            .filter(Alias.src_email == add_email_from_form)
+            .count()
+        )
+        if is_email_uniq != 0:
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " failed to add email "
+                + add_email_from_form
+                + " beacuse email already exist as alias"
+            )
+            return render_template(
+                "message.html",
+                headline="Add email error",
+                message="Failed to add email, email already exist.",
+                current_user=current_user,
+            )
+
+        # Generate password.
+        cleartext_password = generate_password(24)
+
+        # Hash the password SSHA512.
+        ph = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=1)
+        password_hash = ph.hash(cleartext_password)
+
+        # Get the domain id and add the new email account to db.
+        if is_domain_mine == 1:
+            account_domain = (
+                db.session.query(Account_domain)
+                .filter(Account_domain.domain == validate_email_domain[1])
+                .first()
+            )
+            new_email = Email(
+                account_id=int(current_user.account_id),
+                email=add_email_from_form,
+                password_hash=password_hash,
+                storage_space_mb=0,
+                account_domain_id=account_domain.id,
+            )
+            db.session.add(new_email)
+            db.session.commit()
+        elif is_domain_global == 1:
+            global_domain = (
+                db.session.query(Global_domain)
+                .filter(Global_domain.domain == validate_email_domain[1])
+                .first()
+            )
+            new_email = Email(
+                account_id=int(current_user.account_id),
+                email=add_email_from_form,
+                password_hash=password_hash,
+                storage_space_mb=0,
+                global_domain_id=global_domain.id,
+            )
+            db.session.add(new_email)
+            db.session.commit()
+
+        # Create encryptions keys and set password for key.
+        dmcp_keyhandler_url = (
+            current_app.config["DMCP_KEYHANDLER_URL"] + "/create_key"
+        )
+        dmcp_keyhandler_password = current_app.config["DMCP_KEYHANDLER_PASSWORD"]
+        try:
+            r_respone = requests.post(
+                dmcp_keyhandler_url,
+                {
+                    "email": add_email_from_form,
+                    "key_password": base64.b64encode(
+                        bytes(cleartext_password, "utf-8")
+                    ),
+                    "password": dmcp_keyhandler_password,
+                },
+                timeout=5,
+            )
+        except requests.exceptions.ConnectionError:
+            db.session.query(Email).filter(
+                Email.account_id == int(current_user.account_id),
+                Email.email == add_email_from_form,
+            ).delete()
+            db.session.commit()
+
+            current_app.logger.error(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " failed to add email "
+                + add_email_from_form
+                + " beacuse dmcp keyhandler service is unavalible"
+            )
+            return render_template(
+                "message.html",
+                headline="Add Email Account Error",
+                message="Failed to add email account beacuse dmcp keyhandler service is unavalible.",
+                current_user=current_user,
+            )
+
+        # Check if password protected encryption key creation was successfull.
+        if r_respone.status_code != 200 or r_respone.content != b"done":
+            db.session.query(Email).filter(
+                Email.account_id == int(current_user.account_id),
+                Email.email == add_email_from_form,
+            ).delete()
+            db.session.commit()
+
+            current_app.logger.error(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " failed to add email "
+                + add_email_from_form
+                + " error when creating encryption key"
+            )
+            return render_template(
+                "message.html",
+                headline="Add email error",
+                message="Failed trying to create password protected encryptions keys.",
+                current_user=current_user,
+            )
+
+        cleartext_data = (
+            "Account:"
+            + current_user.account.account
+            + "\nNew email account:"
+            + add_email_from_form
+            + "\nNew email account password:"
+            + cleartext_password
+            + "\n"
+        )
+
+        openpgp_keyhandler_url = (
+            current_app.config["OPENPGP_KEYHANDLER_URL"] + "/encrypt_data"
+        )
+
+        openpgp_keyhandler_password = current_app.config["OPENPGP_KEYHANDLER_PASSWORD"]
+
+        try:
+            r_respone = requests.post(
+                openpgp_keyhandler_url,
+                {
+                    "public_key": current_user.openpgp_public_key.public_key,
+                    "password": openpgp_keyhandler_password,
+                    "cleartext_data": str(cleartext_data)
+                },
+                timeout=5,
+            )
+        except requests.exceptions.ConnectionError:
+            current_app.logger.error(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " faild to encrypt cleartext data beacuse openpgp keyhandler service do not answer"
+            )
+            return render_template(
+                "message.html",
+                headline="Add email error",
+                message="Failed to encrypt cleartext data beacuse openpgp keyhandler service do not answer.",
+                current_user=current_user,
+            )
+
+        # Check if encryption was successfull.
+        if r_respone.status_code != 200 or "done encrypted_data:" not in str(
+            r_respone.content
+        ):
+            current_app.logger.error(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " faild to encrypt cleartext data beacuse openpgp keyhandler service returned error"
+            )
+            return render_template(
+                "message.html",
+                headline="Add email error",
+                message="Failed to encrypt cleartext data beacuse openpgp keyhandler service returned error",
+                current_user=current_user,
+            )
+
+        # Get encrypted data.
+        encrypted_data = str(r_respone.content, encoding="utf-8").replace(
+            "done encrypted_data:", ""
+        )
+        encrypted_data = encrypted_data.strip()
+
+        current_app.logger.debug(
+            "user "
+            + current_user.user
+            + " account "
+            + current_user.account.account
+            + " added email "
+            + add_email_from_form
+            + " encrypted data with openpgp public key fingerprint "
+            + current_user.openpgp_public_key.fingerprint
+        )
+
+        file_stream = io.BytesIO(encrypted_data.encode('utf-8'))
+
+        # Send the encrypted credentials as an attachment to the user.
+        return send_file(
+            file_stream,
+            mimetype='text/plain',
+            as_attachment=True,
+            download_name='ddmail-credentials_new_email_account.asc'
+        )
 
 
 @bp.route("/settings/show_email")
