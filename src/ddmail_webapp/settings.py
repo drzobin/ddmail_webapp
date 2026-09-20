@@ -1842,26 +1842,25 @@ def settings_remove_email():
 @bp.route("/settings/change_password_on_email", methods=["POST", "GET"])
 def settings_change_password_on_email():
     """
-    Change the password for a specific email address.
+    Change the password for a specific email account.
 
-    This function allows users to update the password for individual email
-    addresses in their account. It validates the email selection and updates
-    the email password through external services.
+    This function allows users to update the password for email
+    accounts. The new password is provided to the user as a
+    encrypted file.
 
     Returns:
-        Response: Flask response with password change result or login redirect
+        Response: The encrypted file with the new password.
 
     Request Form Parameters:
         email (str): Email address to change password for
         csrf_token (str): CSRF protection token for POST requests
 
     Error Responses:
-        "Failed to change password on email account beacuse this account is disabled": If account is not enabled
-        "The CSRF token is missing": If CSRF token validation fails
+
 
     Success Response:
         GET: Renders change_password_on_email.html template with email selection form
-        POST: Renders template with success message and updated email information
+        POST: Returns the encrypted file with the new password for the email account.
     """
     # Check if cookie secret is set.
     if not "secret" in session:
