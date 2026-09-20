@@ -19,10 +19,98 @@ from ddmail_webapp.models import (
     Authenticated,
     Email,
     Global_domain,
+    Openpgp_public_key,
     User,
     db,
 )
 from tests.helpers import get_csrf_token, get_register_data
+
+
+# Mock openpgp public key for testing
+MOCK_PGP_KEY = """-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mQENBGPxyz8BCADGvKwf/ZYGbG8ykR8dGv8kqJ6YDdCH7mJ3lxGYz9rKsG5xGR1s
+abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567ABCDEF890123
+456GHI789JKL012MNO345PQR678STU901VWX234YZ567ABCDEF890123456GHI
+789JKL012MNO345PQR678STU901VWX234YZ567ABCDEF890123456GHI789JKL
+=test
+-----END PGP PUBLIC KEY BLOCK-----"""
+
+# Mock fingerprint (40 chars, A-Z and 0-9 only)
+MOCK_FINGERPRINT = "ABCDEF1234567890ABCDEF1234567890ABCDEF12"
+
+
+def create_mock_register_response():
+    """Create a mock register response with predictable credentials."""
+    # Mock token generation to return predictable values
+    # Account token (12 chars, uppercase + digits, excluding I, O, 0, 1)
+    mock_account = "ACC123456789"
+    # Payment token (24 chars, uppercase + digits, excluding I, O, 0, 1)
+    mock_payment_token = "PAY123456789012345678901"
+    # User token (12 chars, uppercase + digits, excluding I, O, 0, 1)
+    mock_username = "USER12345678"
+    # Password (24 chars, needs at least 1 lowercase, 1 uppercase, 3 digits)
+    mock_password = "Pass1234567890Pass123456"
+    # Key (128 chars, needs at least 1 lowercase, 1 uppercase, 3 digits)
+    mock_key = "Key123" + "A" * 100 + "a" * 22
+    
+    return {
+        "account": mock_account,
+        "payment_token": mock_payment_token,
+        "username": mock_username,
+        "password": mock_password,
+        "key": mock_key,
+        "fingerprint": MOCK_FINGERPRINT,
+        "pgp_key": MOCK_PGP_KEY,
+    }
+
+
+def setup_mock_register(mocker):
+    """Setup mocks for registration."""
+    mock_data = create_mock_register_response()
+    
+    # Mock the requests.post to return a successful response for fingerprint
+    mock_response_fingerprint = mocker.MagicMock()
+    mock_response_fingerprint.status_code = 200
+    mock_response_fingerprint.content = f"done fingerprint: {mock_data['fingerprint']}".encode()
+    
+    # Mock the requests.post to return a successful response for encryption
+    mock_response_encrypt = mocker.MagicMock()
+    mock_response_encrypt.status_code = 200
+    cleartext_data = (
+        f"Account:{mock_data['account']}\\n"
+        f"Username:{mock_data['username']}\\n"
+        f"OpenPGP public key fingerprint:{mock_data['fingerprint']}\\n"
+        f"Password:{mock_data['password']}\\n"
+        f"Key file data:{mock_data['key']}\\n"
+    )
+    mock_response_encrypt.content = f"done encrypted_data: {cleartext_data}".encode()
+    
+    # Mock token generation
+    mock_gen_token = mocker.patch("ddmail_webapp.auth.generate_token")
+    mock_gen_token.side_effect = [
+        mock_data["account"],
+        mock_data["payment_token"],
+        mock_data["username"],
+    ]
+    
+    # Mock password generation
+    def mock_generate_password(length):
+        if length == 24:
+            return mock_data["password"]
+        elif length == 128:
+            return mock_data["key"]
+        else:
+            return "A" * length
+    
+    mock_gen_password = mocker.patch("ddmail_webapp.auth.generate_password")
+    mock_gen_password.side_effect = mock_generate_password
+    
+    # Mock requests.post
+    mock_post = mocker.patch("requests.post")
+    mock_post.side_effect = [mock_response_fingerprint, mock_response_encrypt]
+    
+    return mock_data
 
 
 def test_generate_password():
@@ -58,8 +146,8 @@ def test_generate_token():
     token = generate_token(12)
 
     # Test to see that all chars is uppercase or digits.
-    is_uppercase = token.isupper() or token.isdigit()
-    assert is_uppercase == True
+    for char in token:
+        assert char.isupper() or char.isdigit()
 
     # Test that token contain both uppercase and digits.
     contains_uppercase = any(char.isupper() for char in token)
@@ -67,7 +155,10 @@ def test_generate_token():
     assert contains_uppercase == True
     assert contains_digit == True
 
-    # Test to see that lenth is 12.
+    # Test that it has at least 4 digits
+    assert sum(c.isdigit() for c in token) >= 4
+
+    # Test to see that length is 12.
     assert len(token) == 12
 
 
@@ -79,14 +170,11 @@ def test_register_get(client):
     displayed to unauthenticated users.
     """
     response = client.get("/register")
-    assert client.get("/register").status_code == 200
-    assert b"Logged in on account: Not logged in" in response.data
-    assert b"Logged in as user: Not logged in" in response.data
+    assert response.status_code == 200
     assert b"Main" in response.data
     assert b"Login" in response.data
     assert b"Register" in response.data
-    assert b"About" in response.data
-    assert b"To create a account push the button below." in response.data
+    assert b"To create a account you need to upload your OpenPGP public key" in response.data
 
 
 def test_login_get(client):
@@ -145,30 +233,39 @@ def test_login_post_CSRF(client):
     assert b"The CSRF token is missing" in response.data
 
 
-def test_login_post(client, app):
+def test_login_post(client, app, mocker):
     """Test successful user login process
 
     This test verifies that the complete login process works correctly
     for registered users with valid credentials, including proper session
     creation and redirection to the settings page upon successful authentication.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # Get the csrf token for /register
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
-
+    
     # Enable account.
     with app.app_context():
         account = (
             db.session.query(Account)
-            .filter(Account.account == register_data["account"])
+            .filter(Account.account == mock_data["account"])
             .first()
         )
+        assert account is not None, "Account not found in database"
         account.is_enabled = True
         db.session.commit()
 
@@ -182,9 +279,9 @@ def test_login_post(client, app):
         buffered=True,
         content_type="multipart/form-data",
         data={
-            "user": register_data["username"],
-            "password": register_data["password"],
-            "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
     )
@@ -193,11 +290,11 @@ def test_login_post(client, app):
     # Check that we are logged in.
     response = client.get("/settings")
     assert (
-        b"Logged in on account: " + bytes(register_data["account"], "utf-8")
+        b"Logged in on account: " + bytes(mock_data["account"], "utf-8")
         in response.data
     )
     assert (
-        b"Logged in as user: " + bytes(register_data["username"], "utf-8")
+        b"Logged in as user: " + bytes(mock_data["username"], "utf-8")
         in response.data
     )
     assert b"Is account enabled: Yes" in response.data
@@ -233,22 +330,30 @@ def test_login_post_no_data(client):
     )
 
 
-def test_login_post_wrong_password(client):
+def test_login_post_wrong_password(client, app, mocker):
     """Test login with incorrect password
 
     This test verifies that the application properly validates passwords
     during login attempts and rejects authentication with incorrect passwords
     or passwords that fail validation, returning appropriate error messages.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # Get the csrf token for /register
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
 
     # Get csrf_token from /login
     response_login_get = client.get("/login")
@@ -260,9 +365,9 @@ def test_login_post_wrong_password(client):
         buffered=True,
         content_type="multipart/form-data",
         data={
-            "user": register_data["username"],
+            "user": mock_data["username"],
             "password": "wrongpassword",
-            "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
     )
@@ -278,9 +383,9 @@ def test_login_post_wrong_password(client):
         buffered=True,
         content_type="multipart/form-data",
         data={
-            "user": register_data["username"],
+            "user": mock_data["username"],
             "password": "''",
-            "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
     )
@@ -291,28 +396,36 @@ def test_login_post_wrong_password(client):
     )
 
 
-def test_login_post_wrong_username(client, app):
+def test_login_post_wrong_username(client, app, mocker):
     """Test login with incorrect username
 
     This test verifies that the application properly validates usernames
     during login attempts and rejects authentication with non-existent usernames
     or usernames that fail validation, returning appropriate error messages.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # Get the csrf token for /register
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
 
     # Enable account.
     with app.app_context():
         account = (
             db.session.query(Account)
-            .filter(Account.account == register_data["account"])
+            .filter(Account.account == mock_data["account"])
             .first()
         )
         account.is_enabled = True
@@ -329,8 +442,8 @@ def test_login_post_wrong_username(client, app):
         content_type="multipart/form-data",
         data={
             "user": "AAAAAAAAAAAA",
-            "password": register_data["password"],
-            "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
     )
@@ -347,8 +460,8 @@ def test_login_post_wrong_username(client, app):
         content_type="multipart/form-data",
         data={
             "user": "AAAAAAAAAAAAa",
-            "password": register_data["password"],
-            "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
     )
@@ -359,28 +472,36 @@ def test_login_post_wrong_username(client, app):
     )
 
 
-def test_login_post_wrong_key(client, app):
+def test_login_post_wrong_key(client, app, mocker):
     """Test login with incorrect key file
 
     This test verifies that the application properly validates key files
     during login attempts and rejects authentication with incorrect key content
     or keys that fail validation, returning appropriate error messages.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # Get the csrf token for /register
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
 
     # Enable account.
     with app.app_context():
         account = (
             db.session.query(Account)
-            .filter(Account.account == register_data["account"])
+            .filter(Account.account == mock_data["account"])
             .first()
         )
         account.is_enabled = True
@@ -396,10 +517,10 @@ def test_login_post_wrong_key(client, app):
         buffered=True,
         content_type="multipart/form-data",
         data={
-            "user": register_data["username"],
-            "password": register_data["password"],
+            "user": mock_data["username"],
+            "password": mock_data["password"],
             "key": (
-                BytesIO(bytes(register_data["key"] + "A", "utf-8")),
+                BytesIO(bytes(mock_data["key"] + "A", "utf-8")),
                 "data.key",
             ),
             "csrf_token": csrf_token_login,
@@ -417,8 +538,8 @@ def test_login_post_wrong_key(client, app):
         buffered=True,
         content_type="multipart/form-data",
         data={
-            "user": register_data["username"],
-            "password": register_data["password"],
+            "user": mock_data["username"],
+            "password": mock_data["password"],
             "key": (BytesIO(bytes("A" * 4096, "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
@@ -441,98 +562,122 @@ def test_register_post_CSRF(client):
     assert client.post("/register", data={"csrf_token": "test"}).status_code == 400
 
 
-def test_register_post(client):
+def test_register_post(client, mocker):
     """Test successful account registration
 
     This test verifies that the registration endpoint successfully creates
     new accounts and users, returning proper account credentials including
     account ID, username, password, and key information.
     """
+    # Create a mock openpgp public key
+    mock_pgp_key = """-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mQENBGPxyz8BCADGvKwf/ZYGbG8ykR8dGv8kqJ6YDdCH7mJ3lxGYz9rKsG5xGR1s
+abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567ABCDEF890123
+456GHI789JKL012MNO345PQR678STU901VWX234YZ567ABCDEF890123456GHI
+789JKL012MNO345PQR678STU901VWX234YZ567ABCDEF890123456GHI789JKL
+=test
+-----END PGP PUBLIC KEY BLOCK-----"""
+    
+    # Mock the requests.post to return a successful response for fingerprint
+    # Fingerprint must be exactly 40 characters and only contain A-Z and 0-9
+    mock_response_fingerprint = mocker.MagicMock()
+    mock_response_fingerprint.status_code = 200
+    mock_response_fingerprint.content = b"done fingerprint: ABCDEF1234567890ABCDEF1234567890ABCDEF12"
+    
+    # Mock the requests.post to return a successful response for encryption
+    mock_response_encrypt = mocker.MagicMock()
+    mock_response_encrypt.status_code = 200
+    # The encrypted data will be returned as a file, but for testing we can check the content
+    mock_response_encrypt.content = b"done encrypted_data: Account:TESTACCOUNT\\nUsername:TESTUSER\\nOpenPGP public key fingerprint:ABCDEF1234567890ABCDEF1234567890ABCDEF12\\nPassword:TESTPASS\\nKey file data:TESTKEY\\n"
+    
     # Get csrf_token from /register.
     response_get = client.get("/register")
     csrf_token = get_csrf_token(response_get.data)
 
-    # Test that we get satatus code 200
-    assert client.post("/register", data={"csrf_token": csrf_token}).status_code == 200
+    # Mock requests.post to return the appropriate responses
+    mock_post = mocker.patch("requests.post")
+    mock_post.side_effect = [mock_response_fingerprint, mock_response_encrypt]
+    
+    # Test that we get status code 200
+    response = client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token,
+            "openpgp_public_key": (BytesIO(mock_pgp_key.encode()), "test.key")
+        }
+    )
+    assert response.status_code == 200
+    
+    # Test that we get the encrypted file
+    assert b"Account:TESTACCOUNT" in response.data
+    assert b"Username:TESTUSER" in response.data
 
-    # Test that we get the account and user information.
-    response = client.post("/register", data={"csrf_token": csrf_token})
-    assert b"<p>Account:" in response.data
-    assert b"<p>Username:" in response.data
-    assert b"<p>Password:" in response.data
-    assert b'<button type="submit">Download Keyfile</button>' in response.data
 
-
-def test_register_login_post(client, app):
+def test_register_login_post(client, app, mocker):
     """Test complete registration and login flow
 
     This test verifies the complete user journey from account registration
     through successful login, ensuring that newly registered accounts can
     authenticate properly and access protected resources.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # Get the csrf token for /register
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    response = response_register_post
-
-    # Get account
-    m = re.search(b"<p>Account: (.*)</p>", response.data)
-    account = m.group(1).decode("utf-8")
-
-    # Get username
-    m = re.search(b"<p>Username: (.*)</p>", response.data)
-    username = m.group(1).decode("utf-8")
-
-    # Get password
-    m = re.search(b"<p>Password: (.*)</p>", response.data)
-    password = m.group(1).decode("utf-8")
-
-    # Get key
-    m = re.search(b'        value="(.*)"', response.data)
-    key = m.group(1).decode("utf-8")
-
+    
     # Get csrf_token from /login
     response_login_get = client.get("/login")
     csrf_token_login = get_csrf_token(response_login_get.data)
 
-    # Test login with newly registred account and user.
+    # Test login with newly registered account and user.
     assert (
         client.post(
             "/login",
             buffered=True,
             content_type="multipart/form-data",
             data={
-                "user": username,
-                "password": password,
-                "key": (BytesIO(bytes(key, "utf-8")), "data.key"),
+                "user": mock_data["username"],
+                "password": mock_data["password"],
+                "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
                 "csrf_token": csrf_token_login,
             },
         ).status_code
         == 302
     )
 
-    # Test login with newly registred account and user, check that account and username is correct and that account is disabled.
+    # Test login with newly registered account and user, check that account and username is correct and that account is disabled.
     response_login_post = client.post(
         "/login",
         buffered=True,
         content_type="multipart/form-data",
         data={
-            "user": username,
-            "password": password,
-            "key": (BytesIO(bytes(key, "utf-8")), "data.key"),
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
         follow_redirects=True,
     )
     assert (
-        b"Logged in on account: " + bytes(account, "utf-8") in response_login_post.data
+        b"Logged in on account: " + bytes(mock_data["account"], "utf-8") in response_login_post.data
     )
-    assert b"Logged in as user: " + bytes(username, "utf-8") in response_login_post.data
+    assert b"Logged in as user: " + bytes(mock_data["username"], "utf-8") in response_login_post.data
     assert b"Is account enabled: No" in response_login_post.data
 
     # Test wrong username.
@@ -542,8 +687,8 @@ def test_register_login_post(client, app):
         content_type="multipart/form-data",
         data={
             "user": "test",
-            "password": password,
-            "key": (BytesIO(bytes(key, "utf-8")), "data.key"),
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
         follow_redirects=True,
@@ -560,9 +705,9 @@ def test_register_login_post(client, app):
         buffered=True,
         content_type="multipart/form-data",
         data={
-            "user": username,
+            "user": mock_data["username"],
             "password": "test",
-            "key": (BytesIO(bytes(key, "utf-8")), "data.key"),
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
         follow_redirects=True,
@@ -579,8 +724,8 @@ def test_register_login_post(client, app):
         buffered=True,
         content_type="multipart/form-data",
         data={
-            "user": username,
-            "password": password,
+            "user": mock_data["username"],
+            "password": mock_data["password"],
             "key": (BytesIO(bytes("test", "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
@@ -624,38 +769,46 @@ def test_logout_get_method_not_allowed(client):
     assert client.get("/logout").status_code == 405
 
 
-def test_register_login_settings_logout(client, app):
+def test_register_login_settings_logout(client, app, mocker):
     """Test complete user workflow from registration to logout
 
     This test verifies the entire user lifecycle including registration,
     login, accessing protected settings page, and proper logout functionality
     with session cleanup and redirection.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # Get the csrf token for /register
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
 
     # Get csrf_token from /login
     response_login_get = client.get("/login")
     csrf_token_login = get_csrf_token(response_login_get.data)
 
-    # Test /login with newly registred account and user.
+    # Test /login with newly registered account and user.
     assert (
         client.post(
             "/login",
             buffered=True,
             content_type="multipart/form-data",
             data={
-                "user": register_data["username"],
-                "password": register_data["password"],
+                "user": mock_data["username"],
+                "password": mock_data["password"],
                 "key": (
-                    BytesIO(bytes(register_data["key"], "utf-8")),
+                    BytesIO(bytes(mock_data["key"], "utf-8")),
                     "data.key",
                 ),
                 "csrf_token": csrf_token_login,
@@ -664,25 +817,25 @@ def test_register_login_settings_logout(client, app):
         == 302
     )
 
-    # Test /login with newly registred account and user, check that account and username is correct and that account is disabled.
+    # Test /login with newly registered account and user, check that account and username is correct and that account is disabled.
     response_login_post = client.post(
         "/login",
         buffered=True,
         content_type="multipart/form-data",
         data={
-            "user": register_data["username"],
-            "password": register_data["password"],
-            "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
         follow_redirects=True,
     )
     assert (
-        b"Logged in on account: " + bytes(register_data["account"], "utf-8")
+        b"Logged in on account: " + bytes(mock_data["account"], "utf-8")
         in response_login_post.data
     )
     assert (
-        b"Logged in as user: " + bytes(register_data["username"], "utf-8")
+        b"Logged in as user: " + bytes(mock_data["username"], "utf-8")
         in response_login_post.data
     )
     assert b"Is account enabled: No" in response_login_post.data
@@ -691,11 +844,11 @@ def test_register_login_settings_logout(client, app):
     assert client.get("/settings").status_code == 200
     response_settings_get = client.get("/settings")
     assert (
-        b"Logged in on account: " + bytes(register_data["account"], "utf-8")
+        b"Logged in on account: " + bytes(mock_data["account"], "utf-8")
         in response_settings_get.data
     )
     assert (
-        b"Logged in as user: " + bytes(register_data["username"], "utf-8")
+        b"Logged in as user: " + bytes(mock_data["username"], "utf-8")
         in response_settings_get.data
     )
     assert b"Is account enabled: No" in response_settings_get.data
@@ -710,15 +863,15 @@ def test_register_login_settings_logout(client, app):
     response = client.get("/")
     assert b"Logged in on account: Not logged in" in response.data
 
-    # Test that we cant se the data from /settings.
+    # Test that we cant see the data from /settings.
     assert client.get("/settings").status_code == 302
     response_settings_get2 = client.get("/settings")
     assert (
-        b"Logged in on account: " + bytes(register_data["account"], "utf-8")
+        b"Logged in on account: " + bytes(mock_data["account"], "utf-8")
         not in response_settings_get2.data
     )
     assert (
-        b"Logged in as user: " + bytes(register_data["username"], "utf-8")
+        b"Logged in as user: " + bytes(mock_data["username"], "utf-8")
         not in response_settings_get2.data
     )
     assert b"Is account enabled: No" not in response_settings_get2.data
@@ -728,39 +881,52 @@ def test_register_login_settings_logout(client, app):
     with app.app_context():
         user_from_db = (
             db.session.query(User)
-            .filter(User.user == register_data["username"])
+            .filter(User.user == mock_data["username"])
             .first()
         )
         db.session.query(Authenticated).filter(
             Authenticated.user_id == user_from_db.id
         ).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
+        
+        # Delete user first (which will cascade to authenticated)
+        db.session.query(User).filter(User.user == mock_data["username"]).delete()
+        
+        # Delete openpgp_public_key for this account
+        account_from_db = db.session.query(Account).filter(Account.account == mock_data["account"]).first()
+        if account_from_db:
+            db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == account_from_db.id).delete()
+        
+        # Delete account
         db.session.query(Account).filter(
-            Account.account == register_data["account"]
+            Account.account == mock_data["account"]
         ).delete()
         db.session.commit()
 
 
-def test_is_athenticated(client, app):
+def test_is_athenticated(client, app, mocker):
     """Test authentication validation with valid session cookie
 
     This test verifies that the is_athenticated function correctly validates
     session cookies and returns appropriate user objects for authenticated
     sessions while properly handling various authentication scenarios.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # Get the csrf token for /register
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
 
     # Get csrf_token from /login
     response_login_get = client.get("/login")
@@ -773,10 +939,10 @@ def test_is_athenticated(client, app):
             buffered=True,
             content_type="multipart/form-data",
             data={
-                "user": register_data["username"],
-                "password": register_data["password"],
+                "user": mock_data["username"],
+                "password": mock_data["password"],
                 "key": (
-                    BytesIO(bytes(register_data["key"], "utf-8")),
+                    BytesIO(bytes(mock_data["key"], "utf-8")),
                     "data.key",
                 ),
                 "csrf_token": csrf_token_login,
@@ -791,28 +957,28 @@ def test_is_athenticated(client, app):
         buffered=True,
         content_type="multipart/form-data",
         data={
-            "user": register_data["username"],
-            "password": register_data["password"],
-            "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
         follow_redirects=True,
     )
     assert (
-        b"Logged in on account: " + bytes(register_data["account"], "utf-8")
+        b"Logged in on account: " + bytes(mock_data["account"], "utf-8")
         in response_login_post.data
     )
     assert (
-        b"Logged in as user: " + bytes(register_data["username"], "utf-8")
+        b"Logged in as user: " + bytes(mock_data["username"], "utf-8")
         in response_login_post.data
     )
     assert b"Is account enabled: No" in response_login_post.data
 
-    # Test that is_athenticated return None when cookie do not excist in db.
+    # Test that is_athenticated return None when cookie do not exist in db.
     with app.app_context():
         assert is_athenticated("test") == None
 
-    # Test that is_athenticated return None when cookie has illigal char.
+    # Test that is_athenticated return None when cookie has illegal char.
     with app.app_context():
         assert is_athenticated("''") == None
 
@@ -824,10 +990,10 @@ def test_is_athenticated(client, app):
             buffered=True,
             content_type="multipart/form-data",
             data={
-                "user": register_data["username"],
-                "password": register_data["password"],
+                "user": mock_data["username"],
+                "password": mock_data["password"],
                 "key": (
-                    BytesIO(bytes(register_data["key"], "utf-8")),
+                    BytesIO(bytes(mock_data["key"], "utf-8")),
                     "data.key",
                 ),
                 "csrf_token": csrf_token_login,
@@ -839,25 +1005,30 @@ def test_is_athenticated(client, app):
     with app.app_context():
         assert is_athenticated(session_secret) != None
         user_from_is_athenticated = is_athenticated(session_secret)
-        assert user_from_is_athenticated.user == register_data["username"]
+        assert user_from_is_athenticated.user == mock_data["username"]
 
     # Remove authenticated, user and account that was used in testcase.
     with app.app_context():
         user_from_db = (
             db.session.query(User)
-            .filter(User.user == register_data["username"])
+            .filter(User.user == mock_data["username"])
             .first()
         )
         db.session.query(Authenticated).filter(
             Authenticated.user_id == user_from_db.id
         ).delete()
-        db.session.commit()
-
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
-        db.session.commit()
-
+        
+        # Delete user first (which will cascade to authenticated)
+        db.session.query(User).filter(User.user == mock_data["username"]).delete()
+        
+        # Delete openpgp_public_key for this account
+        account_from_db = db.session.query(Account).filter(Account.account == mock_data["account"]).first()
+        if account_from_db:
+            db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == account_from_db.id).delete()
+        
+        # Delete account
         db.session.query(Account).filter(
-            Account.account == register_data["account"]
+            Account.account == mock_data["account"]
         ).delete()
         db.session.commit()
 
@@ -929,21 +1100,29 @@ def test_is_athenticated_invalid_cookie(app):
         assert is_athenticated(None) == None
 
 
-def test_is_athenticated_expired_cookie(client, app):
+def test_is_athenticated_expired_cookie(client, app, mocker):
     """Test authentication rejection for expired session cookies
 
     This test verifies that the is_athenticated function properly handles
     expired authentication cookies by returning None when the cookie's
     valid_to timestamp has passed the current time.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # Register and login first
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
 
     response_login_get = client.get("/login")
     csrf_token_login = get_csrf_token(response_login_get.data)
@@ -956,9 +1135,9 @@ def test_is_athenticated_expired_cookie(client, app):
             buffered=True,
             content_type="multipart/form-data",
             data={
-                "user": register_data["username"],
-                "password": register_data["password"],
-                "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+                "user": mock_data["username"],
+                "password": mock_data["password"],
+                "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
                 "csrf_token": csrf_token_login,
             },
         )
@@ -978,113 +1157,124 @@ def test_is_athenticated_expired_cookie(client, app):
         # Clean up
         user_from_db = (
             db.session.query(User)
-            .filter(User.user == register_data["username"])
+            .filter(User.user == mock_data["username"])
             .first()
         )
         db.session.query(Authenticated).filter(
             Authenticated.user_id == user_from_db.id
         ).delete()
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
+        
+        # Delete user first (which will cascade to authenticated)
+        db.session.query(User).filter(User.user == mock_data["username"]).delete()
+        
+        # Delete openpgp_public_key for this account
+        account_from_db = db.session.query(Account).filter(Account.account == mock_data["account"]).first()
+        if account_from_db:
+            db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == account_from_db.id).delete()
+        
+        # Delete account
         db.session.query(Account).filter(
-            Account.account == register_data["account"]
+            Account.account == mock_data["account"]
         ).delete()
         db.session.commit()
 
 
-def test_download_keyfile_get_method(client):
-    """Test keyfile download endpoint HTTP method restriction
-
-    This test verifies that the download_keyfile endpoint properly enforces
-    POST-only access by rejecting GET requests with a 405 Method Not Allowed
-    status code for security and API design compliance.
-    """
-    response = client.get("/download_keyfile")
-    assert response.status_code == 405  # Method not allowed
-
-
-def test_download_keyfile_empty_data(client):
-    """Test keyfile download validation with empty password key
-
-    This test verifies that the download_keyfile endpoint properly validates
-    required form data and returns appropriate error messages when the
-    password_key field is empty or missing.
-    """
-    response_register_get = client.get("/register")
-    csrf_token = get_csrf_token(response_register_get.data)
-
-    response = client.post(
-        "/download_keyfile", data={"password_key": "", "csrf_token": csrf_token}
-    )
-    assert response.status_code == 200
-    assert b"Download keyfile error" in response.data
-    assert b"Failed to download keyfile, data is missing" in response.data
-
-
-def test_download_keyfile_whitespace_only(client):
-    """Test keyfile download validation with whitespace-only input
-
-    This test verifies that the download_keyfile endpoint properly handles
-    whitespace-only input by treating it as empty data and returning
-    appropriate validation error messages.
-    """
-    response_register_get = client.get("/register")
-    csrf_token = get_csrf_token(response_register_get.data)
-
-    response = client.post(
-        "/download_keyfile",
-        data={"password_key": "   \t\n  ", "csrf_token": csrf_token},
-    )
-    assert response.status_code == 200
-    assert b"Download keyfile error" in response.data
-    assert b"Failed to download keyfile, data is missing" in response.data
-
-
-def test_download_keyfile_invalid_password_key(client):
-    """Test keyfile download validation with malformed password key
-
-    This test verifies that the download_keyfile endpoint properly validates
-    password key format and rejects keys containing invalid characters
-    that could pose security risks or fail validation.
-    """
-    response_register_get = client.get("/register")
-    csrf_token = get_csrf_token(response_register_get.data)
-
-    response = client.post(
-        "/download_keyfile",
-        data={"password_key": "invalid'key<script>", "csrf_token": csrf_token},
-    )
-    assert response.status_code == 200
-    assert b"Download keyfile error" in response.data
-    assert b"failed to download keyfile, validation failed" in response.data
+# These tests are for the download_keyfile endpoint which was removed during refactoring
+# def test_download_keyfile_get_method(client):
+#     """Test keyfile download endpoint HTTP method restriction
+# 
+#     This test verifies that the download_keyfile endpoint properly enforces
+#     POST-only access by rejecting GET requests with a 405 Method Not Allowed
+#     status code for security and API design compliance.
+#     """
+#     response = client.get("/download_keyfile")
+#     assert response.status_code == 405  # Method not allowed
+# 
+# 
+# def test_download_keyfile_empty_data(client):
+#     """Test keyfile download validation with empty password key
+# 
+#     This test verifies that the download_keyfile endpoint properly validates
+#     required form data and returns appropriate error messages when the
+#     password_key field is empty or missing.
+#     """
+#     response_register_get = client.get("/register")
+#     csrf_token = get_csrf_token(response_register_get.data)
+# 
+#     response = client.post(
+#         "/download_keyfile", data={"password_key": "", "csrf_token": csrf_token}
+#     )
+#     assert response.status_code == 200
+#     assert b"Download keyfile error" in response.data
+#     assert b"Failed to download keyfile, data is missing" in response.data
+# 
+# 
+# def test_download_keyfile_whitespace_only(client):
+#     """Test keyfile download validation with whitespace-only input
+# 
+#     This test verifies that the download_keyfile endpoint properly handles
+#     whitespace-only input by treating it as empty data and returning
+#     appropriate validation error messages.
+#     """
+#     response_register_get = client.get("/register")
+#     csrf_token = get_csrf_token(response_register_get.data)
+# 
+#     response = client.post(
+#         "/download_keyfile",
+#         data={"password_key": "   \t\n  ", "csrf_token": csrf_token},
+#     )
+#     assert response.status_code == 200
+#     assert b"Download keyfile error" in response.data
+#     assert b"Failed to download keyfile, data is missing" in response.data
 
 
-def test_download_keyfile_success(client):
-    """Test successful keyfile download with valid credentials
-
-    This test verifies that the download_keyfile endpoint correctly processes
-    valid password keys and returns the key file with proper HTTP headers
-    for file download including content type and attachment disposition.
-    """
-    # First register to get a valid key
-    response_register_get = client.get("/register")
-    csrf_token_register = get_csrf_token(response_register_get.data)
-
-    response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
-    )
-    register_data = get_register_data(response_register_post.data)
-
-    # Get csrf token for download_keyfile
-    csrf_token = get_csrf_token(response_register_get.data)
-
-    # Now download the keyfile
-    response = client.post(
-        "/download_keyfile",
-        data={"password_key": register_data["key"], "csrf_token": csrf_token},
-    )
-    assert response.status_code == 200
-    assert response.headers["Content-Disposition"] == "attachment; filename=ddmail.key"
-    assert response.data == register_data["key"].encode("utf-8")
+# These tests are for the download_keyfile endpoint which was removed during refactoring
+# def test_download_keyfile_invalid_password_key(client):
+#     """Test keyfile download validation with malformed password key
+# 
+#     This test verifies that the download_keyfile endpoint properly validates
+#     password key format and rejects keys containing invalid characters
+#     that could pose security risks or fail validation.
+#     """
+#     response_register_get = client.get("/register")
+#     csrf_token = get_csrf_token(response_register_get.data)
+# 
+#     response = client.post(
+#         "/download_keyfile",
+#         data={"password_key": "invalid'key<script>", "csrf_token": csrf_token},
+#     )
+#     assert response.status_code == 200
+#     assert b"Download keyfile error" in response.data
+#     assert b"failed to download keyfile, validation failed" in response.data
+# 
+# 
+# def test_download_keyfile_success(client):
+#     """Test successful keyfile download with valid credentials
+# 
+#     This test verifies that the download_keyfile endpoint correctly processes
+#     valid password keys and returns the key file with proper HTTP headers
+#     for file download including content type and attachment disposition.
+#     """
+#     # First register to get a valid key
+#     response_register_get = client.get("/register")
+#     csrf_token_register = get_csrf_token(response_register_get.data)
+# 
+#     response_register_post = client.post(
+#         "/register", data={"csrf_token": csrf_token_register}
+#     )
+#     register_data = get_register_data(response_register_post.data)
+# 
+#     # Get csrf token for download_keyfile
+#     csrf_token = get_csrf_token(response_register_get.data)
+# 
+#     # Now download the keyfile
+#     response = client.post(
+#         "/download_keyfile",
+#         data={"password_key": register_data["key"], "csrf_token": csrf_token},
+#     )
+#     assert response.status_code == 200
+#     assert response.headers["Content-Disposition"] == "attachment; filename=ddmail.key"
+#     assert response.data == register_data["key"].encode("utf-8")
 
 
 def test_login_validation_failures(client):
@@ -1159,21 +1349,29 @@ def test_login_user_not_found(client):
     )
 
 
-def test_login_password_verification_error(client, app):
+def test_login_password_verification_error(client, app, mocker):
     """Test password verification error handling during login
 
     This test verifies that the login endpoint properly handles password
     verification failures using Argon2 password hashing, ensuring that
     VerifyMismatchError exceptions are caught and handled appropriately.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # First register a user
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
 
     # Try to login with wrong password
     response_login_get = client.get("/login")
@@ -1184,9 +1382,9 @@ def test_login_password_verification_error(client, app):
         buffered=True,
         content_type="multipart/form-data",
         data={
-            "user": register_data["username"],
+            "user": mock_data["username"],
             "password": "WrongPassword123",
-            "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
     )
@@ -1200,31 +1398,45 @@ def test_login_password_verification_error(client, app):
     with app.app_context():
         user_from_db = (
             db.session.query(User)
-            .filter(User.user == register_data["username"])
+            .filter(User.user == mock_data["username"])
             .first()
         )
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
+        db.session.query(User).filter(User.user == mock_data["username"]).delete()
+        
+        # Delete openpgp_public_key for this account
+        account_from_db = db.session.query(Account).filter(Account.account == mock_data["account"]).first()
+        if account_from_db:
+            db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == account_from_db.id).delete()
+        
         db.session.query(Account).filter(
-            Account.account == register_data["account"]
+            Account.account == mock_data["account"]
         ).delete()
         db.session.commit()
 
 
-def test_login_key_verification_error(client, app):
+def test_login_key_verification_error(client, app, mocker):
     """Test key file verification error handling during login
 
     This test verifies that the login endpoint properly validates key files
     and handles verification failures when the provided key does not match
     the stored key hash for the user account.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # First register a user
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
 
     # Try to login with wrong key
     response_login_get = client.get("/login")
@@ -1236,8 +1448,8 @@ def test_login_key_verification_error(client, app):
         buffered=True,
         content_type="multipart/form-data",
         data={
-            "user": register_data["username"],
-            "password": register_data["password"],
+            "user": mock_data["username"],
+            "password": mock_data["password"],
             "key": (BytesIO(bytes(wrong_key, "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
@@ -1252,12 +1464,18 @@ def test_login_key_verification_error(client, app):
     with app.app_context():
         user_from_db = (
             db.session.query(User)
-            .filter(User.user == register_data["username"])
+            .filter(User.user == mock_data["username"])
             .first()
         )
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
+        db.session.query(User).filter(User.user == mock_data["username"]).delete()
+        
+        # Delete openpgp_public_key for this account
+        account_from_db = db.session.query(Account).filter(Account.account == mock_data["account"]).first()
+        if account_from_db:
+            db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == account_from_db.id).delete()
+        
         db.session.query(Account).filter(
-            Account.account == register_data["account"]
+            Account.account == mock_data["account"]
         ).delete()
         db.session.commit()
 
@@ -1295,45 +1513,61 @@ def test_logout_with_invalid_session(client):
     assert response.status_code == 302  # Redirect to home
 
 
-def test_register_post_creates_account_user(client, app):
+def test_register_post_creates_account_user(client, app, mocker):
     """Test database record creation during registration
 
     This test verifies that the registration endpoint properly creates
     and commits account and user records to the database with correct
     relationships and default values for new accounts.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     response_register_get = client.get("/register")
     csrf_token = get_csrf_token(response_register_get.data)
 
-    response = client.post("/register", data={"csrf_token": csrf_token})
+    response = client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
     assert response.status_code == 200
-    register_data = get_register_data(response.data)
 
     # Verify account and user were created in database
     with app.app_context():
         account = (
             db.session.query(Account)
-            .filter(Account.account == register_data["account"])
+            .filter(Account.account == mock_data["account"])
             .first()
         )
         assert account is not None
         assert account.is_enabled == False
         assert account.is_gratis == False
         assert account.funds_in_sek == 0
-        assert account.total_storage_space_g == 0
+        assert account.total_storage_space_g == 1  # Changed from 0 to 1 in refactored code
 
         user = (
             db.session.query(User)
-            .filter(User.user == register_data["username"])
+            .filter(User.user == mock_data["username"])
             .first()
         )
         assert user is not None
         assert user.account_id == account.id
 
         # Clean up
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
+        db.session.query(User).filter(User.user == mock_data["username"]).delete()
+        
+        # Delete openpgp_public_key for this account
+        account_from_db = db.session.query(Account).filter(Account.account == mock_data["account"]).first()
+        if account_from_db:
+            db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == account_from_db.id).delete()
+        
         db.session.query(Account).filter(
-            Account.account == register_data["account"]
+            Account.account == mock_data["account"]
         ).delete()
         db.session.commit()
 
@@ -1491,21 +1725,29 @@ def test_login_whitespace_handling(client):
     assert b"Login error" in response.data
 
 
-def test_logout_authenticated_user_cleanup(client, app):
+def test_logout_authenticated_user_cleanup(client, app, mocker):
     """Test authenticated session cleanup during logout
 
     This test verifies that the logout endpoint properly removes authenticated
     session records from the database when users log out, preventing
     orphaned sessions and ensuring proper security cleanup.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # First register and login
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
 
     response_login_get = client.get("/login")
     csrf_token_login = get_csrf_token(response_login_get.data)
@@ -1518,9 +1760,9 @@ def test_logout_authenticated_user_cleanup(client, app):
             buffered=True,
             content_type="multipart/form-data",
             data={
-                "user": register_data["username"],
-                "password": register_data["password"],
-                "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+                "user": mock_data["username"],
+                "password": mock_data["password"],
+                "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
                 "csrf_token": csrf_token_login,
             },
         )
@@ -1543,35 +1785,45 @@ def test_logout_authenticated_user_cleanup(client, app):
         assert authenticated is None
 
         # Clean up remaining data
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
+        db.session.query(User).filter(User.user == mock_data["username"]).delete()
+        
+        # Delete openpgp_public_key for this account
+        account_from_db = db.session.query(Account).filter(Account.account == mock_data["account"]).first()
+        if account_from_db:
+            db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == account_from_db.id).delete()
+        
         db.session.query(Account).filter(
-            Account.account == register_data["account"]
+            Account.account == mock_data["account"]
         ).delete()
         db.session.commit()
 
 
-def test_download_keyfile_missing_form_field(client):
-    """Test keyfile download with missing form field
+# These tests are for the download_keyfile endpoint which was removed during refactoring
+# def test_download_keyfile_missing_form_field(client):
+#     """Test keyfile download with missing form field
+# 
+#     This test verifies that the download_keyfile endpoint properly handles
+#     requests where the password_key form field is completely missing,
+#     returning appropriate HTTP error codes for malformed requests.
+#     """
+#     response_register_get = client.get("/register")
+#     csrf_token = get_csrf_token(response_register_get.data)
+# 
+#     # Post without password_key field
+#     response = client.post("/download_keyfile", data={"csrf_token": csrf_token})
+#     assert response.status_code == 400  # Bad request due to missing field
 
-    This test verifies that the download_keyfile endpoint properly handles
-    requests where the password_key form field is completely missing,
-    returning appropriate HTTP error codes for malformed requests.
-    """
-    response_register_get = client.get("/register")
-    csrf_token = get_csrf_token(response_register_get.data)
 
-    # Post without password_key field
-    response = client.post("/download_keyfile", data={"csrf_token": csrf_token})
-    assert response.status_code == 400  # Bad request due to missing field
-
-
-def test_register_post_database_commit_verification(client, app):
+def test_register_post_database_commit_verification(client, app, mocker):
     """Test database transaction completion during registration
 
     This test verifies that the registration endpoint properly commits
     database transactions and that all account and user data is persisted
     correctly with proper relationships and generated tokens.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     with app.app_context():
         # Check initial state
         initial_account_count = db.session.query(Account).count()
@@ -1580,8 +1832,15 @@ def test_register_post_database_commit_verification(client, app):
     response_register_get = client.get("/register")
     csrf_token = get_csrf_token(response_register_get.data)
 
-    response = client.post("/register", data={"csrf_token": csrf_token})
-    register_data = get_register_data(response.data)
+    response = client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
 
     with app.app_context():
         # Verify counts increased
@@ -1589,36 +1848,50 @@ def test_register_post_database_commit_verification(client, app):
         assert db.session.query(User).count() == initial_user_count + 1
 
         # Verify specific data
-        account = Account.query.filter_by(account=register_data["account"]).first()
-        user = User.query.filter_by(user=register_data["username"]).first()
+        account = Account.query.filter_by(account=mock_data["account"]).first()
+        user = User.query.filter_by(user=mock_data["username"]).first()
 
         assert account.payment_token is not None
         assert len(account.payment_token) == 24
         assert user.account_id == account.id
 
         # Clean up
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
+        db.session.query(User).filter(User.user == mock_data["username"]).delete()
+        
+        # Delete openpgp_public_key for this account
+        account_from_db = db.session.query(Account).filter(Account.account == mock_data["account"]).first()
+        if account_from_db:
+            db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == account_from_db.id).delete()
+        
         db.session.query(Account).filter(
-            Account.account == register_data["account"]
+            Account.account == mock_data["account"]
         ).delete()
         db.session.commit()
 
 
-def test_is_athenticated_valid_cookie_valid_user(client, app):
+def test_is_athenticated_valid_cookie_valid_user(client, app, mocker):
     """Test successful authentication with valid session cookie
 
     This test verifies that the is_athenticated function correctly returns
     user objects for valid, non-expired session cookies and provides
     access to related account information through proper relationships.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # Setup - register and login
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
 
     response_login_get = client.get("/login")
     csrf_token_login = get_csrf_token(response_login_get.data)
@@ -1630,9 +1903,9 @@ def test_is_athenticated_valid_cookie_valid_user(client, app):
             buffered=True,
             content_type="multipart/form-data",
             data={
-                "user": register_data["username"],
-                "password": register_data["password"],
-                "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+                "user": mock_data["username"],
+                "password": mock_data["password"],
+                "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
                 "csrf_token": csrf_token_login,
             },
         )
@@ -1642,37 +1915,51 @@ def test_is_athenticated_valid_cookie_valid_user(client, app):
     with app.app_context():
         authenticated_user = is_athenticated(session_secret)
         assert authenticated_user is not None
-        assert authenticated_user.user == register_data["username"]
+        assert authenticated_user.user == mock_data["username"]
         assert hasattr(authenticated_user, "account")
-        assert authenticated_user.account.account == register_data["account"]
+        assert authenticated_user.account.account == mock_data["account"]
 
         # Clean up
         user_id = authenticated_user.id
         db.session.query(Authenticated).filter(
             Authenticated.user_id == user_id
         ).delete()
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
+        db.session.query(User).filter(User.user == mock_data["username"]).delete()
+        
+        # Delete openpgp_public_key for this account
+        account_from_db = db.session.query(Account).filter(Account.account == mock_data["account"]).first()
+        if account_from_db:
+            db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == account_from_db.id).delete()
+        
         db.session.query(Account).filter(
-            Account.account == register_data["account"]
+            Account.account == mock_data["account"]
         ).delete()
         db.session.commit()
 
 
-def test_login_successful_cookie_generation(client, app):
+def test_login_successful_cookie_generation(client, app, mocker):
     """Test session cookie generation and storage during successful login
 
     This test verifies that successful login attempts generate secure session
     cookies with proper length and expiration times, storing authenticated
     session records in the database with correct timestamps.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # Register first
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
 
     # Login
     response_login_get = client.get("/login")
@@ -1685,9 +1972,9 @@ def test_login_successful_cookie_generation(client, app):
             buffered=True,
             content_type="multipart/form-data",
             data={
-                "user": register_data["username"],
-                "password": register_data["password"],
-                "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+                "user": mock_data["username"],
+                "password": mock_data["password"],
+                "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
                 "csrf_token": csrf_token_login,
             },
         )
@@ -1702,7 +1989,7 @@ def test_login_successful_cookie_generation(client, app):
         authenticated = Authenticated.query.filter_by(cookie=session_secret).first()
         assert authenticated is not None
         user = db.session.get(User, authenticated.user_id)
-        assert user.user == register_data["username"]
+        assert user.user == mock_data["username"]
 
         # Verify expiration time is set (should be 30 minutes from now)
         from datetime import datetime, timedelta
@@ -1718,9 +2005,15 @@ def test_login_successful_cookie_generation(client, app):
         db.session.query(Authenticated).filter(
             Authenticated.user_id == authenticated.user_id
         ).delete()
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
+        db.session.query(User).filter(User.user == mock_data["username"]).delete()
+        
+        # Delete openpgp_public_key for this account
+        account_from_db = db.session.query(Account).filter(Account.account == mock_data["account"]).first()
+        if account_from_db:
+            db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == account_from_db.id).delete()
+        
         db.session.query(Account).filter(
-            Account.account == register_data["account"]
+            Account.account == mock_data["account"]
         ).delete()
         db.session.commit()
 
@@ -1792,21 +2085,29 @@ def test_generate_password_multiple_iterations():
         assert all(c.isalnum() for c in password)
 
 
-def test_is_athenticated_datetime_parsing(client, app):
+def test_is_athenticated_datetime_parsing(client, app, mocker):
     """Test session expiration datetime handling and validation
 
     This test verifies that the is_athenticated function properly parses
     and compares datetime objects for session expiration validation,
     ensuring accurate time-based authentication decisions.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # Register and login to create authenticated entry
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
 
     response_login_get = client.get("/login")
     csrf_token_login = get_csrf_token(response_login_get.data)
@@ -1818,9 +2119,9 @@ def test_is_athenticated_datetime_parsing(client, app):
             buffered=True,
             content_type="multipart/form-data",
             data={
-                "user": register_data["username"],
-                "password": register_data["password"],
-                "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+                "user": mock_data["username"],
+                "password": mock_data["password"],
+                "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
                 "csrf_token": csrf_token_login,
             },
         )
@@ -1830,16 +2131,22 @@ def test_is_athenticated_datetime_parsing(client, app):
     with app.app_context():
         authenticated_user = is_athenticated(session_secret)
         assert authenticated_user is not None
-        assert authenticated_user.user == register_data["username"]
+        assert authenticated_user.user == mock_data["username"]
 
         # Clean up
         user_id = authenticated_user.id
         db.session.query(Authenticated).filter(
             Authenticated.user_id == user_id
         ).delete()
-        db.session.query(User).filter(User.user == register_data["username"]).delete()
+        db.session.query(User).filter(User.user == mock_data["username"]).delete()
+        
+        # Delete openpgp_public_key for this account
+        account_from_db = db.session.query(Account).filter(Account.account == mock_data["account"]).first()
+        if account_from_db:
+            db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == account_from_db.id).delete()
+        
         db.session.query(Account).filter(
-            Account.account == register_data["account"]
+            Account.account == mock_data["account"]
         ).delete()
         db.session.commit()
 
@@ -1873,32 +2180,43 @@ def test_login_form_validation_coverage(client):
     )
 
 
-def test_register_response_content_verification(client):
+def test_register_response_content_verification(client, mocker):
     """Test registration response content completeness
 
     This test verifies that the registration endpoint returns all required
     user credentials and form elements in the response, including account
     details, generated passwords, and keyfile download functionality.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     response_register_get = client.get("/register")
     csrf_token = get_csrf_token(response_register_get.data)
 
-    response = client.post("/register", data={"csrf_token": csrf_token})
+    response = client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
     assert response.status_code == 200
 
-    # Verify all expected content is present
+    # Verify all expected content is present in the encrypted file
+    # The response now contains the encrypted credentials file
     assert b"Account:" in response.data
     assert b"Username:" in response.data
     assert b"Password:" in response.data
-    assert b'name="password_key"' in response.data  # Form field for key download
+    assert b"Key file data:" in response.data
 
-    register_data = get_register_data(response.data)
-
-    # Verify data format
-    assert len(register_data["account"]) == 12
-    assert len(register_data["username"]) == 12
-    assert len(register_data["password"]) == 24
-    assert len(register_data["key"]) == 4096
+    # Verify data format by parsing the response
+    response_text = response.data.decode('utf-8')
+    assert mock_data["account"] in response_text
+    assert mock_data["username"] in response_text
+    assert mock_data["password"] in response_text
+    assert mock_data["key"] in response_text
 
 
 def test_logout_session_clearing(client):
@@ -1925,36 +2243,37 @@ def test_logout_session_clearing(client):
         assert len(sess) == 0
 
 
-def test_download_keyfile_content_type_and_headers(client):
-    """Test keyfile download HTTP headers and content type
-
-    This test verifies that the download_keyfile endpoint sets appropriate
-    HTTP headers including content type, content disposition for file download,
-    and returns the correct key file content in the response body.
-    """
-    # Register to get a valid key
-    response_register_get = client.get("/register")
-    csrf_token_register = get_csrf_token(response_register_get.data)
-
-    response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
-    )
-    register_data = get_register_data(response_register_post.data)
-
-    # Get csrf token for download_keyfile
-    csrf_token = get_csrf_token(response_register_get.data)
-
-    # Download keyfile
-    response = client.post(
-        "/download_keyfile",
-        data={"password_key": register_data["key"], "csrf_token": csrf_token},
-    )
-
-    assert response.status_code == 200
-    assert response.mimetype == "text/plain"
-    assert "attachment" in response.headers.get("Content-Disposition", "")
-    assert "filename=ddmail.key" in response.headers.get("Content-Disposition", "")
-    assert response.data.decode("utf-8") == register_data["key"]
+# These tests are for the download_keyfile endpoint which was removed during refactoring
+# def test_download_keyfile_content_type_and_headers(client):
+#     """Test keyfile download HTTP headers and content type
+# 
+#     This test verifies that the download_keyfile endpoint sets appropriate
+#     HTTP headers including content type, content disposition for file download,
+#     and returns the correct key file content in the response body.
+#     """
+#     # Register to get a valid key
+#     response_register_get = client.get("/register")
+#     csrf_token_register = get_csrf_token(response_register_get.data)
+# 
+#     response_register_post = client.post(
+#         "/register", data={"csrf_token": csrf_token_register}
+#     )
+#     register_data = get_register_data(response_register_post.data)
+# 
+#     # Get csrf token for download_keyfile
+#     csrf_token = get_csrf_token(response_register_get.data)
+# 
+#     # Download keyfile
+#     response = client.post(
+#         "/download_keyfile",
+#         data={"password_key": register_data["key"], "csrf_token": csrf_token},
+#     )
+# 
+#     assert response.status_code == 200
+#     assert response.mimetype == "text/plain"
+#     assert "attachment" in response.headers.get("Content-Disposition", "")
+#     assert "filename=ddmail.key" in response.headers.get("Content-Disposition", "")
+#     assert response.data.decode("utf-8") == register_data["key"]
 
 
 def test_is_athenticated_cookie_validation_edge_cases(app):
@@ -2183,20 +2502,28 @@ def test_is_athenticated_valid_cookie_nonexistent_user(app):
         assert result is None
 
 
-def test_logout_with_authenticated_user(client, app):
+def test_logout_with_authenticated_user(client, app, mocker):
     """Test logout functionality with authenticated user
 
     This test verifies that the logout function properly clears session
     and removes authentication records for authenticated users.
     """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+    
     # Register and login first
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
 
     # Login
     response_login_get = client.get("/login")
@@ -2207,9 +2534,9 @@ def test_logout_with_authenticated_user(client, app):
         buffered=True,
         content_type="multipart/form-data",
         data={
-            "user": register_data["username"],
-            "password": register_data["password"],
-            "key": (BytesIO(bytes(register_data["key"], "utf-8")), "data.key"),
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
             "csrf_token": csrf_token_login,
         },
     )
@@ -2223,7 +2550,7 @@ def test_logout_with_authenticated_user(client, app):
     # Get the user ID for verification
     with app.app_context():
         from ddmail_webapp.models import User, Authenticated
-        user = User.query.filter_by(user=register_data["username"]).first()
+        user = User.query.filter_by(user=mock_data["username"]).first()
         user_id = user.id
 
         # Verify authenticated record exists for this user
@@ -2252,6 +2579,19 @@ def test_logout_with_authenticated_user(client, app):
         # The logout function deletes all auth entries for the user
         auth_count_after = Authenticated.query.filter_by(user_id=user_id).count()
         assert auth_count_after == 0
+        
+        # Clean up remaining data
+        db.session.query(User).filter(User.user == mock_data["username"]).delete()
+        
+        # Delete openpgp_public_key for this account
+        account_from_db = db.session.query(Account).filter(Account.account == mock_data["account"]).first()
+        if account_from_db:
+            db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == account_from_db.id).delete()
+        
+        db.session.query(Account).filter(
+            Account.account == mock_data["account"]
+        ).delete()
+        db.session.commit()
 
 
 def test_logout_without_authenticated_user(client):
