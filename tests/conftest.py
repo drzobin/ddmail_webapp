@@ -50,12 +50,12 @@ def app(config_file):
         }
     )
 
-    # Empty db
+    # Empty db - delete in correct order to respect foreign keys
     with app.app_context():
         db.session.query(Authenticated).delete()
-        db.session.query(User).delete()
         db.session.query(Alias).delete()
         db.session.query(Email).delete()
+        db.session.query(User).delete()
         db.session.query(Openpgp_public_key).delete()
         db.session.query(Account_domain).delete()
         db.session.query(Global_domain).delete()
