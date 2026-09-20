@@ -2023,7 +2023,7 @@ def settings_change_password_on_email():
                 )
                 return render_template(
                     "message.html",
-                    headline="Change password on email account error",
+                    headline="Change Password On Email Account Error",
                     message="Failed to change password on email account, current email account password is wrong.",
                     current_user=current_user,
                 )
@@ -2040,13 +2040,80 @@ def settings_change_password_on_email():
             )
             return render_template(
                 "message.html",
-                headline="Change password on email account error",
+                headline="Change Password On Email Account Error",
                 message="Failed to change password on email account, current email account password is wrong.",
                 current_user=current_user,
             )
 
         # Generate password.
         cleartext_password = generate_password(24)
+
+        cleartext_data = (
+            "E-mail account:"
+            + change_password_on_email_from_form
+            + "\nNew password:"
+            + cleartext_password
+            + "\n"
+        )
+
+        openpgp_keyhandler_url = (
+            current_app.config["OPENPGP_KEYHANDLER_URL"] + "/encrypt_data"
+        )
+
+        openpgp_keyhandler_password = current_app.config["OPENPGP_KEYHANDLER_PASSWORD"]
+
+        try:
+            r_respone = requests.post(
+                openpgp_keyhandler_url,
+                {
+                    "public_key": current_user.openpgp_public_key.public_key,
+                    "password": openpgp_keyhandler_password,
+                    "cleartext_data": str(cleartext_data)
+                },
+                timeout=5,
+            )
+        except requests.exceptions.ConnectionError:
+            current_app.logger.error(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " faild to encrypt cleartext data beacuse openpgp keyhandler service do not answer"
+            )
+            return render_template(
+                "message.html",
+                headline="Change Password On Email Account Error",
+                message="Failed to encrypt cleartext data beacuse openpgp keyhandler service do not answer.",
+                current_user=current_user,
+            )
+
+        # Check if encryption was successfull.
+        if r_respone.status_code != 200 or "done encrypted_data:" not in str(
+            r_respone.content
+        ):
+            current_app.logger.error(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " faild to encrypt cleartext data beacuse openpgp keyhandler service returned error"
+            )
+            return render_template(
+                "message.html",
+                headline="Change Password On Email Account Error",
+                message="Failed to encrypt cleartext data beacuse openpgp keyhandler service returned error",
+                current_user=current_user,
+            )
+
+        # Get encrypted data.
+        encrypted_data = str(r_respone.content, encoding="utf-8").replace(
+            "done encrypted_data:", ""
+        )
+        encrypted_data = encrypted_data.strip()
+
+        current_app.logger.debug(
+            " encrypted new email password for user: " + current_user.user + " with openpgp public key fingerprint: " + current_user.openpgp_public_key.fingerprint
+        )
 
         # Change password on encryption key.
         dmcp_keyhandler_url = (
@@ -2127,14 +2194,22 @@ def settings_change_password_on_email():
             + " change password on email "
             + change_password_on_email_from_form
         )
-        return render_template(
-            "message.html",
-            headline="Change password on Email Account",
-            message="Successfully changed password on email account: "
-            + change_password_on_email_from_form
-            + " to new password: "
-            + cleartext_password,
-            current_user=current_user,
+
+        current_app.logger.debug(
+            "changed key on "
+            + current_user.user
+            + " belonging to account "
+            + current_user.account.account
+        )
+
+        file_stream = io.BytesIO(encrypted_data.encode('utf-8'))
+
+        # Send the encrypted credentials as an attachment to the user.
+        return send_file(
+            file_stream,
+            mimetype='text/plain',
+            as_attachment=True,
+            download_name='ddmail-credentials_new_email_password.asc'
         )
 
 
