@@ -1461,9 +1461,7 @@ def settings_add_email():
             )
 
         cleartext_data = (
-            "Account:"
-            + current_user.account.account
-            + "\nNew email account:"
+            "New email account:"
             + add_email_from_form
             + "\nNew email account password:"
             + cleartext_password
@@ -1487,6 +1485,37 @@ def settings_add_email():
                 timeout=5,
             )
         except requests.exceptions.ConnectionError:
+            # Remove email account from db.
+            db.session.query(Email).filter(
+                Email.account_id == int(current_user.account_id),
+                Email.email == add_email_from_form,
+            ).delete()
+            db.session.commit()
+
+            # Remove email account data from storage with email_remover.
+            email_remover_url = current_app.config["EMAIL_REMOVER_URL"]
+            email_remover_password = current_app.config["EMAIL_REMOVER_PASSWORD"]
+            try:
+                r_respone = requests.post(
+                    email_remover_url,
+                    {
+                        "password": email_remover_password,
+                        "domain": domain,
+                        "email": add_email_from_form,
+                    },
+                    timeout=5,
+                )
+            except requests.exceptions.ConnectionError:
+                current_app.logger.error(
+                    "user "
+                    + current_user.user
+                    + " account "
+                    + current_user.account.account
+                    + " failed to remove email "
+                    + add_email_from_form
+                    + " beacuse ddmail email remover service is unavalible"
+                )
+
             current_app.logger.error(
                 "user "
                 + current_user.user
@@ -1494,6 +1523,7 @@ def settings_add_email():
                 + current_user.account.account
                 + " faild to encrypt cleartext data beacuse openpgp keyhandler service do not answer"
             )
+
             return render_template(
                 "message.html",
                 headline="Add email error",
@@ -1505,6 +1535,37 @@ def settings_add_email():
         if r_respone.status_code != 200 or "done encrypted_data:" not in str(
             r_respone.content
         ):
+            # Remove email account from db.
+            db.session.query(Email).filter(
+                Email.account_id == int(current_user.account_id),
+                Email.email == add_email_from_form,
+            ).delete()
+            db.session.commit()
+
+            # Remove email account data from storage with email_remover.
+            email_remover_url = current_app.config["EMAIL_REMOVER_URL"]
+            email_remover_password = current_app.config["EMAIL_REMOVER_PASSWORD"]
+            try:
+                r_respone = requests.post(
+                    email_remover_url,
+                    {
+                        "password": email_remover_password,
+                        "domain": domain,
+                        "email": add_email_from_form,
+                    },
+                    timeout=5,
+                )
+            except requests.exceptions.ConnectionError:
+                current_app.logger.error(
+                    "user "
+                    + current_user.user
+                    + " account "
+                    + current_user.account.account
+                    + " failed to remove email "
+                    + add_email_from_form
+                    + " beacuse ddmail email remover service is unavalible"
+                )
+
             current_app.logger.error(
                 "user "
                 + current_user.user
