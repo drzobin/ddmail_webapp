@@ -750,7 +750,7 @@ def settings_add_user_to_account():
         )
         return render_template(
             "message.html",
-            headline="Add email error",
+            headline="Add new user to account error",
             message="Failed to add user beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",
             current_user=current_user,
         )
