@@ -783,23 +783,23 @@ def settings_add_user_to_account():
                 current_user=current_user,
             )
 
-            # Validate fingerprint.
-            if validators.is_openpgp_key_fingerprint_allowed(fingerprint) != True:
-                current_app.logger.warning(
-                    "user "
-                    + current_user.user
-                    + " account "
-                    + current_user.account.account
-                    + " fingerprint "
-                    + fingerprint
-                    + " failed validation"
-                )
-                return render_template(
-                    "message.html",
-                    headline="Add new user to account error",
-                    message="Failed to activate OpenPGP encryption beacuse fingerprint validation failed",
-                    current_user=current_user,
-                )
+        # Validate fingerprint.
+        if validators.is_openpgp_key_fingerprint_allowed(fingerprint) != True:
+            current_app.logger.warning(
+                "user "
+                + current_user.user
+                + " account "
+                + current_user.account.account
+                + " fingerprint "
+                + fingerprint
+                + " failed validation"
+            )
+            return render_template(
+                "message.html",
+                headline="Add new user to account error",
+                message="Failed to activate OpenPGP encryption beacuse fingerprint validation failed",
+                current_user=current_user,
+            )
 
         # Check that openpgp public key fingerprint exist in db and is owned by current account.
         is_fingerprint_mine = (
