@@ -30,6 +30,7 @@ from ddmail_webapp.models import (
     User,
     Voucher,
     Account,
+    Authenticated,
     db,
 )
 from ddmail_webapp.shared import hash_voucher_code
@@ -1099,9 +1100,15 @@ def settings_remove_account_user():
                 current_user=current_user,
             )
 
+        # Get the users id.
+        user = db.session.query(User).filter(
+            User.account_id == current_user.account_id,
+            User.user == remove_user_from_form,
+        ).first()
+
         # Remove all authenticated cookies for the account user.
         db.session.query(Authenticated).filter(
-            Authenticated.user == remove_user_from_form,
+            Authenticated.user_id == user.id,
         ).delete()
         db.session.commit()
 
@@ -1114,7 +1121,7 @@ def settings_remove_account_user():
 
         current_app.logger.debug(
             "user "
-            + current_user.user
+            + remove_user_from_form
             + " was removed, belonged to account "
             + current_user.account.account
         )
