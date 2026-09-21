@@ -7138,19 +7138,30 @@ def test_settings_successful_openpgp_key_removal(client, app, mocker):
     assert b"Succesfully removed OpenPGP public key" in response.data
 
 
-def test_settings_successful_openpgp_activation_deactivation(client, app):
+def test_settings_successful_openpgp_activation_deactivation(client, app, mocker):
     """Test successful OpenPGP encryption activation/deactivation for complete coverage
 
     This test covers the successful OpenPGP encryption activation and deactivation
     paths including database operations and validation.
     """
+    # Setup mocks for registration
+    mock_data = setup_mock_register(mocker)
+
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
+    # Register with mock OpenPGP public key
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
+    # Use mock data instead of parsing response
+    register_data = mock_data
 
     # Store IDs for later use
     account_id = None
@@ -7175,9 +7186,10 @@ def test_settings_successful_openpgp_activation_deactivation(client, app):
 
         from ddmail_webapp.models import Openpgp_public_key
 
+        # Use a different fingerprint to avoid conflict with the registration key
         test_key = Openpgp_public_key(
             account_id=account_id,
-            fingerprint="ABCDEF1234567890ABCDEF1234567890ABCDEF12",
+            fingerprint="FEDCBA0987654321FEDCBA0987654321FEDCBA09",
             public_key="test key content",
         )
         db.session.add(test_key)
@@ -7246,19 +7258,30 @@ def test_settings_successful_openpgp_activation_deactivation(client, app):
     assert response.status_code == 200
 
 
-def test_settings_comprehensive_form_validations(client, app):
+def test_settings_comprehensive_form_validations(client, app, mocker):
     """Test comprehensive form validation edge cases for complete coverage
 
     This test covers various form validation scenarios that might not be
     covered by other tests, including empty forms and edge cases.
     """
+    # Setup mocks for registration
+    mock_data = setup_mock_register(mocker)
+
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
+    # Register with mock OpenPGP public key
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
+    # Use mock data instead of parsing response
+    register_data = mock_data
 
     with app.app_context():
         account = (
@@ -7331,19 +7354,30 @@ def test_settings_comprehensive_form_validations(client, app):
     assert response.status_code == 200
 
 
-def test_settings_dns_validation_paths(client, app):
+def test_settings_dns_validation_paths(client, app, mocker):
     """Test DNS validation paths for complete coverage
 
     This test covers DNS validation scenarios for domain operations
     to increase coverage of validation logic.
     """
+    # Setup mocks for registration
+    mock_data = setup_mock_register(mocker)
+
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
+    # Register with mock OpenPGP public key
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
+    # Use mock data instead of parsing response
+    register_data = mock_data
 
     with app.app_context():
         account = (
@@ -7427,22 +7461,32 @@ def test_settings_session_edge_cases(client, app):
         assert response.status_code in [302, 401] or b"login" in response.data.lower()
 
 
-def test_settings_enabled_account_remove_domain(client, app):
+def test_settings_enabled_account_remove_domain(client, app, mocker):
     """Test removing domain from enabled account
 
     This test verifies that users with enabled accounts can successfully
     remove custom domains from their configuration, including proper
     validation and database cleanup for domain management operations.
     """
+    # Setup mocks for registration
+    mock_data = setup_mock_register(mocker)
+
     # Get the csrf token for /register
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
+    # Use mock data instead of parsing response
+    register_data = mock_data
 
     # Enable account.
     with app.app_context():
@@ -7660,20 +7704,30 @@ def test_settings_enabled_account_remove_domain(client, app):
     )
 
 
-def test_settings_voucher_disabled_account(client, app):
+def test_settings_voucher_disabled_account(client, app, mocker):
     """Test voucher page for disabled account
 
     This test verifies that users with disabled accounts can access the
     voucher redemption page and see the voucher form.
     """
+    # Setup mocks for registration
+    mock_data = setup_mock_register(mocker)
+
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
+    # Use mock data instead of parsing response
+    register_data = mock_data
 
     # Get csrf_token from /login
     response_login_get = client.get("/login")
@@ -7709,20 +7763,30 @@ def test_settings_voucher_disabled_account(client, app):
     assert b"Is account enabled: No" in response.data
 
 
-def test_settings_voucher_enabled_account(client, app):
+def test_settings_voucher_enabled_account(client, app, mocker):
     """Test voucher page for enabled account
 
     This test verifies that users with enabled accounts can access the
     voucher redemption page and see the voucher form with full functionality.
     """
+    # Setup mocks for registration
+    mock_data = setup_mock_register(mocker)
+
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
+    # Use mock data instead of parsing response
+    register_data = mock_data
 
     # Enable account
     with app.app_context():
@@ -7796,20 +7860,30 @@ def test_settings_voucher_invalid_session_redirect(client):
     assert "/login" in response.location
 
 
-def test_settings_voucher_form_validation_error(client, app):
+def test_settings_voucher_form_validation_error(client, app, mocker):
     """Test voucher form validation errors
 
     This test verifies that the voucher form properly validates input
     and rejects invalid voucher codes with appropriate error messages.
     """
+    # Setup mocks for registration
+    mock_data = setup_mock_register(mocker)
+
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
+    # Use mock data instead of parsing response
+    register_data = mock_data
 
     # Enable account
     with app.app_context():
@@ -7858,20 +7932,30 @@ def test_settings_voucher_form_validation_error(client, app):
     assert b"Form validation failed" in response.data
 
 
-def test_settings_voucher_code_validation_error(client, app):
+def test_settings_voucher_code_validation_error(client, app, mocker):
     """Test voucher code validation errors
 
     This test verifies that invalid voucher codes are properly rejected
     with appropriate error messages.
     """
+    # Setup mocks for registration
+    mock_data = setup_mock_register(mocker)
+
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
+    # Use mock data instead of parsing response
+    register_data = mock_data
 
     # Enable account
     with app.app_context():
@@ -7920,20 +8004,30 @@ def test_settings_voucher_code_validation_error(client, app):
     assert b"Form validation failed" in response.data
 
 
-def test_settings_voucher_not_found_error(client, app):
+def test_settings_voucher_not_found_error(client, app, mocker):
     """Test voucher not found error
 
     This test verifies that when a valid but non-existent voucher code
     is submitted, the user receives an appropriate error message.
     """
+    # Setup mocks for registration
+    mock_data = setup_mock_register(mocker)
+
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
+    # Use mock data instead of parsing response
+    register_data = mock_data
 
     # Enable account
     with app.app_context():
@@ -7982,7 +8076,7 @@ def test_settings_voucher_not_found_error(client, app):
     assert b"Validation failed" in response.data
 
 
-def test_settings_voucher_successful_redemption(client, app):
+def test_settings_voucher_successful_redemption(client, app, mocker):
     """Test successful voucher redemption
 
     This test verifies that valid vouchers can be successfully redeemed,
@@ -7990,14 +8084,24 @@ def test_settings_voucher_successful_redemption(client, app):
     """
     from ddmail_webapp.shared import hash_voucher_code
 
+    # Setup mocks for registration
+    mock_data = setup_mock_register(mocker)
+
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
+    # Use mock data instead of parsing response
+    register_data = mock_data
 
     # Get csrf_token from /login
     response_login_get = client.get("/login")
@@ -8078,7 +8182,7 @@ def test_settings_voucher_successful_redemption(client, app):
         assert voucher_count == 0
 
 
-def test_settings_voucher_successful_redemption_enabled_account(client, app):
+def test_settings_voucher_successful_redemption_enabled_account(client, app, mocker):
     """Test successful voucher redemption for enabled account
 
     This test verifies that valid vouchers can be successfully redeemed
@@ -8086,14 +8190,24 @@ def test_settings_voucher_successful_redemption_enabled_account(client, app):
     """
     from ddmail_webapp.shared import hash_voucher_code
 
+    # Setup mocks for registration
+    mock_data = setup_mock_register(mocker)
+
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
+    # Use mock data instead of parsing response
+    register_data = mock_data
 
     # Enable account
     with app.app_context():
@@ -8185,20 +8299,30 @@ def test_settings_voucher_successful_redemption_enabled_account(client, app):
         assert voucher_count == 0
 
 
-def test_settings_voucher_csrf_validation(client, app):
+def test_settings_voucher_csrf_validation(client, app, mocker):
     """Test CSRF validation for voucher redemption
 
     This test verifies that voucher redemption operations properly validate
     CSRF tokens and reject requests with invalid or missing tokens.
     """
+    # Setup mocks for registration
+    mock_data = setup_mock_register(mocker)
+
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
 
     # Register account and user
     response_register_post = client.post(
-        "/register", data={"csrf_token": csrf_token_register}
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
     )
-    register_data = get_register_data(response_register_post.data)
+    # Use mock data instead of parsing response
+    register_data = mock_data
 
     # Enable account
     with app.app_context():
