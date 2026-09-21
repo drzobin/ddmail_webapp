@@ -4641,15 +4641,15 @@ def settings_add_domain_step2():
                 current_app.config["DKIM_CNAME_RECORD3"],
             ]
 
+            status["dkim"] = True
             count = 0
             for correct_record in correct_records:
                 count = count + 1
-                print("count in loop: " + str(count))
+
                 # The user supplyed dkim record that should be a cname.
                 record = "dkim" + str(count) + "._domainkey." + str(form.domain.data)
+
                 # Check if the record is a valid cname to correct record.
-                print("record: " + record)
-                print("correct_record: " + correct_record)
                 is_correct = validators.is_cname_valid(record, correct_record)
                 if not is_correct:
                     current_app.logger.warning(
@@ -4663,13 +4663,10 @@ def settings_add_domain_step2():
                         + record
                         + " is not valid"
                     )
+
+                    # Set status of dkim record to False and break loop.
+                    status["dkim"] = False
                     break
-
-
-            # DKIM records is valid.
-            print("count: " + str(count))
-            if count == len(correct_records):
-                status["dkim"] = True
 
             # Validate dns dmarc record.
             dmarc_record = current_app.config["DMARC_RECORD"]
