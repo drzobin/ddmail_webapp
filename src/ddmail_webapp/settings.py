@@ -318,46 +318,66 @@ def settings_voucher():
                 current_user=current_user,
             )
         # Voucher is valid.
-        else:
-            voucher_fund = voucher.funds_in_sek
-            account = (
-                db.session.query(Account)
-                .filter(
-                    Account.account == current_user.account.account
-                )
-                .first()
+        voucher_fund = voucher.funds_in_sek
+
+        account = (
+            db.session.query(Account)
+            .filter(
+                Account.account == current_user.account.account
             )
+            .first()
+        )
 
-            # If account is disabled then enable account.
-            if not account.is_enabled:
-                account.is_enabled = True
+        deleted = (
+            db.session.query(Voucher)
+            .filter(
+                Voucher.voucher_code_hash == voucher_code_hash)
+            .delete(synchronize_session=False))
+        db.session.commit()
 
-            # Add voucher fund to account.
-            account.funds_in_sek = account.funds_in_sek + voucher_fund
-            db.session.commit()
-
-            # Remove used voucher from database.
-            db.session.query(Voucher).filter(
-                Voucher.voucher_code_hash == voucher_code_hash
-            ).delete()
-            db.session.commit()
-
-            current_app.logger.info(
+        # If voucher was not deleted someone else deleted it before we could.
+        if deleted != 1:
+            current_app.logger.warning(
                 "account "
                 + current_user.account.account
                 + " user "
                 + current_user.user
                 + " voucher "
                 + voucher_code_form
-                + " successfully used voucher"
+                + " was already deleted "
             )
 
             return render_template(
                 "message.html",
-                headline="Voucher",
-                message="Successfully used voucher.",
+                headline="Voucher Error",
+                message="Voucher has already been used.",
                 current_user=current_user,
             )
+
+        # If account is disabled then enable account.
+        if not account.is_enabled:
+            account.is_enabled = True
+
+        # Add voucher fund to account.
+        account.funds_in_sek = account.funds_in_sek + voucher_fund
+        db.session.commit()
+
+        current_app.logger.info(
+            "account "
+            + current_user.account.account
+            + " user "
+            + current_user.user
+            + " voucher "
+            + voucher_code_form
+            + " successfully used voucher"
+        )
+
+        return render_template(
+            "message.html",
+            headline="Voucher",
+            message="Successfully used voucher.",
+            current_user=current_user,
+        )
 
 
 
