@@ -1085,7 +1085,7 @@ def settings_remove_account_user():
                 current_user=current_user,
             )
 
-        # Do not allow to remove current loged in user.
+        # Do not allow to remove current logged in user.
         if remove_user_from_form == current_user.user:
             current_app.logger.warning(
                 "user "
@@ -1099,7 +1099,13 @@ def settings_remove_account_user():
                 current_user=current_user,
             )
 
-        # Remove email account from db.
+        # Remove all authenticated cookies for the account user.
+        db.session.query(Authenticated).filter(
+            Authenticated.user == remove_user_from_form,
+        ).delete()
+        db.session.commit()
+
+        # Remove account user from db.
         db.session.query(User).filter(
             User.account_id == current_user.account_id,
             User.user == remove_user_from_form,
