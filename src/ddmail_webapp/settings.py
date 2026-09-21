@@ -872,7 +872,7 @@ def settings_add_user_to_account():
             r_respone = requests.post(
                 openpgp_keyhandler_url,
                 {
-                    "public_key": current_user.openpgp_public_key.public_key,
+                    "public_key": openpgp_public_key.public_key,
                     "password": openpgp_keyhandler_password,
                     "cleartext_data": str(cleartext_data)
                 },
@@ -918,7 +918,7 @@ def settings_add_user_to_account():
         encrypted_data = encrypted_data.strip()
 
         current_app.logger.debug(
-            " encrypted new password for user: " + current_user.user + " with openpgp public key fingerprint: " + current_user.openpgp_public_key.fingerprint
+            " encrypted data with openpgp public key fingerprint " + openpgp_public_key.fingerprint
         )
 
         # Add the user data to the db.
@@ -934,7 +934,7 @@ def settings_add_user_to_account():
 
         current_app.logger.debug(
             "user "
-            + current_user.user
+            + user
             + " was added to account "
             + current_user.account.account
         )
