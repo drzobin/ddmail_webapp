@@ -159,4 +159,5 @@ class Receipt(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     payment_token = db.Column(db.String(56), unique=True, nullable=False)
     funds_in_sek = db.Column(db.Integer, unique=False, nullable=False)
+    payment_received = db.Column(db.Date, unique=False, nullable=False)
     created = db.Column(db.Date, unique=False, nullable=False)
