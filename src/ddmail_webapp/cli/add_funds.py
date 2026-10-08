@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-from datetime import date
+from datetime import date, datetime
 
 import toml
 from flask import Flask
@@ -67,6 +67,12 @@ def main() -> None:
         help='Amount of funds in SEK to add to the account'
     )
     parser.add_argument(
+        '--payment-received',
+        type=str,
+        required=True,
+        help='The date the payment was received in format YYYY-MM-DD'
+    )
+    parser.add_argument(
         '--mode',
         required=True,
         choices=['DEVELOPMENT', 'TESTING', 'PRODUCTION'],
@@ -78,6 +84,13 @@ def main() -> None:
     # Validate amount
     if args.amount <= 0:
         print("Error: amount must be a positive integer")
+        sys.exit(1)
+
+    # Validate payment-received
+    try:
+        args.payment_received = datetime.strptime(args.payment_received, '%Y-%m-%d').date()
+    except ValueError:
+        print("Error: payment_received must be in format YYYY-MM-DD")
         sys.exit(1)
 
     # Create Flask app with the specified configuration
@@ -108,6 +121,7 @@ def main() -> None:
             payment_token=args.payment_token,
             funds_in_sek=args.amount,
             created=date.today(),
+            payment_received=args.payment_received,
         )
         db.session.add(new_receipt)
         db.session.commit()
