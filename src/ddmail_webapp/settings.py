@@ -1,7 +1,7 @@
 import base64
+import io
 import secrets
 import string
-import io
 from datetime import date
 
 import ddmail_validators.validators as validators
@@ -14,27 +14,34 @@ from flask import (
     redirect,
     render_template,
     request,
-    session,
     send_file,
+    session,
     url_for,
 )
+from wtforms import form
 
 from ddmail_webapp.auth import generate_password, generate_token, is_athenticated
-from ddmail_webapp.forms import AliasForm, DomainForm, EmailForm, EmailPasswordForm, VoucherForm
+from ddmail_webapp.forms import (
+    AliasForm,
+    DomainForm,
+    EmailForm,
+    EmailPasswordForm,
+    ReceiptForm,
+    VoucherForm,
+)
 from ddmail_webapp.models import (
+    Account,
     Account_domain,
     Alias,
+    Authenticated,
     Email,
     Global_domain,
     Openpgp_public_key,
     User,
     Voucher,
-    Account,
-    Authenticated,
     db,
 )
-from ddmail_webapp.shared import hash_voucher_code
-from wtforms import form
+from ddmail_webapp.shared import generate_receipt, hash_voucher_code
 
 bp = Blueprint("settings", __name__, url_prefix="/")
 
@@ -230,6 +237,31 @@ def payment_token():
 
 @bp.route("/settings/voucher", methods=["GET", "POST"])
 def settings_voucher():
+    """
+    Redeem a voucher to add funds to the authenticated user's account.
+
+    This function lets users redeem a voucher code by adding the vouchers
+    funds to the account balance. It validates the voucher code, deletes the
+    voucher from the database so it can only be used once, adds the funds to
+    the account and enables the account if it was disabled.
+
+    Returns:
+        Response: Flask response with voucher redemption result or login redirect
+
+    Request Form Parameters:
+        voucher (str): Voucher code to redeem
+        csrf_token (str): CSRF protection token for POST requests
+
+    Error Responses:
+        "Form validation failed.": If form validation fails
+        "Validation failed.": If voucher code validation fails
+        "Wrong voucher code.": If voucher code is not found in the database
+        "Voucher has already been used.": If voucher code was redeemed by another request first
+
+    Success Response:
+        GET: Renders settings_voucher.html template with voucher form
+        POST: Renders template with success message confirming the voucher was used and funds added
+    """
     # Check if cookie secret is set.
     if not "secret" in session:
         current_app.logger.warning("secret is not in session")
@@ -378,6 +410,130 @@ def settings_voucher():
             headline="Voucher",
             message="Successfully used voucher.",
             current_user=current_user,
+        )
+
+
+@bp.route("/settings/receipt", methods=["POST", "GET"])
+def settings_receipt():
+    """
+    Generate and download a PDF receipt for a payment.
+
+    This function lets users download a receipt for a payment they have made.
+    It validates the payment token from the form, generates a PDF receipt from
+    the data in the receipts table and sends the receipt to the user as an
+    attachment. The PDF is generated entirely in memory, nothing is written
+    to disc.
+
+    Returns:
+        Response: PDF receipt file download, error message page or login redirect
+
+    Request Form Parameters:
+        receipt (str): Payment token of the payment to generate a receipt for
+        csrf_token (str): CSRF protection token for POST requests
+
+    Error Responses:
+        "Failed to get receipt beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.": If account is not enabled
+        "Form validation failed.": If form validation fails
+        "Validation failed.": If payment token validation fails
+        "Payment token do not exist": If no receipt exists for the payment token
+
+    Success Response:
+        GET: Renders settings_receipt.html template with receipt form
+        POST: The receipt as a PDF file named ddmail_receipt_<payment_token>.pdf
+    """
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
+        return redirect(url_for("auth.login"))
+
+    # Check if user is athenticated
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        current_app.logger.warning("user is not authenticated")
+        return redirect(url_for("auth.login"))
+
+    # Check if account is enabled.
+    if current_user.account.is_enabled != True:
+        current_app.logger.debug(
+            "account " + current_user.account.account + " is not enabled"
+        )
+        return render_template(
+            "message.html",
+            headline="Receipt error",
+            message="Failed to get receipt beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu.",
+            current_user=current_user,
+        )
+
+    form = ReceiptForm()
+
+    if request.method in ("GET", "HEAD"):
+        return render_template(
+            "settings_receipt.html",form=form, current_user=current_user
+        )
+    elif request.method == "POST":
+        receipt_payment_token_form = request.form["receipt"].strip()
+
+        # Validate receipt form.
+        if not form.validate_on_submit():
+            current_app.logger.warning(
+                "account "
+                + current_user.account.account
+                + " user "
+                + current_user.user
+                + " receipt payment token "
+                + receipt_payment_token_form
+                + " failed form validation"
+            )
+
+            return render_template(
+                "message.html",
+                headline="Receipt Error",
+                message="Form validation failed.",
+                current_user=current_user,
+            )
+
+        # Validate receipt payment_token
+        #if not validators.is_payment_token_allowed(receipt_payment_token_form):
+        if not validators.is_username_allowed(receipt_payment_token_form,username_len=24):
+            current_app.logger.warning(
+                "account "
+                + current_user.account.account
+                + " user "
+                + current_user.user
+                + " receipt payment token "
+                + receipt_payment_token_form
+                + " failed validation"
+            )
+
+            return render_template(
+                "message.html",
+                headline="Receipt Error",
+                message="Validation failed.",
+                current_user=current_user,
+            )
+        # Generate receipt.
+        receipt = generate_receipt(receipt_payment_token_form)
+
+        # Check if receipt was generated successfully.
+        if not receipt:
+            return render_template(
+                "message.html",
+                headline="Receipt Error",
+                message="Payment token do not exist",
+                current_user=current_user,
+            )
+
+        # Return receipt as pdf. The PDF is only in memory so wrap it in a
+        # file stream, send_file() requires a path or a file-like object.
+        file_stream = io.BytesIO(receipt)
+
+        return send_file(
+            file_stream,
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name="ddmail_receipt_" + receipt_payment_token_form + ".pdf",
         )
 
 
