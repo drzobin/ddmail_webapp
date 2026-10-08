@@ -178,7 +178,7 @@ def register():
         GET: Renders registration.html template with registration form
         POST: Returns the encrypted file ddmail-credentials.asc with the newly created credentials
     """
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         return render_template("register.html")
     if request.method == "POST":
         # Guard against missing form field.
@@ -469,7 +469,7 @@ def login():
     """
     current_user = None
 
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         return render_template("login.html", current_user=current_user)
     if request.method == "POST":
         ph = PasswordHasher()
