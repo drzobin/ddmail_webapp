@@ -245,7 +245,7 @@ def settings_voucher():
 
     form = VoucherForm()
 
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         return render_template(
             "settings_voucher.html", form=form, current_user=current_user
         )
@@ -430,7 +430,7 @@ def settings_change_password_on_user():
             current_user=current_user,
         )
 
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         return render_template(
             "settings_change_password_on_user.html", current_user=current_user
         )
@@ -593,7 +593,7 @@ def settings_change_key_on_user():
             current_user=current_user,
         )
 
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         return render_template(
             "settings_change_key_on_user.html", current_user=current_user
         )
@@ -756,7 +756,7 @@ def settings_add_user_to_account():
             current_user=current_user,
         )
 
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         fingerprints = db.session.query(Openpgp_public_key).filter(
             Openpgp_public_key.account_id == current_user.account_id
         )
@@ -1038,7 +1038,7 @@ def settings_remove_account_user():
             current_user=current_user,
         )
 
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         users = db.session.query(User).filter(
             User.account_id == current_user.account_id
         )
@@ -1186,7 +1186,7 @@ def settings_add_email():
         )
 
     form = EmailForm()
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         # Get the accounts domains.
         account_domains = db.session.query(Account_domain.domain).filter(
             Account_domain.account_id == current_user.account_id,
@@ -1726,7 +1726,7 @@ def settings_remove_email():
             current_user=current_user,
         )
 
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         emails = db.session.query(Email).filter(
             Email.account_id == current_user.account_id
         )
@@ -1921,7 +1921,7 @@ def settings_change_password_on_email():
         )
 
     form = EmailPasswordForm()
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         emails = db.session.query(Email).filter(
             Email.account_id == current_user.account_id
         )
@@ -2339,7 +2339,7 @@ def settings_upload_openpgp_public_key():
             current_user=current_user,
         )
 
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         return render_template(
             "settings_upload_openpgp_public_key.html", current_user=current_user
         )
@@ -2588,7 +2588,7 @@ def settings_remove_openpgp_public_key():
             current_user=current_user,
         )
 
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         fingerprints = db.session.query(Openpgp_public_key).filter(
             Openpgp_public_key.account_id == current_user.account_id
         )
@@ -2809,7 +2809,7 @@ def settings_activate_openpgp_encryption():
             current_user=current_user,
         )
 
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         fingerprints = db.session.query(Openpgp_public_key).filter(
             Openpgp_public_key.account_id == current_user.account_id
         )
@@ -3061,7 +3061,7 @@ def settings_deactivate_openpgp_encryption():
             current_user=current_user,
         )
 
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         emails = db.session.query(Email).filter(
             Email.account_id == current_user.account_id,
             Email.openpgp_public_key_id != None,
@@ -3276,7 +3276,7 @@ def settings_change_users_openpgp_public_key():
             current_user=current_user,
         )
 
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         fingerprints = db.session.query(Openpgp_public_key).filter(
             Openpgp_public_key.account_id == current_user.account_id
         )
@@ -3572,7 +3572,7 @@ def settings_add_alias():
         )
 
     form = AliasForm()
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         emails = db.session.query(Email).filter(
             Email.account_id == current_user.account_id
         )
@@ -3959,7 +3959,7 @@ def settings_remove_alias():
             current_user=current_user,
         )
 
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         aliases = db.session.query(Alias).filter(
             Alias.account_id == current_user.account_id
         )
@@ -4177,7 +4177,7 @@ def settings_add_domain():
         )
 
     form = DomainForm()
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         mx_record_host = current_app.config["MX_RECORD_HOST"]
         mx_record_priority = current_app.config["MX_RECORD_PRIORITY"]
         spf_record = current_app.config["SPF_RECORD"]
@@ -4800,7 +4800,7 @@ def settings_remove_domain():
             current_user=current_user,
         )
 
-    if request.method == "GET":
+    if request.method in ("GET", "HEAD"):
         domains = db.session.query(Account_domain).filter(
             Account_domain.account_id == current_user.account_id,
             Account_domain.is_enabled == True
