@@ -1,0 +1,17 @@
+{% extends "all.html" %}
+{% block content %}
+{% include 'settings_menu.html' %}
+<h3>Receipt</h3>
+<p></p>The payment token is used as the receipt identifier. To get the receipt
+enter the payment token for the specific payment that you want the receipt for.
+You will then get the receipt as a downloadable pdf file.
+<p></p>
+<form method="POST" action="{{ url_for('settings.settings_receipt') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    Payment token:
+    <br>
+    {{ form.receipt(size=20) }}
+    <p></p>
+    <input type="submit" value="Submit payment token" />
+</form>
+{% endblock%}
