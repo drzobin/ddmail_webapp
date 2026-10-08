@@ -23,6 +23,7 @@ dependencies = [
   "ddmail-validators",
   "toml",
   "gunicorn",
+  "fpdf2",
 ]
 license = "AGPL-3.0"
 license-files = ["LICEN[CS]E*"]
@@ -46,6 +47,7 @@ dev = [
   "ruff",
   "hatchling",
   "twine",
+  "fpdf2",
 ]
 test = [
   "flask",
@@ -60,6 +62,7 @@ test = [
   "toml",
   "gunicorn",
   "pytest-cov",
+  "fpdf2",
 ]
 
 [project.urls]
