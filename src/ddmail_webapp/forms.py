@@ -23,3 +23,7 @@ class AliasForm(FlaskForm):
 # Form modul for voucher.
 class VoucherForm(FlaskForm):
     voucher = StringField('Voucher', [validators.DataRequired(),validators.Length(min=24, max=24)])
+
+# Form modul for receipt.
+class ReceiptForm(FlaskForm):
+    receipt = StringField('Receipt', [validators.DataRequired(),validators.Length(min=24, max=24)])
