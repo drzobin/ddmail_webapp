@@ -144,6 +144,10 @@ SECURITY_TXT_CANONICAL = ['https://www.ddmail.se/.well-known/security.txt', 'htt
 # this number with their unique per-account payment_token as the reference.
 PAYMENT_BANKGIRO = 'change_me'
 
+# Swish number shown on the payment page. Users transfer funds to
+# this number with their unique per-account payment_token as the reference.
+PAYMENT_SWISH = 'change_me'
+
 
 # Alternative-network addresses (shown in the site header)
 
