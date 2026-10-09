@@ -2,15 +2,30 @@
 {% block content %}
 {% include 'settings_menu.html' %}
 <h3>Payment</h3>
-Here you can find information regarding payment.
-<h4>Swedish Bankgiro</h4>
-Payment is done by transferring money to us using our bankgiro number marking the payment with your accounts payment token (randomly generated on our website).<p></p>
+Here you can find information regarding payment. In order for us to register
+your payment to your account you need to mark your payment with your accounts
+payment token. When we recive the money we will add them to your accounts funds
+and generatea new payment token for your account.
+<p></p>
 Your accounts payment token currently is: {{ payment_token }}
+<h4>Swedish Bankgiro</h4>
+Payment is done by transferring money to us using our bankgiro number marking
+the payment with your accounts payment token.
 <br>
 Bankgiro number: {{ payment_bankgiro }}
 <br>
-In the message box type: ddmail-{{ payment_token }}
+In the message box write: ddmail-{{ payment_token }}
+<h4>Swish</h4>
+Payment is done by transferring money to us using our Swish number marking
+the payment with your accounts payment token.
+<br>
+Swish number: {{ payment_swish }}
+<br>
+In the message box write: ddmail-{{ payment_token }}
 <p></p>
-When we recive the money we will add them to your accounts funds and generate a new payment token for your account. 
-{% endblock%}
 
+<h4>Recipt</h4>
+If you want a receipt of your payment you need to save your payment token.
+When we have added the funds to your account you can use the payment token
+to get a receipt of your payment.
+{% endblock%}
