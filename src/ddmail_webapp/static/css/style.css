@@ -10,16 +10,57 @@ body {
 
 header {
     background-color: #3b224c;
-    text-align: center;
     color: #dbbfef;
-    padding: 20px;
+    padding: 10px 20px;
+}
+
+.header-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 24px;
+}
+
+.brand {
+    text-decoration: none;
+}
+
+.brand h1 {
+    margin: 0;
+    font-size: 1.6rem;
+}
+
+nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin: 0;
+    padding: 0;
+}
+
+.user-status {
+    margin: 6px 0 0;
+    font-size: 0.75rem;
+    opacity: 0.85;
 }
 
 footer {
     background-color: #3b224c;
     text-align: center;
     color: #dbbfef;
-    padding: 20px;
+    padding: 10px 20px;
+    margin-top: 16px;
+    font-size: 0.75rem;
+}
+
+footer p {
+    margin: 8px 0;
+}
+
+.address {
+    word-break: break-all;
+    font-family: monospace;
 }
 
 a {
@@ -58,19 +99,10 @@ ul {
 .middle {
     background-color: #3b224c;
     padding: 20px;
+    margin-top: 16px;
 }
 
-.space {
-    background-color: #dbbfef;
-    color: #dbbfef;
-    padding: 1px;
-}
 
-.scaletext {
-    background-color: #3b224c;
-    color: #dbbfef;
-    font-size: clamp(11px, 1vw, 20px);
-}
 
 @media (min-width: 1024px) {
     body {
