@@ -1,6 +1,5 @@
-{% extends "all.html" %}
-{% block content %}
-{% include 'settings_menu.html' %}
+{% extends "settings_layout.html" %}
+{% block settings_content %}
 <h2>Change key on user</h2>
 <p>To generate a new key for the logged in user push the button below. The new key
 will be encrypted using the current user's OpenPGP public key. The encrypted

@@ -1,0 +1,13 @@
+{% extends "all.html" %}
+{% block content %}
+{% if current_user %}
+<div class="settings-layout">
+    {% include 'settings_menu.html' %}
+    <div class="settings-content">
+        {% block settings_content %}{% endblock %}
+    </div>
+</div>
+{% else %}
+{{ self.settings_content() }}
+{% endif %}
+{% endblock %}

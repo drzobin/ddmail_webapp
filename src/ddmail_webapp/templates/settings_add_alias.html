@@ -1,6 +1,5 @@
-{% extends "all.html" %}
-{% block content %}
-{% include 'settings_menu.html' %}
+{% extends "settings_layout.html" %}
+{% block settings_content %}
 <h3>Add Alias</h3>
 <form method="POST">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>

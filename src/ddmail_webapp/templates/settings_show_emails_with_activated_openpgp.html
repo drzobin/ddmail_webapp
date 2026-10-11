@@ -1,6 +1,5 @@
-{% extends "all.html" %}
-{% block content %}
-{% include 'settings_menu.html' %}
+{% extends "settings_layout.html" %}
+{% block settings_content %}
 <h3>Show Email Accounts With Activated OpenPGP Encryption</h3>
 Incoming emails to those email accounts will be OpenPGP encypted with the OpenPGP public key listed below.
 {% for email in emails %}

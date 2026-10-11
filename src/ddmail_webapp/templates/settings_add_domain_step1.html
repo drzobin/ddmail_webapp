@@ -1,5 +1,4 @@
-{% extends "all.html" %} {% block content %} {% include 'settings_menu.html' %}
-<h3>Add Domain Step 1</h3>
+{% extends "settings_layout.html" %} {% block settings_content %}<h3>Add Domain Step 1</h3>
 The following dns records is needed before you can add domain {{ domain }}.
 <pre>
 {{ domain }}                  3600 IN MX    {{ mx_record_priority }} {{ mx_record_host }}

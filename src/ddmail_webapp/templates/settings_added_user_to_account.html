@@ -1,5 +1,4 @@
-{% extends "all.html" %} {% block content %} {% include 'settings_menu.html' %}
-<h2>Added new user to account</h2>
+{% extends "settings_layout.html" %} {% block settings_content %}<h2>Added new user to account</h2>
 <p>Account: {{ account }}</p>
 <p>Username: {{ user }}</p>
 <p>Password: {{ cleartext_password }}</p>

@@ -1,6 +1,5 @@
-{% extends "all.html" %}
-{% block content %}
-{% include 'settings_menu.html' %}
+{% extends "settings_layout.html" %}
+{% block settings_content %}
 <h3>Deactivate OpenPGP encryption</h3>
 This will deactivate OpenPGP encryption for the selected email account. All incoming emails to this email account will no longer be encrypted with OpenPGP. Old emails that is stored on this email account will not be changed, this change only applies to new incoming emails to this email account.<p>
 <form action="" method="post">

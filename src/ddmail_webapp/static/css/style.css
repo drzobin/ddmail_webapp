@@ -31,7 +31,7 @@ header {
     font-size: 1.6rem;
 }
 
-nav ul {
+header nav ul {
     display: flex;
     flex-wrap: wrap;
     gap: 4px 16px;
@@ -104,6 +104,80 @@ ul {
 
 
 
+.settings-menu {
+    font-size: 0.7rem;
+    line-height: 1.3;
+}
+
+.settings-menu h2 {
+    margin: 0 0 4px;
+    font-size: 1rem;
+}
+
+.settings-menu h2 a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.settings-menu h3 {
+    margin: 10px 0 2px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+}
+
+.settings-menu ul {
+    margin: 0;
+    padding: 0;
+}
+
+.settings-menu li a {
+    display: block;
+    padding: 2px 6px;
+    border-left: 2px solid transparent;
+    text-decoration: none;
+}
+
+.settings-menu li a:hover {
+    text-decoration: underline;
+}
+
+.settings-menu li a.active {
+    border-left-color: #eccdba;
+    background-color: rgba(236, 205, 186, 0.12);
+    font-weight: bold;
+}
+
+.settings-layout {
+    display: grid;
+    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+    column-gap: 24px;
+    align-items: start;
+}
+
+.settings-layout > .settings-menu {
+    padding-right: 16px;
+    border-right: 1px solid rgba(219, 191, 239, 0.25);
+}
+
+.settings-content > h3:first-child {
+    margin-top: 0;
+}
+
+@media (max-width: 767px) {
+    .settings-layout {
+        display: block;
+    }
+
+    .settings-layout > .settings-menu {
+        padding: 0 0 12px;
+        margin-bottom: 12px;
+        border-right: none;
+        border-bottom: 1px solid rgba(219, 191, 239, 0.25);
+    }
+}
+
 @media (min-width: 1024px) {
     body {
         display: flex;
@@ -112,6 +186,7 @@ ul {
     }
 
     .body {
-        width: 60%;
+        width: 80%;
+        max-width: 1200px;
     }
 }
