@@ -13,6 +13,7 @@ from ddmail_webapp.models import (
     Email,
     Global_domain,
     Openpgp_public_key,
+    Receipt,
     User,
     Voucher,
     db,
@@ -8373,3 +8374,239 @@ def test_settings_voucher_csrf_validation(client, app, mocker):
         },
     )
     assert b"The CSRF token is missing" in response.data
+
+
+def test_settings_receipt_no_session_redirect(client):
+    """Test receipt page redirects users without a session
+
+    This test verifies that users without a session cookie are redirected
+    to the login page when trying to access the receipt page.
+    """
+    # Test GET /settings/receipt without being logged in.
+    response = client.get("/settings/receipt")
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
+
+
+def test_settings_receipt_disabled_account(client, app, mocker):
+    """Test receipt page access with disabled account
+
+    This test verifies that users with disabled accounts can not get
+    a receipt, ensuring proper access control and payment restrictions
+    are enforced when the account is in a disabled state.
+    """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+
+    # Get the csrf token for /register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Test POST /login with newly registered account and user.
+    assert (
+        client.post(
+            "/login",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "user": mock_data["username"],
+                "password": mock_data["password"],
+                "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+                "csrf_token": csrf_token_login,
+            },
+        ).status_code
+        == 302
+    )
+
+    # Test GET /settings/receipt.
+    assert client.get("/settings/receipt").status_code == 200
+    response_settings_receipt_get = client.get("/settings/receipt")
+    assert (
+        b"Logged in on account: " + bytes(mock_data["account"], "utf-8")
+        in response_settings_receipt_get.data
+    )
+    assert (
+        b"Logged in as user: " + bytes(mock_data["username"], "utf-8")
+        in response_settings_receipt_get.data
+    )
+    assert b"Is account enabled: No" in response_settings_receipt_get.data
+    assert (
+        b"Failed to get receipt beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu."
+        in response_settings_receipt_get.data
+    )
+
+
+def test_settings_receipt_enabled_account(client, app, mocker):
+    """Test receipt download for enabled account
+
+    This test verifies that users with enabled accounts can download a
+    receipt as a PDF file for a payment token that exist in the receipts
+    table, and that proper form validation, CSRF protection and error
+    messages are enforced for invalid input.
+    """
+    # Setup mocks
+    mock_data = setup_mock_register(mocker)
+
+    # Get the csrf token for /register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+
+    # Register account and user
+    response_register_post = client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
+
+    # Enable account.
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == mock_data["account"])
+            .first()
+        )
+        account.is_enabled = True
+        db.session.commit()
+
+    # Get csrf_token from /login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+
+    # Test POST /login with newly registered account and user.
+    assert (
+        client.post(
+            "/login",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "user": mock_data["username"],
+                "password": mock_data["password"],
+                "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+                "csrf_token": csrf_token_login,
+            },
+        ).status_code
+        == 302
+    )
+
+    # Test GET /settings/receipt.
+    assert client.get("/settings/receipt").status_code == 200
+    response_settings_receipt_get = client.get("/settings/receipt")
+    assert (
+        b"Logged in on account: " + bytes(mock_data["account"], "utf-8")
+        in response_settings_receipt_get.data
+    )
+    assert (
+        b"Logged in as user: " + bytes(mock_data["username"], "utf-8")
+        in response_settings_receipt_get.data
+    )
+    assert b"Is account enabled: Yes" in response_settings_receipt_get.data
+    assert b"<h3>Receipt</h3>" in response_settings_receipt_get.data
+
+    # Get csrf_token from /settings/receipt
+    csrf_token_settings_receipt = get_csrf_token(response_settings_receipt_get.data)
+
+    # Test wrong csrf_token on /settings/receipt
+    assert (
+        client.post(
+            "/settings/receipt", data={"csrf_token": "wrong csrf_token"}
+        ).status_code
+        == 400
+    )
+
+    # Test empty csrf_token on /settings/receipt
+    response_settings_receipt_empty_csrf_post = client.post(
+        "/settings/receipt", data={"csrf_token": ""}
+    )
+    assert (
+        b"The CSRF token is missing"
+        in response_settings_receipt_empty_csrf_post.data
+    )
+
+    # Test POST with empty payment token, should fail form validation.
+    response_settings_receipt_empty_token_post = client.post(
+        "/settings/receipt",
+        data={"receipt": "", "csrf_token": csrf_token_settings_receipt},
+    )
+    assert b"Form validation failed." in response_settings_receipt_empty_token_post.data
+
+    # Test POST with payment token with illigal characters, should fail validation.
+    response_settings_receipt_bad_token_post = client.post(
+        "/settings/receipt",
+        data={
+            "receipt": "!!!!!!!!!!!!!!!!!!!!!!!!",
+            "csrf_token": csrf_token_settings_receipt,
+        },
+    )
+    assert b"Validation failed." in response_settings_receipt_bad_token_post.data
+
+    # Test POST with payment token that do not exist in the receipts table.
+    response_settings_receipt_missing_post = client.post(
+        "/settings/receipt",
+        data={
+            "receipt": "Z5YN1QW7444RH9VKP2M3TSUC",
+            "csrf_token": csrf_token_settings_receipt,
+        },
+    )
+    assert b"Payment token do not exist" in response_settings_receipt_missing_post.data
+
+    # Create a receipt in the receipts table for a payment token.
+    receipt_payment_token = "A6UP0PQ8255PF5JLG20T7WEO"
+    with app.app_context():
+        # Clean up any existing receipt with the same payment token first.
+        db.session.query(Receipt).filter(
+            Receipt.payment_token == receipt_payment_token
+        ).delete()
+
+        # Create and add the receipt to database.
+        receipt = Receipt(
+            payment_token=receipt_payment_token,
+            funds_in_sek=100,
+            payment_received=datetime.date.today(),
+            created=datetime.date.today(),
+        )
+        db.session.add(receipt)
+        db.session.commit()
+
+    # Test POST with a valid payment token that exist in the receipts table.
+    response_settings_receipt_valid_post = client.post(
+        "/settings/receipt",
+        data={
+            "receipt": receipt_payment_token,
+            "csrf_token": csrf_token_settings_receipt,
+        },
+    )
+    assert response_settings_receipt_valid_post.status_code == 200
+    assert response_settings_receipt_valid_post.content_type == "application/pdf"
+    assert (
+        b"ddmail_receipt_" + bytes(receipt_payment_token, "utf-8") + b".pdf"
+        in response_settings_receipt_valid_post.headers["Content-Disposition"].encode()
+    )
+    # Check that the response is a non empty PDF document.
+    assert response_settings_receipt_valid_post.data[:5] == b"%PDF-"
+    assert b"%%EOF" in response_settings_receipt_valid_post.data[-32:]
+
+    # Cleanup: remove the receipt from the database.
+    with app.app_context():
+        db.session.query(Receipt).filter(
+            Receipt.payment_token == receipt_payment_token
+        ).delete()
+        db.session.commit()
