@@ -15,56 +15,58 @@
     <body>
         <div class="body">
             <header>
-                <h1>DDMail</h1>
-                Development state: open alpha<br />
-                Tor onion service address:<br>
-                <sektion class="scaletext">
-                {{ config["TOR_ADDRESS"] }}
-                </sektion>
-                <br>
-                I2P eepsites address:<br>
-               <sektion class="scaletext">
-                {{ config["I2P_ADDRESS"] }}
-               </sektion>
-                <ul>
-                    <li><a href="/">Main</a></li>
+                <div class="header-bar">
+                    <a href="/" class="brand"><h1>DDMail</h1></a>
+                    <nav>
+                        <ul>
+                            <li><a href="/">Main</a></li>
+                            {% if current_user %}
+                            <li><a href="/settings">Settings</a></li>
+                            {% else %}
+                            <li><a href="/login">Login</a></li>
+                            <li><a href="/register">Register</a></li>
+                            {% endif %}
+                            <li><a href="/pricing_and_payment">Pricing and payment</a></li>
+                            <li><a href="/terms">Terms</a></li>
+                            <li><a href="/help">Help</a></li>
+                            <li><a href="/about">About</a></li>
+                            <li><a href="/contact">Contact</a></li>
+                            {% if current_user %}
+                            <li>
+                                <form action="{{ url_for('auth.logout') }}" method="post" class="logout-form">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                    <button type="submit" class="logout-button">Logout</button>
+                                </form>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                <p class="user-status">
                     {% if current_user %}
-                    <li>
-                        <form action="{{ url_for('auth.logout') }}" method="post" class="logout-form">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                            <button type="submit" class="logout-button">Logout</button>
-                        </form>
-                    </li>
-                    <li><a href="/settings">Settings</a></li>
+                    Logged in on account: {{ current_user.account.account }} |
+                    Logged in as user: {{ current_user.user }} |
+                    Is account enabled: {% if current_user.account.is_enabled == 1 %}Yes{% else %}No{% endif %}
                     {% else %}
-                    <li><a href="/login">Login</a></li>
-                    <li><a href="/register">Register</a></li>
+                    Logged in on account: Not logged in |
+                    Logged in as user: Not logged in
                     {% endif %}
-                    <li>
-                        <a href="/pricing_and_payment">Pricing and payment</a>
-                    </li>
-                    <li><a href="/terms">Terms</a></li>
-                    <li><a href="/help">Help</a></li>
-                    <li><a href="/about">About</a></li>
-                    <li><a href="/contact">Contact</a></li>
-                </ul>
-                <p>
-                    {% if current_user %} Logged in on account: {{
-                    current_user.account.account }} <br />
-                    Logged in as user: {{ current_user.user }} <br />
-                    {% if current_user.account.is_enabled == 1 %} Is account enabled: Yes <br />
-                    {% else %} Is account enabled: No <br />
-                    {% endif %} {% else %} Logged in on account: Not logged in
-                    <br />
-                    Logged in as user: Not logged in {% endif %}
                 </p>
             </header>
-            <section class="space"><p></p></section>
             <section class="middle">{% block content%} {% endblock %}</section>
-            <section class="space"><p></p></section>
             <footer>
-                <br>
-                    Provided by Kodord AB | Reasonable paranoid <br> <a href="https://www.kodord.se">www.kodord.se</a>
+                <p>Development state: open alpha</p>
+                <p>
+                    Tor onion service address:<br />
+                    <span class="address">{{ config["TOR_ADDRESS"] }}</span>
+                </p>
+                <p>
+                    I2P eepsites address:<br />
+                    <span class="address">{{ config["I2P_ADDRESS"] }}</span>
+                </p>
+                <p>
+                    Provided by Kodord AB | Reasonable paranoid<br />
+                    <a href="https://www.kodord.se">www.kodord.se</a>
                 </p>
             </footer>
         </div>

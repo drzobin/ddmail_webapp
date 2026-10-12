@@ -1,6 +1,5 @@
-{% extends "all.html" %}
-{% block content %}
-{% include 'settings_menu.html' %}
+{% extends "settings_layout.html" %}
+{% block settings_content %}
 <h3>Change Account Users OpenPGP Public Key</h3>
 Every account user has a specific OpenPGP public key that is used to encrypt sensitive data example passwords and account keys. It is also used for authentication for the specific user.
 Here you can change a users OpenPGP public key.

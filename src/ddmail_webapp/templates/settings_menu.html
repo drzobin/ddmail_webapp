@@ -1,49 +1,55 @@
 {% if current_user %}
-<h2>Settings</h2>
-    <h3>Payment Information</h3>
+{% set sections = [
+    ("Payment", [
+        ("/settings/usage_and_funds", "Usage and Funds"),
+        ("/settings/payment", "Payment"),
+        ("/settings/payment_token", "Payment Token"),
+        ("/settings/receipt", "Receipt"),
+        ("/settings/voucher", "Voucher"),
+    ]),
+    ("Account Users", [
+        ("/settings/change_password_on_user", "Change Password On Current Account User"),
+        ("/settings/change_key_on_user", "Change Key On Current Account User"),
+        ("/settings/show_account_users", "Show Account Users"),
+        ("/settings/add_user_to_account", "Add New Account User"),
+        ("/settings/remove_account_user", "Remove Account User"),
+    ]),
+    ("Email", [
+        ("/settings/show_email", "Show Email Accounts"),
+        ("/settings/add_email", "Add Email Account"),
+        ("/settings/remove_email", "Remove Email Account"),
+        ("/settings/change_password_on_email", "Change password on Email Account"),
+    ]),
+    ("OpenPGP", [
+        ("/settings/show_openpgp_public_keys", "Show OpenPGP Public Keys"),
+        ("/settings/upload_openpgp_public_key", "Upload OpenPGP Public Key"),
+        ("/settings/remove_openpgp_public_key", "Remove OpenPGP Public Key"),
+        ("/settings/show_emails_with_activated_openpgp", "Show Email Accounts With Activated OpenPGP Encryption"),
+        ("/settings/activate_openpgp_encryption", "Activate OpenPGP Encryption On Email"),
+        ("/settings/deactivate_openpgp_encryption", "Deactivate OpenPGP Encryption On Email"),
+        ("/settings/show_users_openpgp_public_key", "Show Accounts Users OpenPGP Public Key"),
+        ("/settings/change_users_openpgp_public_key", "Change Accounts Users OpenPGP Public Key"),
+    ]),
+    ("Email Aliases", [
+        ("/settings/show_alias", "Show Aliases"),
+        ("/settings/add_alias", "Add Alias"),
+        ("/settings/remove_alias", "Remove Alias"),
+    ]),
+    ("Domains", [
+        ("/settings/show_domains", "Show Domains"),
+        ("/settings/add_domain", "Add Domain"),
+        ("/settings/remove_domain", "Remove Domain"),
+    ]),
+] %}
+<nav class="settings-menu">
+    <h2><a href="/settings">Settings</a></h2>
+    {% for title, links in sections %}
+    <h3>{{ title }}</h3>
     <ul>
-        <li><a href="/settings/usage_and_funds">Usage and Funds</a></li>
-        <li><a href="/settings/payment">Payment</a></li>
-        <li><a href="/settings/payment_token">Payment Token</a></li>
-        <li><a href="/settings/receipt">Receipt</a></li>
-        <li><a href="/settings/voucher">Voucher</a></li>
+        {% for href, label in links %}
+        <li><a href="{{ href }}"{% if request.path == href %} class="active" aria-current="page"{% endif %}>{{ label }}</a></li>
+        {% endfor %}
     </ul>
-    <h3>Account User Settings</h3>
-    <ul>
-        <li><a href="/settings/change_password_on_user">Change Password On Current Account User</a></li>
-        <li><a href="/settings/change_key_on_user">Change Key On Current Account User</a></li>
-        <li><a href="/settings/show_account_users">Show Account Users</a></li>
-        <li><a href="/settings/add_user_to_account">Add New Account User</a></li>
-        <li><a href="/settings/remove_account_user">Remove Account User</a></li>
-    </ul>
-    <h3>Email Settings</h3>
-    <ul>
-        <li><a href="/settings/show_email">Show Email Accounts</a></li>
-        <li><a href="/settings/add_email">Add Email Account</a></li>
-        <li><a href="/settings/remove_email">Remove Email Account</a></li>
-        <li><a href="/settings/change_password_on_email">Change password on Email Account</a></li>
-    </ul>
-    <h3>OpenPGP Settings</h3>
-    <ul>
-        <li><a href="/settings/show_openpgp_public_keys">Show OpenPGP Public Keys</a></li>
-        <li><a href="/settings/upload_openpgp_public_key">Upload OpenPGP Public Key</a></li>
-        <li><a href="/settings/remove_openpgp_public_key">Remove OpenPGP Public Key</a></li>
-        <li><a href="/settings/show_emails_with_activated_openpgp">Show Email Accounts With Activated OpenPGP Encryption</a></li>
-        <li><a href="/settings/activate_openpgp_encryption">Activate OpenPGP Encryption On Email</a></li>
-        <li><a href="/settings/deactivate_openpgp_encryption">Deactivate OpenPGP Encryption On Email</a></li>
-        <li><a href="/settings/show_users_openpgp_public_key">Show Accounts Users OpenPGP Public Key</a></li>
-        <li><a href="/settings/change_users_openpgp_public_key">Change Accounts Users OpenPGP Public Key</a></li>
-    </ul>
-    <h3>Email Alias Settings</h3>
-    <ul>
-        <li><a href="/settings/show_alias">Show Aliases</a></li>
-        <li><a href="/settings/add_alias">Add Alias</a></li>
-        <li><a href="/settings/remove_alias">Remove Alias</a></li>
-    </ul>
-    <h3>Domain Settings</h3>
-    <ul>
-        <li><a href="/settings/show_domains">Show Domains</a></li>
-        <li><a href="/settings/add_domain">Add Domain</a></li>
-        <li><a href="/settings/remove_domain">Remove Domain</a></li>
-    </ul>
+    {% endfor %}
+</nav>
 {% endif %}

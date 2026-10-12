@@ -1,6 +1,5 @@
-{% extends "all.html" %}
-{% block content %}
-{% include 'settings_menu.html' %}
+{% extends "settings_layout.html" %}
+{% block settings_content %}
 <h3>Show Account Users</h3>
 <p></p>Current active users for this account:
 {% for user in users %}
