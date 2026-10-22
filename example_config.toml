@@ -222,6 +222,7 @@ SECURITY_TXT_ENCRYPTION = ['https://www.ddmail.se/static/contact_security_pubkey
 SECURITY_TXT_PREFERRED_LANGUAGES = 'en,sv'
 SECURITY_TXT_CANONICAL = ['https://www.ddmail.se/.well-known/security.txt', 'https://www.ddmail.se/security.txt', 'https://ddmail.se/.well-known/security.txt', 'https://ddmail.se/security.txt']
 PAYMENT_BANKGIRO = 'change_me'
+PAYMENT_SWISH = 'change_me'
 TOR_ADDRESS = 'change_me'
 I2P_ADDRESS = 'change_me'
 [TESTING.LOGGING]
@@ -268,6 +269,7 @@ SECURITY_TXT_ENCRYPTION = ['https://www.ddmail.se/static/contact_security_pubkey
 SECURITY_TXT_PREFERRED_LANGUAGES = 'en,sv'
 SECURITY_TXT_CANONICAL = ['https://www.ddmail.se/.well-known/security.txt', 'https://www.ddmail.se/security.txt', 'https://ddmail.se/.well-known/security.txt', 'https://ddmail.se/security.txt']
 PAYMENT_BANKGIRO = 'change_me'
+PAYMENT_SWISH = 'change_me'
 TOR_ADDRESS = 'change_me'
 I2P_ADDRESS = 'change_me'
 [DEVELOPMENT.LOGGING]
