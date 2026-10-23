@@ -101,6 +101,7 @@ def create_app(config_file=None, test_config=None):
 
         # Configure payment information.
         app.config["PAYMENT_BANKGIRO"] = toml_config[mode]["PAYMENT_BANKGIRO"]
+        app.config["PAYMENT_SWISH"] = toml_config[mode]["PAYMENT_SWISH"]
 
         # Configure dns record checked when adding account/own domains.
         app.config["MX_RECORD_HOST"] = toml_config[mode]["MX_RECORD_HOST"]
