@@ -186,10 +186,13 @@ def payment():
         return redirect(url_for("auth.login"))
 
     payment_bankgiro = current_app.config["PAYMENT_BANKGIRO"]
+    payment_swish = current_app.config["PAYMENT_SWISH"]
+
 
     return render_template(
         "settings_payment.html",
         payment_bankgiro=payment_bankgiro,
+        payment_swish=payment_swish,
         payment_token=current_user.account.payment_token,
         current_user=current_user,
     )
