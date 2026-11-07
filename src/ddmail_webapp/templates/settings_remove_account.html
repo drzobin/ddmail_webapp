@@ -1,0 +1,22 @@
+{% extends "settings_layout.html" %}
+{% block settings_content %}
+<h2>Remove account</h2>
+<p>This action will remove the accounts with all its data including funds, this
+action cannot be undone. To proceed you need to first remove all
+aliases and email accounts. </p>
+<p>Provide your password and key file to confirm the removal.</p>
+<form action="" method="post" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+<p>
+Password:<br>
+<input type="password" name="password">
+</p>
+<p>
+Key file:<br>
+<input type="file" name="key" id="key">
+</p>
+<p>
+<input type="submit" value="Remove account">
+</p>
+</form>
+{% endblock%}
