@@ -539,6 +539,267 @@ def settings_receipt():
             download_name="ddmail_receipt_" + receipt_payment_token_form + ".pdf",
         )
 
+@bp.route("/settings/remove_account", methods=["POST", "GET"])
+def settings_remove_account():
+    """
+    Remove account and all its data.
+
+    Remove account and all its data including users, domains, aliases,
+    emails, and OpenPGP keys. It performs authentication checks, validates the
+    provided password and password key, and ensures the account has no remaining
+    dependencies before deletion.
+
+    Returns:
+        Response: Flask response with success message or error page
+
+    Request Form Parameters:
+        password (str): Account password for verification
+        key (file): Password key file for verification
+
+    Error Responses:
+        "Failed to remove account, wrong password and/or key.": If authentication fails
+        "Failed to remove account, please remove all aliases first.": If account has aliases
+        "Failed to remove account, please remove all email accounts first.": If account has emails
+
+    Success Response:
+        GET: Renders template settings_remove_account.html
+        POST: Redirects to the login page after successful removal
+    """
+    # Check if cookie secret is set.
+    if not "secret" in session:
+        current_app.logger.warning("secret is not in session")
+        return redirect(url_for("auth.login"))
+
+    # Check if user is authenticated
+    current_user = is_athenticated(session["secret"])
+
+    # If user is not athenticated send them to the login page.
+    if current_user == None:
+        current_app.logger.warning("user is not authenticated")
+        return redirect(url_for("auth.login"))
+
+    if request.method in ("GET", "HEAD"):
+        return render_template(
+            "settings_remove_account.html", current_user=current_user
+        )
+    elif request.method == "POST":
+        ph = PasswordHasher()
+
+        # Current logged in account user.
+        user = current_user.user
+
+        # Get the data from the forms.
+        cleartext_password_from_form = request.form["password"].strip()
+        file = request.files["key"]
+        cleartext_password_key_from_form = file.read().strip().decode("utf-8")
+
+        # Check that form has data.
+        if (
+            not cleartext_password_from_form
+            or not cleartext_password_key_from_form
+        ):
+            # Authentication failed
+            current_app.logger.warning("failed authentication, data is missing")
+            return render_template(
+                "message.html",
+                headline="Remove account error",
+                message="Failed to remove account, wrong password and/or key.",
+                current_user=current_user,
+            )
+
+        # Validate username.
+        if validators.is_username_allowed(user) != True:
+            # Authentication failed.
+            current_app.logger.warning("failed authentication, username validation failed")
+            return render_template(
+                "message.html",
+                headline="Remove account error",
+                message="Failed to remove account, wrong username and/or password and/or key.",
+                current_user=current_user,
+            )
+
+        # Validate the form data password.
+        if validators.is_password_allowed(cleartext_password_from_form) != True:
+            # Authentication failed.
+            current_app.logger.warning("failed authentication, password validation failed")
+            return render_template(
+                "message.html",
+                headline="Remove account error",
+                message="Failed to remove account, wrong username and/or password and/or key.",
+                current_user=current_user,
+            )
+
+        # Default to 128-bit password key length, but allow 4096-bit.
+        password_key_len = 128
+        if len(cleartext_password_key_from_form) == 4096:
+            password_key_len = 4096
+
+        # Validate the form data password key.
+        if validators.is_password_key_allowed(cleartext_password_key_from_form, key_len=password_key_len) != True:
+            # Authentication failed.
+            current_app.logger.warning("failed remove account, password key validation failed")
+            return render_template(
+                "message.html",
+                headline="Remove account error",
+                message="Failed to remove account, wrong username and/or password and/or key.",
+                current_user=current_user,
+            )
+
+        # Get the user data from db and check that user exist.
+        user_from_db = (
+            db.session.query(User).filter(User.user == user).first()
+        )
+        if not user_from_db:
+            # Authentication failed.
+            current_app.logger.warning(
+                "failed remove account, user " + user + " do not exsist in db"
+            )
+            return render_template(
+                "message.html",
+                headline="Remove account error",
+                message="Failed to remove account, wrong username and/or password and/or key.",
+                current_user=current_user,
+            )
+
+        # Check password hash.
+        try:
+            if (
+                ph.verify(user_from_db.password_hash, cleartext_password_from_form)
+                != True
+            ):
+                # Authentication failed.
+                current_app.logger.warning(
+                    "failed remove account, user "
+                    + user_from_db.user
+                    + " belonging to account "
+                    + user_from_db.account.account
+                    + " wrong password"
+                )
+                return render_template(
+                    "message.html",
+                    headline="Remove account error",
+                    message="Failed to remove account, wrong username and/or password and/or key.",
+                    current_user=current_user,
+                )
+        except VerifyMismatchError:
+            # Login failed.
+            current_app.logger.warning(
+                "failed remove account, user "
+                + user_from_db.user
+                + " belonging to account "
+                + user_from_db.account.account
+                + " wrong password"
+            )
+            return render_template(
+                "message.html",
+                headline="Remove account error",
+                message="Failed to remove account, wrong username and/or password and/or key.",
+                current_user=current_user,
+            )
+
+        # Check password key hash.
+        try:
+            if (
+                ph.verify(
+                    user_from_db.password_key_hash,
+                    cleartext_password_key_from_form,
+                )
+                != True
+            ):
+                # Login failed.
+                current_app.logger.warning(
+                    "failed remove account, user "
+                    + user_from_db.user
+                    + " belonging to account "
+                    + user_from_db.account.account
+                    + " wrong password key"
+                )
+                return render_template(
+                    "message.html",
+                    headline="Remove account error",
+                    message="Failed to remove account, wrong username and/or password and/or key.",
+                    current_user=current_user,
+                )
+        except VerifyMismatchError:
+            # Authentication failed.
+            current_app.logger.warning(
+                "failed remove account, user "
+                + user_from_db.user
+                + " belonging to account "
+                + user_from_db.account.account
+                + " wrong password key"
+            )
+            return render_template(
+                "message.html",
+                headline="Remove account error",
+                message="Failed to remove account, wrong username and/or password and/or key.",
+                current_user=current_user,
+            )
+
+        # Check that account do not have any aliases.
+        aliases = db.session.query(Alias).filter(Alias.account_id == user_from_db.account_id).all()
+        if aliases:
+            current_app.logger.warning(
+                "failed remove account, account "
+                + user_from_db.account.account
+                + " still has aliases"
+            )
+            return render_template(
+                "message.html",
+                headline="Remove account error",
+                message="Failed to remove account, please remove all aliases first.",
+                current_user=current_user,
+            )
+
+        # Check that account do not have any email account.
+        emails = db.session.query(Email).filter(Email.account_id == user_from_db.account_id).all()
+        if emails:
+            current_app.logger.warning(
+                "failed remove account, account "
+                + user_from_db.account.account
+                + " still has email accounts"
+            )
+            return render_template(
+                "message.html",
+                headline="Remove account error",
+                message="Failed to remove account, please remove all email accounts first.",
+                current_user=current_user,
+            )
+
+        # Remove authenticated sessions for account.
+        users = db.session.query(User).filter(User.account_id == user_from_db.account_id).all()
+        for user_to_remove in users:
+            db.session.query(Authenticated).filter(Authenticated.user_id == user_to_remove.id).delete()
+
+        # Remove users for account.
+        for user_to_remove in users:
+            # Remove authenticated sessions for this user
+            db.session.query(Authenticated).filter(Authenticated.user_id == user_to_remove.id).delete()
+            # Remove the user
+            db.session.delete(user_to_remove)
+
+        # Remove domains for account.
+        account_domains = db.session.query(Account_domain).filter(Account_domain.account_id == user_from_db.account_id).all()
+        for domain in account_domains:
+            db.session.delete(domain)
+
+        # Remove openpgp keys for account.
+        openpgp_keys = db.session.query(Openpgp_public_key).filter(Openpgp_public_key.account_id == user_from_db.account_id).all()
+        for key in openpgp_keys:
+            db.session.delete(key)
+
+        # Remove account.
+        db.session.delete(user_from_db.account)
+        db.session.commit()
+
+        # Clear session and redirect to login
+        session.clear()
+        return render_template(
+            "message.html",
+            headline="Account removed",
+            message="Your account has been successfully removed.",
+            current_user=None,
+        )
 
 
 @bp.route("/settings/change_password_on_user", methods=["POST", "GET"])
