@@ -8610,3 +8610,998 @@ def test_settings_receipt_enabled_account(client, app, mocker):
             Receipt.payment_token == receipt_payment_token
         ).delete()
         db.session.commit()
+
+
+def test_settings_remove_account_no_session_redirect(client):
+    """Test /settings/remove_account redirects to login when no session cookie.
+
+    Verifies that unauthenticated users (no 'secret' in session) are
+    redirected to the login page for GET requests. POST without a valid
+    CSRF token is rejected by CSRF protection before reaching the handler.
+    """
+    # GET without session -> redirect to login
+    response_get = client.get("/settings/remove_account")
+    assert response_get.status_code == 302
+    assert "/login" in response_get.headers["Location"]
+
+    # POST without session and without CSRF -> 400 (CSRF protection fires first)
+    response_post = client.post("/settings/remove_account")
+    assert response_post.status_code == 400
+
+
+def test_settings_remove_account_invalid_session_redirect(client, app):
+    """Test /settings/remove_account redirects to login with invalid session cookie.
+
+    Verifies that a session with a 'secret' that does not correspond to a
+    valid Authenticated record is redirected to the login page on GET.
+    POST without a valid CSRF token is rejected by CSRF protection first.
+    """
+    with client.session_transaction() as sess:
+        sess["secret"] = "INVALIDCOOKIE1234567890INVALIDCOOKIE1234567890INVALIDCOOKIE1234567890INVALIDCOOKIE1234567890INVALIDCOOKIE1234567890INVALIDCOOKIE1234567890INVALIDCOOKIE1234567890INVALIDCOOKIE12"
+
+    response_get = client.get("/settings/remove_account")
+    assert response_get.status_code == 302
+    assert "/login" in response_get.headers["Location"]
+
+    # POST without CSRF -> 400 (CSRF protection fires before route handler)
+    response_post = client.post("/settings/remove_account")
+    assert response_post.status_code == 400
+
+
+def test_settings_remove_account_get_renders_form(client, app, mocker):
+    """Test GET /settings/remove_account renders the removal form.
+
+    Verifies that an authenticated user sees the remove account page with
+    the password and key file form fields, and their account/user info.
+    """
+    mock_data = setup_mock_register(mocker)
+
+    # Register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+    client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
+
+    # Login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+    assert client.post(
+        "/login",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_login,
+        },
+    ).status_code == 302
+
+    # GET /settings/remove_account
+    response_get = client.get("/settings/remove_account")
+    assert response_get.status_code == 200
+    assert b"<h2>Remove account</h2>" in response_get.data
+    assert b'name="password"' in response_get.data
+    assert b'name="key"' in response_get.data
+    assert (
+        b"Logged in on account: " + bytes(mock_data["account"], "utf-8")
+        in response_get.data
+    )
+    assert (
+        b"Logged in as user: " + bytes(mock_data["username"], "utf-8")
+        in response_get.data
+    )
+
+
+def test_settings_remove_account_csrf_validation(client, app, mocker):
+    """Test CSRF protection on POST /settings/remove_account.
+
+    Verifies that POST requests with a wrong or missing CSRF token are
+    rejected with a 400 or 'CSRF token is missing' error.
+    """
+    mock_data = setup_mock_register(mocker)
+
+    # Register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+    client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
+
+    # Login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+    client.post(
+        "/login",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_login,
+        },
+    )
+
+    # Wrong CSRF token -> 400
+    assert (
+        client.post(
+            "/settings/remove_account",
+            data={"csrf_token": "wrong csrf_token"},
+        ).status_code
+        == 400
+    )
+
+    # Empty CSRF token -> "The CSRF token is missing"
+    response_empty_csrf = client.post(
+        "/settings/remove_account",
+        data={"csrf_token": ""},
+    )
+    assert b"The CSRF token is missing" in response_empty_csrf.data
+
+
+def test_settings_remove_account_post_missing_data(client, app, mocker):
+    """Test POST /settings/remove_account with missing password or key.
+
+    Verifies that when password or key file is empty/missing, the endpoint
+    returns the 'wrong password and/or key' error message.
+    """
+    mock_data = setup_mock_register(mocker)
+
+    # Register and login
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+    client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+    client.post(
+        "/login",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_login,
+        },
+    )
+
+    # Get CSRF token from the remove_account page
+    response_get = client.get("/settings/remove_account")
+    csrf_token_remove = get_csrf_token(response_get.data)
+
+    # POST with empty password
+    response = client.post(
+        "/settings/remove_account",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "password": "",
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_remove,
+        },
+    )
+    assert b"<h3>Remove account error</h3>" in response.data
+    assert (
+        b"Failed to remove account, wrong password and/or key." in response.data
+    )
+
+    # POST with empty key file content
+    response = client.post(
+        "/settings/remove_account",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "password": mock_data["password"],
+            "key": (BytesIO(b""), "data.key"),
+            "csrf_token": csrf_token_remove,
+        },
+    )
+    assert b"<h3>Remove account error</h3>" in response.data
+    assert (
+        b"Failed to remove account, wrong password and/or key." in response.data
+    )
+
+
+def test_settings_remove_account_post_invalid_password_format(client, app, mocker):
+    """Test POST /settings/remove_account with password that fails validation.
+
+    A password containing illegal characters (e.g. '!') should fail
+    validators.is_password_allowed and return the username/password/key error.
+    """
+    mock_data = setup_mock_register(mocker)
+
+    # Register and login
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+    client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+    client.post(
+        "/login",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_login,
+        },
+    )
+
+    response_get = client.get("/settings/remove_account")
+    csrf_token_remove = get_csrf_token(response_get.data)
+
+    # Password with illegal chars and wrong length -> fails is_password_allowed
+    bad_password = "Bad!Pass" + "x" * 20  # contains '!' and wrong length
+    response = client.post(
+        "/settings/remove_account",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "password": bad_password,
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_remove,
+        },
+    )
+    assert b"<h3>Remove account error</h3>" in response.data
+    assert (
+        b"Failed to remove account, wrong username and/or password and/or key."
+        in response.data
+    )
+
+
+def test_settings_remove_account_post_invalid_key_format(client, app, mocker):
+    """Test POST /settings/remove_account with key that fails validation.
+
+    A key with illegal characters should fail validators.is_password_key_allowed
+    and return the username/password/key error.
+    """
+    mock_data = setup_mock_register(mocker)
+
+    # Register and login
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+    client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+    client.post(
+        "/login",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_login,
+        },
+    )
+
+    response_get = client.get("/settings/remove_account")
+    csrf_token_remove = get_csrf_token(response_get.data)
+
+    # Key with illegal char and wrong length (not 128, not 4096)
+    bad_key = "Bad!Key" + "A" * 100
+    response = client.post(
+        "/settings/remove_account",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(bad_key, "utf-8")), "data.key"),
+            "csrf_token": csrf_token_remove,
+        },
+    )
+    assert b"<h3>Remove account error</h3>" in response.data
+    assert (
+        b"Failed to remove account, wrong username and/or password and/or key."
+        in response.data
+    )
+
+
+def test_settings_remove_account_post_wrong_password(client, app, mocker):
+    """Test POST /settings/remove_account with correct key but wrong password.
+
+    Verifies that a valid-format but incorrect password causes
+    VerifyMismatchError and returns the auth error message.
+    """
+    mock_data = setup_mock_register(mocker)
+
+    # Register and login
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+    client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+    client.post(
+        "/login",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_login,
+        },
+    )
+
+    response_get = client.get("/settings/remove_account")
+    csrf_token_remove = get_csrf_token(response_get.data)
+
+    # Valid format but wrong password (24 chars, alphanumeric, but not the real one)
+    wrong_password = "WrongPass12345678901234"
+    response = client.post(
+        "/settings/remove_account",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "password": wrong_password,
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_remove,
+        },
+    )
+    assert b"<h3>Remove account error</h3>" in response.data
+    assert (
+        b"Failed to remove account, wrong username and/or password and/or key."
+        in response.data
+    )
+
+    # Verify account still exists
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == mock_data["account"])
+            .first()
+        )
+        assert account is not None
+
+
+def test_settings_remove_account_post_wrong_key(client, app, mocker):
+    """Test POST /settings/remove_account with correct password but wrong key.
+
+    Verifies that a valid-format but incorrect key causes
+    VerifyMismatchError on the key hash and returns the auth error message.
+    """
+    mock_data = setup_mock_register(mocker)
+
+    # Register and login
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+    client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+    client.post(
+        "/login",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_login,
+        },
+    )
+
+    response_get = client.get("/settings/remove_account")
+    csrf_token_remove = get_csrf_token(response_get.data)
+
+    # Valid format (128 chars) but wrong key content
+    wrong_key = "WrongKey12" + "B" * 118  # 128 chars, alphanumeric
+    response = client.post(
+        "/settings/remove_account",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(wrong_key, "utf-8")), "data.key"),
+            "csrf_token": csrf_token_remove,
+        },
+    )
+    assert b"<h3>Remove account error</h3>" in response.data
+    assert (
+        b"Failed to remove account, wrong username and/or password and/or key."
+        in response.data
+    )
+
+    # Verify account still exists
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == mock_data["account"])
+            .first()
+        )
+        assert account is not None
+
+
+def test_settings_remove_account_post_with_aliases_fails(client, app, mocker):
+    """Test POST /settings/remove_account fails when account still has aliases.
+
+    Verifies that if the account has any Alias records, the removal is
+    blocked with the 'remove all aliases first' error message.
+    """
+    mock_data = setup_mock_register(mocker)
+
+    # Register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+    client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
+
+    # Add a global domain and an email so we can create an alias
+    with app.app_context():
+        does_domain_exist = (
+            db.session.query(Global_domain)
+            .filter(Global_domain.domain == "globaltestdomain01.se")
+            .count()
+        )
+        if does_domain_exist == 0:
+            db.session.add(Global_domain(domain="globaltestdomain01.se", is_enabled=1))
+            db.session.commit()
+
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == mock_data["account"])
+            .first()
+        )
+        account.is_enabled = True
+        db.session.commit()
+
+        # Get the openpgp key for the account
+        openpgp_key = (
+            db.session.query(Openpgp_public_key)
+            .filter(Openpgp_public_key.account_id == account.id)
+            .first()
+        )
+        global_domain = (
+            db.session.query(Global_domain)
+            .filter(Global_domain.domain == "globaltestdomain01.se")
+            .first()
+        )
+
+        # Create an email
+        from argon2 import PasswordHasher
+        ph = PasswordHasher()
+        new_email = Email(
+            account_id=account.id,
+            global_domain_id=global_domain.id,
+            openpgp_public_key_id=openpgp_key.id,
+            email="test01@globaltestdomain01.se",
+            password_hash=ph.hash("TestPass123456789012345678"),
+            storage_space_mb=100,
+        )
+        db.session.add(new_email)
+        db.session.commit()
+
+        # Create an alias pointing to the email
+        new_alias = Alias(
+            account_id=account.id,
+            src_email="alias01@globaltestdomain01.se",
+            src_global_domain_id=global_domain.id,
+            dst_email_id=new_email.id,
+        )
+        db.session.add(new_alias)
+        db.session.commit()
+
+    # Login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+    client.post(
+        "/login",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_login,
+        },
+    )
+
+    response_get = client.get("/settings/remove_account")
+    csrf_token_remove = get_csrf_token(response_get.data)
+
+    # POST with correct credentials but account has aliases
+    response = client.post(
+        "/settings/remove_account",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_remove,
+        },
+    )
+    assert b"<h3>Remove account error</h3>" in response.data
+    assert (
+        b"Failed to remove account, please remove all aliases first."
+        in response.data
+    )
+
+    # Verify account still exists
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == mock_data["account"])
+            .first()
+        )
+        assert account is not None
+
+
+def test_settings_remove_account_post_with_emails_fails(client, app, mocker):
+    """Test POST /settings/remove_account fails when account still has emails.
+
+    Verifies that if the account has Email records (but no aliases), the
+    removal is blocked with the 'remove all email accounts first' error.
+    """
+    mock_data = setup_mock_register(mocker)
+
+    # Register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+    client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
+
+    # Add a global domain and an email (no alias)
+    with app.app_context():
+        does_domain_exist = (
+            db.session.query(Global_domain)
+            .filter(Global_domain.domain == "globaltestdomain01.se")
+            .count()
+        )
+        if does_domain_exist == 0:
+            db.session.add(Global_domain(domain="globaltestdomain01.se", is_enabled=1))
+            db.session.commit()
+
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == mock_data["account"])
+            .first()
+        )
+        account.is_enabled = True
+        db.session.commit()
+
+        openpgp_key = (
+            db.session.query(Openpgp_public_key)
+            .filter(Openpgp_public_key.account_id == account.id)
+            .first()
+        )
+        global_domain = (
+            db.session.query(Global_domain)
+            .filter(Global_domain.domain == "globaltestdomain01.se")
+            .first()
+        )
+
+        from argon2 import PasswordHasher
+        ph = PasswordHasher()
+        new_email = Email(
+            account_id=account.id,
+            global_domain_id=global_domain.id,
+            openpgp_public_key_id=openpgp_key.id,
+            email="test02@globaltestdomain01.se",
+            password_hash=ph.hash("TestPass123456789012345678"),
+            storage_space_mb=100,
+        )
+        db.session.add(new_email)
+        db.session.commit()
+
+    # Login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+    client.post(
+        "/login",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_login,
+        },
+    )
+
+    response_get = client.get("/settings/remove_account")
+    csrf_token_remove = get_csrf_token(response_get.data)
+
+    # POST with correct credentials but account has emails
+    response = client.post(
+        "/settings/remove_account",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_remove,
+        },
+    )
+    assert b"<h3>Remove account error</h3>" in response.data
+    assert (
+        b"Failed to remove account, please remove all email accounts first."
+        in response.data
+    )
+
+    # Verify account still exists
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == mock_data["account"])
+            .first()
+        )
+        assert account is not None
+
+
+def test_settings_remove_account_post_success(client, app, mocker):
+    """Test successful POST /settings/remove_account removes all account data.
+
+    Verifies that with correct password and key, and no aliases or emails,
+    the account, users, authenticated sessions, domains, and OpenPGP keys
+    are all deleted from the database, and the session is cleared.
+    """
+    mock_data = setup_mock_register(mocker)
+
+    # Register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+    client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
+
+    # Add an account domain to verify it gets removed too
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == mock_data["account"])
+            .first()
+        )
+        account.is_enabled = True
+        db.session.commit()
+
+        # Add an account domain
+        new_domain = Account_domain(
+            account_id=account.id,
+            domain="testdomain01.se",
+            is_enabled=True,
+            verification_code="abc123def456ghi789jkl012mno345pqr678",
+        )
+        db.session.add(new_domain)
+        db.session.commit()
+
+        account_id = account.id
+        user_count_before = (
+            db.session.query(User)
+            .filter(User.account_id == account_id)
+            .count()
+        )
+        assert user_count_before == 1
+
+    # Login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+    client.post(
+        "/login",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_login,
+        },
+    )
+
+    response_get = client.get("/settings/remove_account")
+    csrf_token_remove = get_csrf_token(response_get.data)
+
+    # POST with correct credentials
+    response = client.post(
+        "/settings/remove_account",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_remove,
+        },
+    )
+    assert response.status_code == 200
+    assert b"<h3>Account removed</h3>" in response.data
+    assert b"Your account has been successfully removed." in response.data
+    # After removal current_user is None, so the page shows "Not logged in"
+    assert b"Logged in on account: Not logged in" in response.data
+    assert b"Logged in as user: Not logged in" in response.data
+
+    # Verify all data is removed from the database
+    with app.app_context():
+        # Account should be gone
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == mock_data["account"])
+            .first()
+        )
+        assert account is None
+
+        # Users should be gone
+        users = (
+            db.session.query(User)
+            .filter(User.user == mock_data["username"])
+            .all()
+        )
+        assert len(users) == 0
+
+        # Authenticated sessions should be gone
+        auth_count = (
+            db.session.query(Authenticated)
+            .count()
+        )
+        assert auth_count == 0
+
+        # Account domains should be gone
+        domains = (
+            db.session.query(Account_domain)
+            .filter(Account_domain.domain == "testdomain01.se")
+            .all()
+        )
+        assert len(domains) == 0
+
+        # OpenPGP keys should be gone
+        keys = (
+            db.session.query(Openpgp_public_key)
+            .filter(Openpgp_public_key.fingerprint == mock_data["fingerprint"])
+            .all()
+        )
+        assert len(keys) == 0
+
+    # Verify session is cleared - accessing /settings should redirect to login
+    response_settings = client.get("/settings")
+    assert response_settings.status_code == 302
+    assert "/login" in response_settings.headers["Location"]
+
+
+def test_settings_remove_account_post_success_4096_key(client, app, mocker):
+    """Test successful POST /settings/remove_account with a 4096-bit key.
+
+    Verifies that a key of length 4096 is accepted (the code allows both
+    128-bit and 4096-bit keys) and the account is removed successfully.
+    """
+    mock_data = setup_mock_register(mocker)
+
+    # Register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+    client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
+
+    # Replace the user's key hash with one for a 4096-char key
+    key_4096 = "K" * 4096  # valid: 4096 alphanumeric chars
+    from argon2 import PasswordHasher
+    ph = PasswordHasher()
+    with app.app_context():
+        user = (
+            db.session.query(User)
+            .filter(User.user == mock_data["username"])
+            .first()
+        )
+        user.password_key_hash = ph.hash(key_4096)
+        db.session.commit()
+
+    # Login with the 4096 key
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+    assert client.post(
+        "/login",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(key_4096, "utf-8")), "data.key"),
+            "csrf_token": csrf_token_login,
+        },
+    ).status_code == 302
+
+    response_get = client.get("/settings/remove_account")
+    csrf_token_remove = get_csrf_token(response_get.data)
+
+    # POST remove_account with the 4096 key
+    response = client.post(
+        "/settings/remove_account",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(key_4096, "utf-8")), "data.key"),
+            "csrf_token": csrf_token_remove,
+        },
+    )
+    assert response.status_code == 200
+    assert b"<h3>Account removed</h3>" in response.data
+    assert b"Your account has been successfully removed." in response.data
+
+    # Verify account is gone
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == mock_data["account"])
+            .first()
+        )
+        assert account is None
+
+
+def test_settings_remove_account_post_success_multiple_users(client, app, mocker):
+    """Test successful removal when the account has multiple users.
+
+    Verifies that all users belonging to the account (not just the logged-in
+    one) and all their authenticated sessions are removed.
+    """
+    # Need extra encrypt call for add_user_to_account
+    mock_data = setup_mock_register(mocker, num_encrypt_calls=3)
+
+    # Register
+    response_register_get = client.get("/register")
+    csrf_token_register = get_csrf_token(response_register_get.data)
+    client.post(
+        "/register",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_register,
+            "openpgp_public_key": (BytesIO(mock_data["pgp_key"].encode()), "test.key")
+        }
+    )
+
+    # Enable account and add a second user
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == mock_data["account"])
+            .first()
+        )
+        account.is_enabled = True
+        db.session.commit()
+
+    # Login
+    response_login_get = client.get("/login")
+    csrf_token_login = get_csrf_token(response_login_get.data)
+    client.post(
+        "/login",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_login,
+        },
+    )
+
+    # Add a second user to the account
+    response_add_user_get = client.get("/settings/add_user_to_account")
+    csrf_token_add_user = get_csrf_token(response_add_user_get.data)
+    client.post(
+        "/settings/add_user_to_account",
+        data={
+            "csrf_token": csrf_token_add_user,
+            "fingerprint": mock_data["fingerprint"],
+        },
+    )
+
+    # Verify there are 2 users now
+    with app.app_context():
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == mock_data["account"])
+            .first()
+        )
+        users = db.session.query(User).filter(User.account_id == account.id).all()
+        assert len(users) == 2
+        account_id = account.id
+
+    # Remove the account
+    response_get = client.get("/settings/remove_account")
+    csrf_token_remove = get_csrf_token(response_get.data)
+    response = client.post(
+        "/settings/remove_account",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_remove,
+        },
+    )
+    assert response.status_code == 200
+    assert b"<h3>Account removed</h3>" in response.data
+
+    # Verify all users for the account are gone
+    with app.app_context():
+        users = db.session.query(User).filter(User.account_id == account_id).all()
+        assert len(users) == 0
+        # All authenticated sessions gone
+        auth_count = db.session.query(Authenticated).count()
+        assert auth_count == 0
+        # Account gone
+        account = (
+            db.session.query(Account)
+            .filter(Account.account == mock_data["account"])
+            .first()
+        )
+        assert account is None
