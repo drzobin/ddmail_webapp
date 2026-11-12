@@ -4,6 +4,8 @@ from io import BytesIO
 
 import pytest
 import requests
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 
 from ddmail_webapp.models import (
     Account,
@@ -59,13 +61,14 @@ def create_mock_register_response():
     }
 
 
-def setup_mock_register(mocker, num_encrypt_calls=2, mock_new_password=None):
+def setup_mock_register(mocker, num_encrypt_calls=2, mock_new_password=None, encrypt_responses=None):
     """Setup mocks for registration.
     
     Args:
         mocker: pytest mocker fixture
         num_encrypt_calls: Number of times encrypt_data will be called (default 2: once for register, once for settings)
         mock_new_password: Optional new password to return for change_password_on_user (default: same as original)
+        encrypt_responses: Optional list of mock responses for the requests.post calls made after the register calls (default: change_password responses repeated num_encrypt_calls - 1 times)
     """
     mock_data = create_mock_register_response()
     
@@ -133,10 +136,15 @@ def setup_mock_register(mocker, num_encrypt_calls=2, mock_new_password=None):
     # Mock requests.post
     mock_post = mocker.patch("requests.post")
     # First call is for fingerprint, second is for register encryption, rest are for settings encryption
-    mock_post.side_effect = [mock_response_fingerprint, mock_response_encrypt_register] + [mock_response_encrypt_change_password] * (num_encrypt_calls - 1)
+    if encrypt_responses is None:
+        encrypt_responses = [mock_response_encrypt_change_password] * (num_encrypt_calls - 1)
+    mock_post.side_effect = [mock_response_fingerprint, mock_response_encrypt_register] + encrypt_responses
     
     # Update mock_data with new password
     mock_data["new_password"] = mock_new_password
+    
+    # Expose the requests.post mock so tests can inspect the calls to it
+    mock_data["mock_post"] = mock_post
     
     return mock_data
 
@@ -655,10 +663,68 @@ def test_settings_disabled_account_change_key_on_user(client, app, mocker):
         in response_settings_change_key_on_user_get.data
     )
 
+    # Test POST /settings/change_key_on_user with the current key file. The
+    # account is disabled so the key change must be refused before the
+    # uploaded key file is processed.
+    csrf_token_settings = get_csrf_token(client.get("/settings").data)
+    response_settings_change_key_on_user_post = client.post(
+        "/settings/change_key_on_user",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_settings,
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+        },
+    )
+    assert response_settings_change_key_on_user_post.status_code == 200
+    assert (
+        b"Failed to change users key beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu."
+        in response_settings_change_key_on_user_post.data
+    )
+
+    # The password key hash must not have changed, verify the current key
+    # against the hash in db.
+    with app.app_context():
+        user_from_db = (
+            db.session.query(User).filter(User.user == mock_data["username"]).first()
+        )
+        PasswordHasher().verify(user_from_db.password_key_hash, mock_data["key"])
+
 
 def test_settings_enabled_account_change_key_on_user(client, app, mocker):
-    # Setup mocks
-    mock_data = setup_mock_register(mocker, num_encrypt_calls=5)
+    """Test key change functionality for enabled account
+
+    This test verifies that a logged in user on an enabled account has to
+    provide the current key file to get a new key, that requests with a
+    missing, empty, malformed or wrong key are rejected, that the new
+    password key hash is saved to the database and that the new key can be
+    used to login while the old key can not.
+    """
+    # Mock the responses from the openpgp keyhandler service when the new
+    # key is encrypted in the key change. The first key change fails
+    # beacuse the service do not answer, the second fails beacuse the
+    # service returns an error and the third succeeds.
+    encrypted_data_for_new_key = "mock_encrypted_data_for_new_key"
+    mock_response_encrypt_change_key = mocker.MagicMock()
+    mock_response_encrypt_change_key.status_code = 200
+    mock_response_encrypt_change_key.content = (
+        "done encrypted_data: " + encrypted_data_for_new_key
+    ).encode()
+    mock_response_encrypt_change_key_error = mocker.MagicMock()
+    mock_response_encrypt_change_key_error.status_code = 500
+    mock_response_encrypt_change_key_error.content = b"error"
+
+    # Setup mocks. The register flow uses the fingerprint and encrypt
+    # responses from the mocked openpgp keyhandler service, the rest are
+    # used by the encrypt_data calls made by the key change.
+    mock_data = setup_mock_register(
+        mocker,
+        encrypt_responses=[
+            requests.exceptions.ConnectionError(),
+            mock_response_encrypt_change_key_error,
+            mock_response_encrypt_change_key,
+        ],
+    )
     
     # Get the csrf token for /register
     response_register_get = client.get("/register")
@@ -705,6 +771,13 @@ def test_settings_enabled_account_change_key_on_user(client, app, mocker):
         == 302
     )
 
+    # Save the password key hash from db so it can be compared after the key change.
+    with app.app_context():
+        user_before_key_change = (
+            db.session.query(User).filter(User.user == mock_data["username"]).first()
+        )
+        password_key_hash_before_key_change = user_before_key_change.password_key_hash
+
     # Test GET /settings/change_key_on_user.
     assert client.get("/settings/change_key_on_user").status_code == 200
     response_settings_change_key_on_user_get = client.get(
@@ -719,7 +792,8 @@ def test_settings_enabled_account_change_key_on_user(client, app, mocker):
         in response_settings_change_key_on_user_get.data
     )
     assert b"Is account enabled: Yes" in response_settings_change_key_on_user_get.data
-    assert b"Change password" in response_settings_change_key_on_user_get.data
+    assert b"Change key on user" in response_settings_change_key_on_user_get.data
+    assert b"Current key file:" in response_settings_change_key_on_user_get.data
 
     # Get csrf_token from /settings/change_key_on_user
     csrf_token_settings_change_key_on_user = get_csrf_token(
@@ -743,17 +817,209 @@ def test_settings_enabled_account_change_key_on_user(client, app, mocker):
         in response_settings_change_key_on_user_empty_csrf_post.data
     )
 
-    # Test POST /settings/change_key_on_user
-    # The refactored code returns a file download
+    # Test POST /settings/change_key_on_user with valid csrf_token but
+    # without the current key file. The key file is required so the request
+    # fails.
+    assert (
+        client.post(
+            "/settings/change_key_on_user",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={"csrf_token": csrf_token_settings_change_key_on_user},
+        ).status_code
+        == 400
+    )
+
+    # Test POST /settings/change_key_on_user with an empty key file.
+    response_settings_change_key_on_user_empty_key_post = client.post(
+        "/settings/change_key_on_user",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_settings_change_key_on_user,
+            "key": (BytesIO(b""), "data.key"),
+        },
+    )
+    assert response_settings_change_key_on_user_empty_key_post.status_code == 200
+    assert (
+        b"<h3>Change user key error</h3>"
+        in response_settings_change_key_on_user_empty_key_post.data
+    )
+    assert (
+        b"Failed to change user key, wrong key."
+        in response_settings_change_key_on_user_empty_key_post.data
+    )
+
+    # Test POST /settings/change_key_on_user with a key of wrong length.
+    response_settings_change_key_on_user_wrong_len_post = client.post(
+        "/settings/change_key_on_user",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_settings_change_key_on_user,
+            "key": (BytesIO(b"Key123"), "data.key"),
+        },
+    )
+    assert (
+        b"Failed to change user key, wrong key."
+        in response_settings_change_key_on_user_wrong_len_post.data
+    )
+
+    # Test POST /settings/change_key_on_user with a key that contains chars
+    # that are not allowed.
+    key_with_forbidden_chars = "Key123" + "!" * 122
+    assert len(key_with_forbidden_chars) == 128
+    response_settings_change_key_on_user_forbidden_chars_post = client.post(
+        "/settings/change_key_on_user",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_settings_change_key_on_user,
+            "key": (BytesIO(bytes(key_with_forbidden_chars, "utf-8")), "data.key"),
+        },
+    )
+    assert (
+        b"Failed to change user key, wrong key."
+        in response_settings_change_key_on_user_forbidden_chars_post.data
+    )
+
+    # Test POST /settings/change_key_on_user with a key that has the correct
+    # format but is the wrong key.
+    wrong_key = "WrongKey123" + "B" * 100 + "b" * 17
+    assert len(wrong_key) == 128
+    response_settings_change_key_on_user_wrong_key_post = client.post(
+        "/settings/change_key_on_user",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_settings_change_key_on_user,
+            "key": (BytesIO(bytes(wrong_key, "utf-8")), "data.key"),
+        },
+    )
+    assert (
+        b"Failed to change user key, wrong key."
+        in response_settings_change_key_on_user_wrong_key_post.data
+    )
+
+    # Test POST /settings/change_key_on_user with a 4096 bit key that has the
+    # correct format but is the wrong key.
+    wrong_key_4096 = "WrongKey123" + "B" * 4079 + "b" * 6
+    assert len(wrong_key_4096) == 4096
+    response_settings_change_key_on_user_wrong_key_4096_post = client.post(
+        "/settings/change_key_on_user",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_settings_change_key_on_user,
+            "key": (BytesIO(bytes(wrong_key_4096, "utf-8")), "data.key"),
+        },
+    )
+    assert (
+        b"Failed to change user key, wrong key."
+        in response_settings_change_key_on_user_wrong_key_4096_post.data
+    )
+
+    # Test POST /settings/change_key_on_user with the current key file when
+    # the openpgp keyhandler service do not answer. The key change must fail.
+    response_settings_change_key_on_user_service_down_post = client.post(
+        "/settings/change_key_on_user",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_settings_change_key_on_user,
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+        },
+    )
+    assert response_settings_change_key_on_user_service_down_post.status_code == 200
+    assert (
+        b"<h3>Change user key error</h3>"
+        in response_settings_change_key_on_user_service_down_post.data
+    )
+    assert (
+        b"Failed to encrypt cleartext data beacuse openpgp keyhandler service do not answer."
+        in response_settings_change_key_on_user_service_down_post.data
+    )
+
+    # Test POST /settings/change_key_on_user with the current key file when
+    # the openpgp keyhandler service returns an error. The key change must
+    # fail.
+    response_settings_change_key_on_user_service_error_post = client.post(
+        "/settings/change_key_on_user",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_settings_change_key_on_user,
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+        },
+    )
+    assert response_settings_change_key_on_user_service_error_post.status_code == 200
+    assert (
+        b"<h3>Change user key error</h3>"
+        in response_settings_change_key_on_user_service_error_post.data
+    )
+    assert (
+        b"Failed to encrypt cleartext data beacuse openpgp keyhandler service returned error"
+        in response_settings_change_key_on_user_service_error_post.data
+    )
+
+    # The failed attempts must not have changed the password key hash in db.
+    with app.app_context():
+        user_after_failed_key_change_attempts = (
+            db.session.query(User).filter(User.user == mock_data["username"]).first()
+        )
+        assert (
+            user_after_failed_key_change_attempts.password_key_hash
+            == password_key_hash_before_key_change
+        )
+
+    # Test POST /settings/change_key_on_user with the current key file. The
+    # new key is returned as a file download with the encrypted data from
+    # the openpgp keyhandler service.
     response_settings_change_key_on_user_post = client.post(
         "/settings/change_key_on_user",
-        data={"csrf_token": csrf_token_settings_change_key_on_user},
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token_settings_change_key_on_user,
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+        },
     )
     assert response_settings_change_key_on_user_post.status_code == 200
-    
-    # The response is now a file download with the new key
-    # For simplicity, just verify the operation completed successfully
-    
+    assert (
+        response_settings_change_key_on_user_post.data
+        == bytes(encrypted_data_for_new_key, "utf-8")
+    )
+    assert (
+        "ddmail-credentials_new_key.asc"
+        in response_settings_change_key_on_user_post.headers["Content-Disposition"]
+    )
+
+    # Get the generated new key from the cleartext data that was sent to the
+    # openpgp keyhandler service for encryption.
+    encrypt_call = mock_data["mock_post"].call_args_list[-1]
+    cleartext_data_sent_to_encrypt = encrypt_call[0][1]["cleartext_data"]
+    new_key_from_cleartext_data = re.search(
+        r"New key file content:([A-Za-z0-9]+)", cleartext_data_sent_to_encrypt
+    )
+    assert new_key_from_cleartext_data is not None
+    new_password_key = new_key_from_cleartext_data.group(1)
+    assert len(new_password_key) == 128
+
+    # Check that the new password key hash is saved to db, that the new key
+    # verifies against it and that the old key do not verify against it.
+    with app.app_context():
+        user_after_key_change = (
+            db.session.query(User).filter(User.user == mock_data["username"]).first()
+        )
+        assert (
+            user_after_key_change.password_key_hash
+            != password_key_hash_before_key_change
+        )
+        ph = PasswordHasher()
+        ph.verify(user_after_key_change.password_key_hash, new_password_key)
+        with pytest.raises(VerifyMismatchError):
+            ph.verify(user_after_key_change.password_key_hash, mock_data["key"])
+
     # Logout current user /logout (POST + CSRF token)
     csrf_token_logout = get_csrf_token(client.get("/settings").data)
     assert (
@@ -770,6 +1036,45 @@ def test_settings_enabled_account_change_key_on_user(client, app, mocker):
     assert b"Login" in response_main_get.data
     assert b"Register" in response_main_get.data
     assert b"About" in response_main_get.data
+
+    # Get a new csrf_token from /login, the old one is invalid after the
+    # logout cleared the session.
+    response_login_get = client.get("/login")
+    csrf_token_login_new_key = get_csrf_token(response_login_get.data)
+
+    # Test that login with the old key fails after the key change.
+    response_login_with_old_key = client.post(
+        "/login",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_login_new_key,
+        },
+    )
+    assert response_login_with_old_key.status_code == 200
+    assert (
+        b"Failed to login, wrong username and/or password and/or key."
+        in response_login_with_old_key.data
+    )
+
+    # Test that login with the new key works after the key change.
+    assert (
+        client.post(
+            "/login",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "user": mock_data["username"],
+                "password": mock_data["password"],
+                "key": (BytesIO(bytes(new_password_key, "utf-8")), "data.key"),
+                "csrf_token": csrf_token_login_new_key,
+            },
+        ).status_code
+        == 302
+    )
 
 
 def test_settings_disabled_account_add_user_to_account(client, app, mocker):
@@ -5503,13 +5808,19 @@ def test_settings_post_requests_comprehensive(client, app, mocker):
     assert b"Account:" in response.data
     assert b"Username:" in response.data
 
-    # Test successful key change POST - now returns file download
+    # Test successful key change POST - now returns file download.
+    # The current key file is required to change the key.
     response = client.get("/settings/change_key_on_user")
     csrf_token = get_csrf_token(response.data)
 
     response = client.post(
         "/settings/change_key_on_user",
-        data={"csrf_token": csrf_token},
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "csrf_token": csrf_token,
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+        },
     )
     assert response.status_code == 200
     assert b"Account:" in response.data
