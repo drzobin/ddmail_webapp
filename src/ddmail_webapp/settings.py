@@ -1018,11 +1018,114 @@ def settings_change_key_on_user():
             "settings_change_key_on_user.html", current_user=current_user
         )
     elif request.method == "POST":
+        ph = PasswordHasher()
+
+        # Current logged in account user.
+        user = current_user.user
+
+        # Get the data from the forms.
+        file = request.files["key"]
+        cleartext_password_key_from_form = file.read().strip().decode("utf-8")
+
+        # Check that form has data.
+        if (
+            not cleartext_password_key_from_form
+        ):
+            # Authentication failed
+            current_app.logger.warning("failed authentication, data is missing")
+            return render_template(
+                "message.html",
+                headline="Change user key error",
+                message="Failed to change user key, wrong key.",
+                current_user=current_user,
+            )
+
+        # Validate username.
+        if validators.is_username_allowed(user) != True:
+            # Authentication failed.
+            current_app.logger.warning("failed authentication, username validation failed")
+            return render_template(
+                "message.html",
+                headline="Change user key error",
+                message="Failed to change user key, wrong key.",
+                current_user=current_user,
+            )
+
+        # Default to 128-bit password key length, but allow 4096-bit.
+        password_key_len = 128
+        if len(cleartext_password_key_from_form) == 4096:
+            password_key_len = 4096
+
+        # Validate the form data password key.
+        if validators.is_password_key_allowed(cleartext_password_key_from_form, key_len=password_key_len) != True:
+            # Authentication failed.
+            current_app.logger.warning("failed change user key, password key validation failed")
+            return render_template(
+                "message.html",
+                headline="Change user key error",
+                message="Failed to change user key, wrong key.",
+                current_user=current_user,
+            )
+
+        # Get the user data from db and check that user exist.
+        user_from_db = (
+            db.session.query(User).filter(User.user == user).first()
+        )
+        if not user_from_db:
+            # Authentication failed.
+            current_app.logger.warning(
+                "failed change user key, user " + user + " do not exsist in db"
+            )
+            return render_template(
+                "message.html",
+                headline="Change user key error",
+                message="Failed to change user key, wrong key.",
+                current_user=current_user,
+            )
+
+        # Check password key hash.
+        try:
+            if (
+                ph.verify(
+                    user_from_db.password_key_hash,
+                    cleartext_password_key_from_form,
+                )
+                != True
+            ):
+                # Login failed.
+                current_app.logger.warning(
+                    "failed change user key, user "
+                    + user_from_db.user
+                    + " belonging to account "
+                    + user_from_db.account.account
+                    + " wrong password key"
+                )
+                return render_template(
+                    "message.html",
+                    headline="Change user key error",
+                    message="Failed to change user key, wrong key.",
+                    current_user=current_user,
+                )
+        except VerifyMismatchError:
+            # Authentication failed.
+            current_app.logger.warning(
+                "failed change user key, user "
+                + user_from_db.user
+                + " belonging to account "
+                + user_from_db.account.account
+                + " wrong password key"
+            )
+            return render_template(
+                "message.html",
+                headline="Change user key error",
+                message="Failed to change user key, wrong key.",
+                current_user=current_user,
+            )
+
         # Generate new key for user.
         cleartext_password_key = generate_password(128)
 
         # Generate password hashes for password key.
-        ph = PasswordHasher()
         password_key_hash = ph.hash(cleartext_password_key)
 
         cleartext_data = (
