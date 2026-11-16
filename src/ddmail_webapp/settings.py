@@ -816,6 +816,7 @@ def settings_change_password_on_user():
         Response: The new password encrypted with the users OpenPGP key as file ddmail_credentials_new_password.asc
 
     Request Form Parameters:
+        password (str): The current password to verify before changing
         csrf_token (str): CSRF protection token for POST requests
 
     Error Responses:
@@ -855,11 +856,102 @@ def settings_change_password_on_user():
             "settings_change_password_on_user.html", current_user=current_user
         )
     elif request.method == "POST":
+        ph = PasswordHasher()
+
+        # Get the password data from the forms.
+        cleartext_password_from_form = request.form["password"].strip()
+
+        # Check that form has data.
+        if (
+            not cleartext_password_from_form
+        ):
+            # Change password failed, data is missing.
+            current_app.logger.warning("failed change password, data is missing")
+            return render_template(
+                "message.html",
+                headline="Change user password error",
+                message="Failed to change user password, wrong password.",
+                current_user=current_user,
+            )
+
+        # Validate the form data username.
+        if validators.is_username_allowed(current_user.user) != True:
+            # Change password failed, username validation failed.
+            current_app.logger.warning("failed change password, username validation failed")
+            return render_template(
+                "message.html",
+                headline="Change user password error",
+                message="Failed to change user password, username validation failed.",
+                current_user=current_user,
+            )
+
+        # Validate the form data password.
+        if validators.is_password_allowed(cleartext_password_from_form) != True:
+            # Change password failed, password validation failed.
+            current_app.logger.warning("failed change password, password validation failed")
+            return render_template(
+                "message.html",
+                headline="Change user password error",
+                message="Failed to change user password, password validation failed.",
+                current_user=current_user,
+            )
+
+        # Get the user data from db and check that user exist.
+        user_from_db = (
+            db.session.query(User).filter(User.user == current_user.user).first()
+        )
+        if not user_from_db:
+            # Change password failed, user does not exist in db.
+            current_app.logger.warning(
+                "failed change password, user " + current_user.user + " do not exsist in db"
+            )
+            return render_template(
+                "message.html",
+                headline="Change user password error",
+                message="Failed to change user password, user does not exist in db.",
+                current_user=current_user,
+            )
+
+        # Check that password is correct.
+        try:
+            if (
+                ph.verify(user_from_db.password_hash, cleartext_password_from_form)
+                != True
+            ):
+                # Change password failed.
+                current_app.logger.warning(
+                    "failed change password, user "
+                    + user_from_db.user
+                    + " belonging to account "
+                    + user_from_db.account.account
+                    + " wrong password"
+                )
+                return render_template(
+                    "message.html",
+                    headline="Change user password error",
+                    message="Failed to change user password, wrong password.",
+                    current_user=current_user,
+                )
+        except VerifyMismatchError:
+            # Change password failed.
+            current_app.logger.warning(
+                "failed change password, user "
+                + user_from_db.user
+                + " belonging to account "
+                + user_from_db.account.account
+                + " wrong password"
+            )
+            return render_template(
+                "message.html",
+                headline="Change user password error",
+                message="Failed to change user password, wrong password.",
+                current_user=current_user,
+            )
+
         # Generate new password for user.
         cleartext_password = generate_password(24)
 
         # Generate password hashes for password.
-        ph = PasswordHasher()
         password_hash = ph.hash(cleartext_password)
 
         cleartext_data = (
