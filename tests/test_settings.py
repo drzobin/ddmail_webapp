@@ -472,20 +472,69 @@ def test_settings_disabled_account_change_password_on_user(client, app, mocker):
         in response_settings_change_password_on_user_get.data
     )
 
+    # Test POST /settings/change_password_on_user with the current password.
+    # The account is disabled so the password change must be refused before
+    # the password is processed.
+    csrf_token_settings = get_csrf_token(client.get("/settings").data)
+    response_settings_change_password_on_user_post = client.post(
+        "/settings/change_password_on_user",
+        data={
+            "csrf_token": csrf_token_settings,
+            "password": mock_data["password"],
+        },
+    )
+    assert response_settings_change_password_on_user_post.status_code == 200
+    assert (
+        b"Failed to change users password beacuse this account is disabled. In order to enable the account you need to pay, see payments option in menu."
+        in response_settings_change_password_on_user_post.data
+    )
+
+    # The password hash must not have changed, verify the current password
+    # against the hash in db.
+    with app.app_context():
+        user_from_db = (
+            db.session.query(User).filter(User.user == mock_data["username"]).first()
+        )
+        PasswordHasher().verify(user_from_db.password_hash, mock_data["password"])
+
 
 def test_settings_enabled_account_change_password_on_user(client, app, mocker):
     """Test password change functionality for enabled account
 
-    This test verifies that users with enabled accounts can successfully
-    change their password through the settings interface, including proper
-    CSRF protection and password validation requirements.
+    This test verifies that a logged in user on an enabled account has to
+    provide the current password to get a new password, that requests with a
+    missing, empty, malformed or wrong password are rejected, that the new
+    password hash is saved to the database and that the new password can be
+    used to login while the old password can not.
     """
-    # Setup mocks - need extra encrypt calls for settings functions
-    # Use the same password for simplicity (the refactored code generates a new one, but we'll mock it to be the same)
-    mock_data = setup_mock_register(mocker, num_encrypt_calls=5, mock_new_password=None)
-    # Use the original password as the new password for simplicity
-    new_password = mock_data["password"]
-    
+    # Mock the responses from the openpgp keyhandler service when the new
+    # password is encrypted in the password change. The first password change
+    # fails beacuse the service do not answer, the second fails beacuse the
+    # service returns an error and the third succeeds.
+    encrypted_data_for_new_password = "mock_encrypted_data_for_new_password"
+    mock_new_password = "NewPass1234567890NewPa12"
+    mock_response_encrypt_change_password = mocker.MagicMock()
+    mock_response_encrypt_change_password.status_code = 200
+    mock_response_encrypt_change_password.content = (
+        "done encrypted_data: " + encrypted_data_for_new_password
+    ).encode()
+    mock_response_encrypt_change_password_error = mocker.MagicMock()
+    mock_response_encrypt_change_password_error.status_code = 500
+    mock_response_encrypt_change_password_error.content = b"error"
+
+    # Setup mocks. The register flow uses the fingerprint and encrypt
+    # responses from the mocked openpgp keyhandler service, the rest are
+    # used by the encrypt_data calls made by the password change.
+    mock_data = setup_mock_register(
+        mocker,
+        mock_new_password=mock_new_password,
+        encrypt_responses=[
+            requests.exceptions.ConnectionError(),
+            mock_response_encrypt_change_password_error,
+            mock_response_encrypt_change_password,
+        ],
+    )
+
     # Get the csrf token for /register
     response_register_get = client.get("/register")
     csrf_token_register = get_csrf_token(response_register_get.data)
@@ -531,6 +580,13 @@ def test_settings_enabled_account_change_password_on_user(client, app, mocker):
         == 302
     )
 
+    # Save the password hash from db so it can be compared after the password change.
+    with app.app_context():
+        user_before_password_change = (
+            db.session.query(User).filter(User.user == mock_data["username"]).first()
+        )
+        password_hash_before_password_change = user_before_password_change.password_hash
+
     # Test GET /settings/change_password_on_user.
     assert client.get("/settings/change_password_on_user").status_code == 200
     response_settings_change_password_on_user_get = client.get(
@@ -548,6 +604,7 @@ def test_settings_enabled_account_change_password_on_user(client, app, mocker):
         b"Is account enabled: Yes" in response_settings_change_password_on_user_get.data
     )
     assert b"Change password" in response_settings_change_password_on_user_get.data
+    assert b"Password:" in response_settings_change_password_on_user_get.data
 
     # Get csrf_token from /settings/change_password_on_user
     csrf_token_settings_change_password_on_user = get_csrf_token(
@@ -571,20 +628,183 @@ def test_settings_enabled_account_change_password_on_user(client, app, mocker):
         in response_settings_change_password_on_user_empty_csrf_post.data
     )
 
-    # Test POST /settings/change_password_on_user
-    # The refactored code returns a file download with the new credentials
+    # Test POST /settings/change_password_on_user with valid csrf_token but
+    # without the password field. The password field is required so the
+    # request fails with a 400 bad request.
+    assert (
+        client.post(
+            "/settings/change_password_on_user",
+            data={"csrf_token": csrf_token_settings_change_password_on_user},
+        ).status_code
+        == 400
+    )
+
+    # Test POST /settings/change_password_on_user with an empty password.
+    response_settings_change_password_on_user_empty_password_post = client.post(
+        "/settings/change_password_on_user",
+        data={
+            "csrf_token": csrf_token_settings_change_password_on_user,
+            "password": "",
+        },
+    )
+    assert response_settings_change_password_on_user_empty_password_post.status_code == 200
+    assert (
+        b"<h3>Change user password error</h3>"
+        in response_settings_change_password_on_user_empty_password_post.data
+    )
+    assert (
+        b"Failed to change user password, wrong password."
+        in response_settings_change_password_on_user_empty_password_post.data
+    )
+
+    # Test POST /settings/change_password_on_user with a password of wrong
+    # length (too short).
+    response_settings_change_password_on_user_wrong_len_post = client.post(
+        "/settings/change_password_on_user",
+        data={
+            "csrf_token": csrf_token_settings_change_password_on_user,
+            "password": "Pass123",
+        },
+    )
+    assert response_settings_change_password_on_user_wrong_len_post.status_code == 200
+    assert (
+        b"Failed to change user password, password validation failed."
+        in response_settings_change_password_on_user_wrong_len_post.data
+    )
+
+    # Test POST /settings/change_password_on_user with a password that
+    # contains chars that are not allowed.
+    password_with_forbidden_chars = "Pass123" + "!" * 17
+    assert len(password_with_forbidden_chars) == 24
+    response_settings_change_password_on_user_forbidden_chars_post = client.post(
+        "/settings/change_password_on_user",
+        data={
+            "csrf_token": csrf_token_settings_change_password_on_user,
+            "password": password_with_forbidden_chars,
+        },
+    )
+    assert (
+        b"Failed to change user password, password validation failed."
+        in response_settings_change_password_on_user_forbidden_chars_post.data
+    )
+
+    # Test POST /settings/change_password_on_user with a password that has
+    # the correct format but is the wrong password.
+    wrong_password = "WrongPass1234567890Wrong"
+    assert len(wrong_password) == 24
+    response_settings_change_password_on_user_wrong_password_post = client.post(
+        "/settings/change_password_on_user",
+        data={
+            "csrf_token": csrf_token_settings_change_password_on_user,
+            "password": wrong_password,
+        },
+    )
+    assert response_settings_change_password_on_user_wrong_password_post.status_code == 200
+    assert (
+        b"<h3>Change user password error</h3>"
+        in response_settings_change_password_on_user_wrong_password_post.data
+    )
+    assert (
+        b"Failed to change user password, wrong password."
+        in response_settings_change_password_on_user_wrong_password_post.data
+    )
+
+    # Test POST /settings/change_password_on_user with the current password
+    # when the openpgp keyhandler service do not answer. The password change
+    # must fail.
+    response_settings_change_password_on_user_service_down_post = client.post(
+        "/settings/change_password_on_user",
+        data={
+            "csrf_token": csrf_token_settings_change_password_on_user,
+            "password": mock_data["password"],
+        },
+    )
+    assert response_settings_change_password_on_user_service_down_post.status_code == 200
+    assert (
+        b"<h3>Change password on user error</h3>"
+        in response_settings_change_password_on_user_service_down_post.data
+    )
+    assert (
+        b"Failed to encrypt cleartext data beacuse openpgp keyhandler service do not answer."
+        in response_settings_change_password_on_user_service_down_post.data
+    )
+
+    # Test POST /settings/change_password_on_user with the current password
+    # when the openpgp keyhandler service returns an error. The password
+    # change must fail.
+    response_settings_change_password_on_user_service_error_post = client.post(
+        "/settings/change_password_on_user",
+        data={
+            "csrf_token": csrf_token_settings_change_password_on_user,
+            "password": mock_data["password"],
+        },
+    )
+    assert response_settings_change_password_on_user_service_error_post.status_code == 200
+    assert (
+        b"<h3>Change password on user error</h3>"
+        in response_settings_change_password_on_user_service_error_post.data
+    )
+    assert (
+        b"Failed to encrypt cleartext data beacuse openpgp keyhandler service returned error"
+        in response_settings_change_password_on_user_service_error_post.data
+    )
+
+    # The failed attempts must not have changed the password hash in db.
+    with app.app_context():
+        user_after_failed_password_change_attempts = (
+            db.session.query(User).filter(User.user == mock_data["username"]).first()
+        )
+        assert (
+            user_after_failed_password_change_attempts.password_hash
+            == password_hash_before_password_change
+        )
+
+    # Test POST /settings/change_password_on_user with the current password.
+    # The new password is returned as a file download with the encrypted
+    # data from the openpgp keyhandler service.
     response_settings_change_password_on_user_post = client.post(
         "/settings/change_password_on_user",
-        data={"csrf_token": csrf_token_settings_change_password_on_user},
+        data={
+            "csrf_token": csrf_token_settings_change_password_on_user,
+            "password": mock_data["password"],
+        },
     )
     assert response_settings_change_password_on_user_post.status_code == 200
-    
-    # The response is now a file download with the encrypted new password
-    # We know the new password from our mock
-    new_user_password = mock_data["new_password"]
+    assert (
+        response_settings_change_password_on_user_post.data
+        == bytes(encrypted_data_for_new_password, "utf-8")
+    )
+    assert (
+        "ddmail-credentials_new_password.asc"
+        in response_settings_change_password_on_user_post.headers["Content-Disposition"]
+    )
 
-    # The refactored code returns a file download, so we can't easily verify the new password
-    # by logging out and back in. Just verify that the operation completed successfully.
+    # Get the generated new password from the cleartext data that was sent to
+    # the openpgp keyhandler service for encryption.
+    encrypt_call = mock_data["mock_post"].call_args_list[-1]
+    cleartext_data_sent_to_encrypt = encrypt_call[0][1]["cleartext_data"]
+    new_password_from_cleartext_data = re.search(
+        r"New password:([A-Za-z0-9]+)", cleartext_data_sent_to_encrypt
+    )
+    assert new_password_from_cleartext_data is not None
+    new_password = new_password_from_cleartext_data.group(1)
+    assert len(new_password) == 24
+
+    # Check that the new password hash is saved to db, that the new password
+    # verifies against it and that the old password do not verify against it.
+    with app.app_context():
+        user_after_password_change = (
+            db.session.query(User).filter(User.user == mock_data["username"]).first()
+        )
+        assert (
+            user_after_password_change.password_hash
+            != password_hash_before_password_change
+        )
+        ph = PasswordHasher()
+        ph.verify(user_after_password_change.password_hash, new_password)
+        with pytest.raises(VerifyMismatchError):
+            ph.verify(user_after_password_change.password_hash, mock_data["password"])
+
     # Logout current user /logout (POST + CSRF token)
     csrf_token_logout = get_csrf_token(client.get("/settings").data)
     assert (
@@ -597,6 +817,49 @@ def test_settings_enabled_account_change_password_on_user(client, app, mocker):
     response_main_get = client.get("/")
     assert b"Logged in on account: Not logged in" in response_main_get.data
     assert b"Logged in as user: Not logged in" in response_main_get.data
+    assert b"Main" in response_main_get.data
+    assert b"Login" in response_main_get.data
+    assert b"Register" in response_main_get.data
+    assert b"About" in response_main_get.data
+
+    # Get a new csrf_token from /login, the old one is invalid after the
+    # logout cleared the session.
+    response_login_get = client.get("/login")
+    csrf_token_login_new_password = get_csrf_token(response_login_get.data)
+
+    # Test that login with the old password fails after the password change.
+    response_login_with_old_password = client.post(
+        "/login",
+        buffered=True,
+        content_type="multipart/form-data",
+        data={
+            "user": mock_data["username"],
+            "password": mock_data["password"],
+            "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+            "csrf_token": csrf_token_login_new_password,
+        },
+    )
+    assert response_login_with_old_password.status_code == 200
+    assert (
+        b"Failed to login, wrong username and/or password and/or key."
+        in response_login_with_old_password.data
+    )
+
+    # Test that login with the new password works after the password change.
+    assert (
+        client.post(
+            "/login",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "user": mock_data["username"],
+                "password": new_password,
+                "key": (BytesIO(bytes(mock_data["key"], "utf-8")), "data.key"),
+                "csrf_token": csrf_token_login_new_password,
+            },
+        ).status_code
+        == 302
+    )
 
 
 def test_settings_disabled_account_change_key_on_user(client, app, mocker):
@@ -5802,7 +6065,7 @@ def test_settings_post_requests_comprehensive(client, app, mocker):
 
     response = client.post(
         "/settings/change_password_on_user",
-        data={"csrf_token": csrf_token},
+        data={"csrf_token": csrf_token, "password": mock_data["password"]},
     )
     assert response.status_code == 200
     assert b"Account:" in response.data
