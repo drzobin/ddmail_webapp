@@ -810,21 +810,27 @@ def settings_change_password_on_user():
     This function allows users to change their login password. It generates
     a new secure password, updates the password hash in the database, and
     provides the new password encrypted with the users OpenPGP key to the user
-    as a encrypted file named ddmail_credentials_new_password.asc.
+    as a encrypted file named ddmail-credentials_new_password.asc.
 
     Returns:
-        Response: The new password encrypted with the users OpenPGP key as file ddmail_credentials_new_password.asc
+        Response: The new password encrypted with the users OpenPGP key as file ddmail-credentials_new_password.asc
 
     Request Form Parameters:
         password (str): The current password to verify before changing
         csrf_token (str): CSRF protection token for POST requests
 
     Error Responses:
-
+        "Failed to change users password beacuse this account is disabled. ...": If the account is not enabled
+        "Failed to change user password, wrong password.": If the form data is missing or the current password is incorrect
+        "Failed to change user password, username validation failed.": If username validation fails
+        "Failed to change user password, password validation failed.": If password validation fails
+        "Failed to change user password, user does not exist in db.": If the user is not found in the database
+        "Failed to encrypt cleartext data beacuse openpgp keyhandler service do not answer.": If the OpenPGP keyhandler service is unreachable
+        "Failed to encrypt cleartext data beacuse openpgp keyhandler service returned error": If the OpenPGP keyhandler service returns an error
 
     Success Response:
-        GET: Renders change_password_on_user.html template with password change form
-        POST: The file ddmail_credentials_new_password.asc
+        GET: Renders settings_change_password_on_user.html template with password change form
+        POST: The file ddmail-credentials_new_password.asc
     """
     # Check if cookie secret is set.
     if not "secret" in session:
@@ -982,7 +988,7 @@ def settings_change_password_on_user():
                 },
                 timeout=5,
             )
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.RequestException:
             current_app.logger.error(
                 "user "
                 + current_user.user
@@ -997,10 +1003,8 @@ def settings_change_password_on_user():
                 current_user=current_user,
             )
 
-        # Check if encryption was successfull.
-        if r_respone.status_code != 200 or "done encrypted_data:" not in str(
-            r_respone.content
-        ):
+        # Check if encryption was successful.
+        if r_respone.status_code != 200 or b"done encrypted_data:" not in r_respone.content:
             current_app.logger.error(
                 "user "
                 + current_user.user
@@ -1035,6 +1039,18 @@ def settings_change_password_on_user():
             )
             .first()
         )
+        if user is None:
+            current_app.logger.warning(
+                "failed change password, user "
+                + current_user.user
+                + " do not exsist in db"
+            )
+            return render_template(
+                "message.html",
+                headline="Change user password error",
+                message="Failed to change user password, user does not exist in db.",
+                current_user=current_user,
+            )
         user.password_hash = password_hash
         db.session.commit()
 
